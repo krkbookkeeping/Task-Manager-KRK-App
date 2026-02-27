@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // If user is already logged in, redirect them away from the login page to the app
     onAuthStateChanged(auth, (user) => {
         if (user) {
-            window.location.href = '/index.html';
+            window.location.href = './index.html';
         }
     });
 
