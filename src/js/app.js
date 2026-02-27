@@ -29,7 +29,7 @@ import('./firebase-config.js')
         onAuthStateChanged(auth, (user) => {
             if (!user) {
                 // Not logged in -> redirect to login
-                window.location.href = './login.html';
+                window.location.href = '/Task-Manager-KRK-App/login.html';
             } else {
                 console.log('User is signed in:', user.email);
 
