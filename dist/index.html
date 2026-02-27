@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Task Manager KRK — Cloud-based task management for teams and freelancers">
+    <title>Task Manager KRK</title>
+    <!-- Google Material Symbols (Outlined) -->
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
+  <script type="module" crossorigin src="/assets/index-Ckd7Z2FE.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-C-5aBAGc.css">
+</head>
+
+<body>
+
+    <!-- Sidebar Overlay (click to close on mobile) -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <div id="app-container">
+        <!-- ===== COLLAPSIBLE SIDEBAR ===== -->
+        <aside class="sidebar" id="sidebar">
+            <!-- Sidebar Header -->
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="logo-icon">K</div>
+                    <span>TaskKRK</span>
+                </div>
+                <button class="btn-icon sidebar-close" id="sidebar-close" data-tooltip="Close menu"
+                    onclick="closeSidebar()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <!-- Workspace Switcher -->
+            <div class="workspace-switcher">
+                <button class="workspace-switcher-btn" id="workspace-switcher-btn">
+                    <span>My Workspace</span>
+                    <span class="material-symbols-outlined ws-chevron">expand_more</span>
+                </button>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Main</div>
+                <a class="nav-item active" href="#" id="nav-boards">
+                    <span class="material-symbols-outlined nav-icon">dashboard</span>
+                    <span>Boards</span>
+                </a>
+                <a class="nav-item" href="#" id="nav-archive">
+                    <span class="material-symbols-outlined nav-icon">inventory_2</span>
+                    <span>Archive</span>
+                </a>
+
+                <div class="nav-section-title">Workspace</div>
+                <a class="nav-item" href="#" id="nav-labels">
+                    <span class="material-symbols-outlined nav-icon">label</span>
+                    <span>Labels</span>
+                </a>
+                <a class="nav-item" href="#" id="nav-settings">
+                    <span class="material-symbols-outlined nav-icon">settings</span>
+                    <span>Settings</span>
+                </a>
+            </nav>
+
+            <!-- Sidebar Footer: Theme Toggle -->
+            <div class="sidebar-footer">
+                <div class="theme-toggle-row">
+                    <div class="theme-toggle-label">
+                        <span class="material-symbols-outlined" id="theme-icon">light_mode</span>
+                        <span id="theme-label">Light Mode</span>
+                    </div>
+                    <label class="toggle" data-tooltip="Toggle dark mode">
+                        <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ===== MAIN CONTENT ===== -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <!-- Hamburger menu button -->
+                <button class="btn-icon hamburger" id="sidebar-toggle" data-tooltip="Menu" onclick="toggleSidebar()">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+
+                <!-- Search -->
+                <div class="search-container">
+                    <span class="material-symbols-outlined search-icon">search</span>
+                    <input type="text" id="global-search" placeholder="Search tasks, descriptions, comments..."
+                        autocomplete="off">
+                </div>
+
+                <!-- User avatar -->
+                <div class="user-avatar" id="user-avatar" data-tooltip="Profile">
+                    K
+                </div>
+            </header>
+
+            <!-- Dashboard Layout -->
+            <div class="dashboard-layout">
+                <!-- Calendar Column (left — takes more room now) -->
+                <aside class="calendar-column">
+                    <div class="calendar-column-header">
+                        <h3>Calendar</h3>
+                        <button class="btn-icon" data-tooltip="Today">
+                            <span class="material-symbols-outlined">today</span>
+                        </button>
+                    </div>
+                    <p class="text-sm text-muted" style="text-align:center; padding: var(--space-3xl) 0;">
+                        Calendar will be built in Phase 8
+                    </p>
+                </aside>
+
+                <!-- Bucket Grid (center/right) — Label-based squares -->
+                <section class="bucket-grid stagger-children">
+                    <!-- Label Bucket: Bookkeeping -->
+                    <div class="bucket animate-slide-up">
+                        <div class="bucket-header">
+                            <h4>
+                                <span class="label-dot" style="background-color: #6366f1;"></span>
+                                Bookkeeping
+                            </h4>
+                            <div class="bucket-header-actions">
+                                <span class="task-count">3</span>
+                                <button class="btn-icon btn-sm" data-tooltip="More options">
+                                    <span class="material-symbols-outlined">more_horiz</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bucket-cards">
+                            <div class="task-card">
+                                <div class="task-card-title">Reconcile Q4 statements</div>
+                                <div class="task-card-meta">
+                                    <span class="material-symbols-outlined task-meta-icon">calendar_today</span>
+                                    <span>Feb 21</span>
+                                </div>
+                            </div>
+                            <div class="task-card">
+                                <div class="task-card-title">Review invoice batch #47</div>
+                                <div class="task-card-meta">
+                                    <span class="material-symbols-outlined task-meta-icon">calendar_today</span>
+                                    <span>Feb 23</span>
+                                </div>
+                            </div>
+                            <div class="task-card">
+                                <div class="task-card-title">Payroll adjustments</div>
+                                <div class="task-card-meta">
+                                    <span class="material-symbols-outlined task-meta-icon">calendar_today</span>
+                                    <span>Feb 25</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Label Bucket: Tax Filing -->
+                    <div class="bucket animate-slide-up">
+                        <div class="bucket-header">
+                            <h4>
+                                <span class="label-dot" style="background-color: #22c55e;"></span>
+                                Tax Filing
+                            </h4>
+                            <div class="bucket-header-actions">
+                                <span class="task-count">2</span>
+                                <button class="btn-icon btn-sm" data-tooltip="More options">
+                                    <span class="material-symbols-outlined">more_horiz</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bucket-cards">
+                            <div class="task-card">
+                                <div class="task-card-title">Prepare 1099 forms</div>
+                                <div class="task-card-meta">
+                                    <span class="material-symbols-outlined task-meta-icon">calendar_today</span>
+                                    <span>Feb 20</span>
+                                </div>
+                            </div>
+                            <div class="task-card">
+                                <div class="task-card-title">State tax extensions</div>
+                                <div class="task-card-meta">
+                                    <span class="material-symbols-outlined task-meta-icon">calendar_today</span>
+                                    <span>Feb 28</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Label Bucket: Client Follow-up (empty — collapsed) -->
+                    <div class="bucket bucket-empty animate-slide-up">
+                        <div class="bucket-header">
+                            <h4>
+                                <span class="label-dot" style="background-color: #f59e0b;"></span>
+                                Client Follow-up
+                            </h4>
+                            <div class="bucket-header-actions">
+                                <span class="task-count">0</span>
+                                <button class="btn-icon btn-sm" data-tooltip="More options">
+                                    <span class="material-symbols-outlined">more_horiz</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Label Bucket: Urgent -->
+                    <div class="bucket animate-slide-up">
+                        <div class="bucket-header">
+                            <h4>
+                                <span class="label-dot" style="background-color: #ef4444;"></span>
+                                Urgent
+                            </h4>
+                            <div class="bucket-header-actions">
+                                <span class="task-count">1</span>
+                                <button class="btn-icon btn-sm" data-tooltip="More options">
+                                    <span class="material-symbols-outlined">more_horiz</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bucket-cards">
+                            <div class="task-card">
+                                <div class="task-card-title">Missing receipt from vendor</div>
+                                <div class="task-card-meta">
+                                    <span class="material-symbols-outlined task-meta-icon">calendar_today</span>
+                                    <span>Today</span>
+                                    <span class="badge badge-danger">Overdue</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Label Bucket: Reports -->
+                    <div class="bucket animate-slide-up">
+                        <div class="bucket-header">
+                            <h4>
+                                <span class="label-dot" style="background-color: #3b82f6;"></span>
+                                Reports
+                            </h4>
+                            <div class="bucket-header-actions">
+                                <span class="task-count">2</span>
+                                <button class="btn-icon btn-sm" data-tooltip="More options">
+                                    <span class="material-symbols-outlined">more_horiz</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bucket-cards">
+                            <div class="task-card">
+                                <div class="task-card-title">Monthly P&L summary</div>
+                                <div class="task-card-meta">
+                                    <span class="material-symbols-outlined task-meta-icon">calendar_today</span>
+                                    <span>Mar 1</span>
+                                </div>
+                            </div>
+                            <div class="task-card">
+                                <div class="task-card-title">Cash flow forecast</div>
+                                <div class="task-card-meta">
+                                    <span class="material-symbols-outlined task-meta-icon">calendar_today</span>
+                                    <span>Mar 5</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Label Bucket: Admin -->
+                    <div class="bucket bucket-empty animate-slide-up">
+                        <div class="bucket-header">
+                            <h4>
+                                <span class="label-dot" style="background-color: #a855f7;"></span>
+                                Admin
+                            </h4>
+                            <div class="bucket-header-actions">
+                                <span class="task-count">0</span>
+                                <button class="btn-icon btn-sm" data-tooltip="More options">
+                                    <span class="material-symbols-outlined">more_horiz</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Label Button -->
+                    <div class="bucket-add animate-slide-up">
+                        <button class="btn-add-label" id="add-label-btn">
+                            <span class="material-symbols-outlined">add</span>
+                            <span>New Label</span>
+                        </button>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Inline UI script — works regardless of module loading -->
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebar-overlay').classList.toggle('active');
+        }
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebar-overlay').classList.remove('active');
+        }
+        function toggleTheme() {
+            var html = document.documentElement;
+            var current = html.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            var label = document.getElementById('theme-label');
+            if (label) label.textContent = next === 'dark' ? 'Dark Mode' : 'Light Mode';
+            var icon = document.getElementById('theme-icon');
+            if (icon) icon.textContent = next === 'dark' ? 'dark_mode' : 'light_mode';
+            try { localStorage.setItem('taskmanager-theme', next); } catch (e) { }
+        }
+        // Restore saved theme on load
+        (function () {
+            try {
+                var saved = localStorage.getItem('taskmanager-theme');
+                if (saved === 'dark' || saved === 'light') {
+                    document.documentElement.setAttribute('data-theme', saved);
+                }
+            } catch (e) { }
+        })();
+    </script>
+
+    <!-- App module (Firebase, future features) -->
+</body>
+
+</html>

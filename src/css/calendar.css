@@ -1,0 +1,205 @@
+.nav-calendar {
+    padding: var(--spacing-4);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-4);
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: var(--text-main);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    position: relative;
+    user-select: none;
+}
+
+.calendar-day:hover {
+    background-color: var(--surface-hover);
+}
+
+.calendar-day.other-month {
+    color: var(--text-muted);
+}
+
+.calendar-day.today {
+    background-color: var(--success);
+    color: #000000;
+    font-weight: bold;
+    border-radius: 4px;
+    /* green square */
+}
+
+.calendar-day.selected {
+    background-color: #fef08a;
+    /* soft yellow */
+    color: #000000;
+    /* solid black */
+    font-weight: normal;
+    /* no bolded number */
+    border-radius: 4px;
+    /* yellow square */
+}
+
+/* Today should ALWAYS remain its own color and bolded, even if selected */
+.calendar-day.today.selected {
+    background-color: var(--success);
+    color: #000000;
+    font-weight: bold;
+}
+
+/* Date range highlighting (Shift+Click) */
+.calendar-day.range-start,
+.calendar-day.range-end {
+    background-color: #fef08a;
+    color: #000000;
+    font-weight: 600;
+    border-radius: 4px;
+}
+
+.calendar-day.in-range {
+    background-color: #fef9c3;
+    color: #000000;
+    border-radius: 2px;
+}
+
+/* Today in range should keep green but show range indicator */
+.calendar-day.today.range-start,
+.calendar-day.today.range-end {
+    background-color: var(--success);
+    color: #000000;
+    font-weight: bold;
+    box-shadow: inset 0 0 0 2px #fef08a;
+}
+
+.calendar-day.today.in-range {
+    background-color: var(--success);
+    color: #000000;
+    font-weight: bold;
+    box-shadow: inset 0 0 0 2px #fef9c3;
+}
+
+.calendar-day.has-tasks::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: var(--secondary);
+}
+
+/* Stat Holidays (Blue Circle Indicator) */
+.calendar-day.is-stat-holiday {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.calendar-day.is-stat-holiday::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1.5px solid var(--accent);
+    pointer-events: none;
+}
+
+/* ── Month 2 (next month) styling ── */
+.calendar-day.next-month {
+    color: var(--text-main);
+}
+
+.calendar-day.next-month:hover {
+    opacity: 1;
+}
+
+.calendar-day.next-month.selected {
+    opacity: 1;
+    color: #000000;
+}
+
+.calendar-month-separator {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    padding: 8px 0 4px;
+    margin-top: 4px;
+    border-top: 1px solid var(--border);
+}
+
+.calendar-day-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    color: var(--text-primary);
+    user-select: none;
+}
+
+/* Date Filter Banner */
+.date-filter-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-2) var(--spacing-4);
+    background-color: var(--primary);
+    color: white;
+    border-radius: var(--radius-md);
+    margin: 0 var(--spacing-8) var(--spacing-4) var(--spacing-8);
+    font-size: 0.85rem;
+    font-weight: 500;
+    box-shadow: var(--shadow-sm);
+    animation: slideDown 0.2s ease-out;
+}
+
+.date-filter-banner .material-symbols-outlined {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.date-filter-banner .btn-icon {
+    color: rgba(255, 255, 255, 0.8);
+    width: 24px;
+    height: 24px;
+}
+
+.date-filter-banner .btn-icon:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

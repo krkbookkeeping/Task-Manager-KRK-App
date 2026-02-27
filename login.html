@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sign in to Task Manager KRK">
+    <title>Login — Task Manager KRK</title>
+
+    <!-- Design System Base -->
+    <link rel="stylesheet" href="./src/css/style.css">
+    <!-- Auth Specific Styles -->
+    <link rel="stylesheet" href="./src/css/auth.css">
+
+    <!-- Google Material Symbols (Outlined) -->
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
+
+    <!-- Import Map: lets the browser resolve bare Firebase specifiers without a bundler -->
+    <script type="importmap">
+    {
+        "imports": {
+            "firebase/app":       "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js",
+            "firebase/auth":      "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js",
+            "firebase/analytics": "https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics.js"
+        }
+    }
+    </script>
+</head>
+
+<body class="auth-page">
+    <div class="auth-container">
+
+        <header class="auth-header">
+            <div class="auth-logo">
+                <div class="logo-icon">K</div>
+                <span>TaskKRK</span>
+            </div>
+            <h1>Welcome back</h1>
+            <p>Sign in to your account or create a new one.</p>
+        </header>
+
+        <section class="auth-body">
+
+            <!-- Global Alert Box -->
+            <div id="auth-alert" class="auth-alert">
+                <span class="material-symbols-outlined" id="auth-alert-icon">error</span>
+                <span class="auth-alert-message" id="auth-alert-text">An error occurred.</span>
+            </div>
+
+            <!-- Tabs -->
+            <div class="auth-tabs" role="tablist">
+                <button class="auth-tab active" id="tab-login" role="tab" aria-selected="true"
+                    aria-controls="form-login">Sign In</button>
+                <button class="auth-tab" id="tab-signup" role="tab" aria-selected="false"
+                    aria-controls="form-signup">Create Account</button>
+            </div>
+
+            <!-- Login Form -->
+            <form class="auth-form active" id="form-login">
+                <div class="form-group">
+                    <label for="login-email">Email address</label>
+                    <input type="email" id="login-email" class="form-input" placeholder="name@company.com" required
+                        autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between;">
+                        <label for="login-password">Password</label>
+                    </div>
+                    <div class="password-input-group">
+                        <input type="password" id="login-password" class="form-input" placeholder="••••••••" required
+                            autocomplete="current-password">
+                        <button type="button" class="btn-toggle-password" data-target="login-password"
+                            aria-label="Toggle password visibility">
+                            <span class="material-symbols-outlined">visibility</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="btn-login-submit">
+                    <span id="login-btn-text">Sign In</span>
+                    <span class="spinner" id="login-spinner"
+                        style="display:none; width:16px; height:16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+                </button>
+            </form>
+
+            <!-- Sign Up Form -->
+            <form class="auth-form" id="form-signup">
+                <div class="form-group">
+                    <label for="signup-name">Full Name</label>
+                    <input type="text" id="signup-name" class="form-input" placeholder="Jane Doe" required
+                        autocomplete="name">
+                </div>
+
+                <div class="form-group">
+                    <label for="signup-email">Email address</label>
+                    <input type="email" id="signup-email" class="form-input" placeholder="name@company.com" required
+                        autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="signup-password">Password (min 6 characters)</label>
+                    <div class="password-input-group">
+                        <input type="password" id="signup-password" class="form-input" placeholder="••••••••" required
+                            autocomplete="new-password" minlength="6">
+                        <button type="button" class="btn-toggle-password" data-target="signup-password"
+                            aria-label="Toggle password visibility">
+                            <span class="material-symbols-outlined">visibility</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="btn-signup-submit">
+                    <span id="signup-btn-text">Create Account</span>
+                    <span class="spinner" id="signup-spinner"
+                        style="display:none; width:16px; height:16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+                </button>
+                <p class="text-sm text-muted" style="text-align: center; margin-top: var(--space-sm);">
+                    By creating an account, you agree to our Terms of Service.
+                </p>
+            </form>
+
+        </section>
+
+        <!-- Theme logic for login page inline to prevent flashing/issues -->
+        <script>
+            (function () {
+                try {
+                    var saved = localStorage.getItem('taskmanager-theme');
+                    if (saved === 'dark' || saved === 'light') {
+                        document.documentElement.setAttribute('data-theme', saved);
+                    }
+                } catch (e) { }
+            })();
+        </script>
+
+    </div>
+
+    <!-- Firebase SDK & Auth Logic -->
+    <script type="module" src="./src/js/auth.js"></script>
+
+    <style>
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</body>
+
+</html>
