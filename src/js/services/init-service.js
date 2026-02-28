@@ -1,10 +1,10 @@
 import { workspaceService } from './workspace-service.js';
 import { boardService } from './board-service.js';
-import { labelService } from './label-service.js';
 
 /**
  * Ensures the user has at least one workspace and board.
  * Returns the active { workspaceId, boardId } context for the dashboard to use.
+ * Remembers the last-used workspace via localStorage.
  */
 export async function ensureDefaultData(uid) {
     try {
@@ -13,36 +13,48 @@ export async function ensureDefaultData(uid) {
 
         if (workspaces.length === 0) {
             console.log("No workspaces found. Provisioning default Workspace...");
-            const ws = await workspaceService.create(uid, "My Workspace");
+            const ws = await workspaceService.create(uid, "My Workspace", "#6366f1");
             activeWorkspaceId = ws.id;
         } else {
-            activeWorkspaceId = workspaces[0].id;
+            // Check localStorage for last-used workspace
+            const lastUsedId = localStorage.getItem(`lastWorkspaceId_${uid}`);
+            if (lastUsedId && workspaces.some(ws => ws.id === lastUsedId)) {
+                activeWorkspaceId = lastUsedId;
+            } else {
+                activeWorkspaceId = workspaces[0].id;
+            }
         }
 
-        let boards = await boardService.getAllUnarchived(uid, activeWorkspaceId);
-        let activeBoardId = null;
+        // Save the active workspace to localStorage
+        localStorage.setItem(`lastWorkspaceId_${uid}`, activeWorkspaceId);
 
-        if (boards.length === 0) {
-            console.log("No boards found. Provisioning default Board and Labels...");
-            const board = await boardService.create(uid, activeWorkspaceId, "Main Board", "My first task board");
-            activeBoardId = board.id;
-
-            // Provision some default starter labels for the empty board
-            await labelService.create(uid, activeWorkspaceId, "To Do", "#3b82f6");      // Blue
-            await labelService.create(uid, activeWorkspaceId, "In Progress", "#f59e0b"); // Yellow
-            await labelService.create(uid, activeWorkspaceId, "Review", "#a855f7");      // Purple
-            await labelService.create(uid, activeWorkspaceId, "Done", "#22c55e");        // Green
-
-        } else {
-            activeBoardId = boards[0].id;
-        }
+        const boardResult = await ensureBoardAndLabels(uid, activeWorkspaceId);
 
         return {
             workspaceId: activeWorkspaceId,
-            boardId: activeBoardId
+            boardId: boardResult.boardId
         };
     } catch (err) {
         console.error("Error during init provision:", err);
         return null;
     }
+}
+
+/**
+ * Ensures a workspace has at least one board and starter labels.
+ * Used both on initial boot and when switching to a new workspace.
+ */
+export async function ensureBoardAndLabels(uid, workspaceId) {
+    let boards = await boardService.getAllUnarchived(uid, workspaceId);
+    let activeBoardId = null;
+
+    if (boards.length === 0) {
+        console.log("No boards found. Provisioning default Board...");
+        const board = await boardService.create(uid, workspaceId, "Main Board", "My first task board");
+        activeBoardId = board.id;
+    } else {
+        activeBoardId = boards[0].id;
+    }
+
+    return { boardId: activeBoardId };
 }

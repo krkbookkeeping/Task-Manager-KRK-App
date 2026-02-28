@@ -8,9 +8,22 @@
     <title>Task Manager KRK</title>
     <!-- Google Material Symbols (Outlined) -->
     <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
-  <script type="module" crossorigin src="/assets/index-Ckd7Z2FE.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-C-5aBAGc.css">
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
+
+    <!-- Import Map: lets the browser resolve bare Firebase specifiers without a bundler -->
+
+    <script type="importmap">
+    {
+        "imports": {
+            "firebase/app":       "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js",
+            "firebase/auth":      "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js",
+            "firebase/analytics": "https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics.js"
+        }
+    }
+    </script>
+  <script type="module" crossorigin src="/assets/index-DqiEjKr8.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CcPoyytv.css">
 </head>
 
 <body>
@@ -32,54 +45,74 @@
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
-
-            <!-- Workspace Switcher -->
-            <div class="workspace-switcher">
-                <button class="workspace-switcher-btn" id="workspace-switcher-btn">
-                    <span>My Workspace</span>
-                    <span class="material-symbols-outlined ws-chevron">expand_more</span>
-                </button>
-            </div>
-
-            <!-- Navigation -->
+            <!-- Sidebar Navigation -->
             <nav class="sidebar-nav">
-                <div class="nav-section-title">Main</div>
-                <a class="nav-item active" href="#" id="nav-boards">
-                    <span class="material-symbols-outlined nav-icon">dashboard</span>
-                    <span>Boards</span>
-                </a>
-                <a class="nav-item" href="#" id="nav-archive">
-                    <span class="material-symbols-outlined nav-icon">inventory_2</span>
-                    <span>Archive</span>
-                </a>
+                <div class="nav-content">
+                    <a href="#" class="nav-item active" id="btn-nav-boards" data-tooltip="Boards">
+                        <span class="material-symbols-outlined nav-icon">dashboard</span>
+                        <span class="nav-text">Boards</span>
+                    </a>
+                    <a href="#" class="nav-item" id="btn-nav-completed" data-tooltip="Completed">
+                        <span class="material-symbols-outlined nav-icon">check_circle</span>
+                        <span class="nav-text">Completed</span>
+                    </a>
+                    <!-- Workspace Switcher -->
+                    <div class="workspace-switcher-section" style="padding: 0; margin: 4px 0;">
+                        <button id="workspace-switcher-trigger" class="nav-item workspace-trigger"
+                            data-tooltip="Workspaces">
+                            <span class="material-symbols-outlined nav-icon">business</span>
+                            <span class="nav-text"
+                                style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+                                <span class="workspace-dot" id="workspace-current-dot"
+                                    style="width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background-color: #6366f1;"></span>
+                                <span id="workspace-current-name"
+                                    style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Workspace</span>
+                            </span>
+                            <span class="material-symbols-outlined nav-icon"
+                                style="font-size: 16px; opacity: 0.5;">expand_more</span>
+                        </button>
 
-                <div class="nav-section-title">Workspace</div>
-                <a class="nav-item" href="#" id="nav-labels">
-                    <span class="material-symbols-outlined nav-icon">label</span>
-                    <span>Labels</span>
-                </a>
-                <a class="nav-item" href="#" id="nav-settings">
-                    <span class="material-symbols-outlined nav-icon">settings</span>
-                    <span>Settings</span>
-                </a>
+                        <!-- Workspace Dropdown Panel -->
+                        <div id="workspace-dropdown" class="workspace-dropdown" style="display: none;">
+                            <div id="workspace-dropdown-list" class="workspace-dropdown-list">
+                                <!-- JS renders workspace items here -->
+                            </div>
+                            <div class="workspace-create-section">
+                                <button class="btn btn-outline btn-sm" id="btn-create-workspace"
+                                    style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px;">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">add</span>
+                                    Create Workspace
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="#" class="nav-item" id="btn-nav-archive" data-tooltip="Archive">
+                        <span class="material-symbols-outlined nav-icon">inventory_2</span>
+                        <span class="nav-text">Archive</span>
+                    </a>
+                    <a href="#" class="nav-item" id="btn-nav-bookmarks" data-tooltip="Bookmarks">
+                        <span class="material-symbols-outlined nav-icon">bookmarks</span>
+                        <span class="nav-text">Bookmarks</span>
+                    </a>
+
+                    <div style="flex: 1;"></div>
+
+                    <button class="btn-icon" id="btn-sidebar-create-task" data-tooltip="New Task"
+                        style="background-color: var(--primary); color: white; width: 40px; height: 40px; border-radius: 50%; margin-bottom: var(--spacing-4);">
+                        <span class="material-symbols-outlined">add</span>
+                    </button>
+                </div>
+
+                <!-- User / Settings Section -->
+                <div class="user-item" onclick="openSettingsModal()" data-tooltip="Settings & Profile">
+                    <div class="user-avatar" id="user-avatar">U</div>
+                    <span class="user-item-text">Settings & Profile</span>
+                </div>
             </nav>
 
-            <!-- Sidebar Footer: Theme Toggle -->
-            <div class="sidebar-footer">
-                <div class="theme-toggle-row">
-                    <div class="theme-toggle-label">
-                        <span class="material-symbols-outlined" id="theme-icon">light_mode</span>
-                        <span id="theme-label">Light Mode</span>
-                    </div>
-                    <label class="toggle" data-tooltip="Toggle dark mode">
-                        <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-            </div>
         </aside>
 
-        <!-- ===== MAIN CONTENT ===== -->
+        <!-- Main Content (Board/Dashboard) -->
         <main class="main-content">
             <!-- Top Bar -->
             <header class="top-bar">
@@ -93,202 +126,684 @@
                     <span class="material-symbols-outlined search-icon">search</span>
                     <input type="text" id="global-search" placeholder="Search tasks, descriptions, comments..."
                         autocomplete="off">
+                    <button class="btn-icon" id="btn-clear-search" style="display: none;" title="Clear Search (Esc)">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
+                    </button>
                 </div>
 
-                <!-- User avatar -->
-                <div class="user-avatar" id="user-avatar" data-tooltip="Profile">
-                    K
+                <!-- Header Actions: Task view controls (hidden when bookmarks active) -->
+                <div id="task-topbar-group"
+                    style="display: flex; gap: var(--space-md); align-items: center; flex: 1; justify-content: flex-end; min-width: 0;">
+
+                    <!-- JS injects parked label chips here -->
+                    <div id="parked-labels-container"
+                        style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex: 1;">
+                    </div>
+
+                    <div style="position: relative; display: flex; flex-shrink: 0;">
+                        <button id="btn-show-add-label-top"
+                            style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; background-color: var(--bg-surface); border: 1px dashed var(--border-light); border-left: 3px solid var(--text-muted); border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 500; color: var(--text-muted); cursor: pointer; box-shadow: var(--shadow-sm); transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast); flex-shrink: 0;"
+                            title="Create New Label"
+                            onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='var(--shadow-md)'; this.style.borderColor='var(--text-muted)';"
+                            onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)'; this.style.borderColor='var(--border-light)';">
+                            <span class="material-symbols-outlined"
+                                style="font-size: 14px; pointer-events: none;">add</span>
+                            <span style="pointer-events: none;">New Label</span>
+                        </button>
+
+                        <!-- Popover for Add Label -->
+                        <div id="add-label-popover"
+                            style="display: none; position: absolute; top: 120%; right: 0; width: 250px; flex-direction: column; gap: 12px; padding: 16px; background: var(--bg-surface); border-radius: var(--radius-xl); border: 1px solid var(--border-primary); box-shadow: var(--shadow-lg); z-index: 100;">
+                            <div
+                                style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary); text-align: center;">
+                                Create New Label</div>
+                            <input type="text" id="new-label-name" class="form-input form-input-sm"
+                                placeholder="Label name..." style="background: var(--bg-body);" autocomplete="off" />
+                            <div
+                                style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-body); padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="material-symbols-outlined"
+                                        style="color: var(--text-muted); font-size: 18px;">palette</span>
+                                    <span style="font-size: 0.85rem; color: var(--text-secondary);">Color</span>
+                                </div>
+                                <div class="color-picker-wrapper"
+                                    style="position: relative; width: 24px; height: 24px; border-radius: 50%; overflow: hidden; border: 2px solid var(--border-primary); cursor: pointer;">
+                                    <input type="color" id="new-label-color" value="#6366f1"
+                                        style="position: absolute; top: -10px; left: -10px; width: 44px; height: 44px; cursor: pointer; border: none; padding: 0;" />
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:8px; margin-top: 4px;">
+                                <button class="btn btn-primary btn-sm" id="btn-save-label"
+                                    style="flex: 1;">Create</button>
+                                <button class="btn btn-outline btn-sm" id="btn-cancel-label"
+                                    style="flex: 1;">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" id="btn-topbar-create-task" style="gap: 8px; flex-shrink: 0;">
+                        <span class="material-symbols-outlined">add_task</span>
+                        Create Task
+                    </button>
+                </div>
+
+                <!-- Header Actions: Bookmark view controls (hidden by default, shown when bookmarks active) -->
+                <div id="bookmark-topbar-group"
+                    style="display: none; gap: var(--space-md); align-items: center; flex: 1; justify-content: flex-end; min-width: 0;">
+
+                    <!-- Bookmark search -->
+                    <div class="search-container" style="max-width: 220px; flex-shrink: 0;">
+                        <span class="material-symbols-outlined search-icon">search</span>
+                        <input type="text" id="bookmark-search" placeholder="Search bookmarks..." autocomplete="off"
+                            class="form-input form-input-sm" style="padding-left: 32px; width: 100%;">
+                    </div>
+
+                    <!-- Parked bookmark label chips -->
+                    <div id="bookmark-parked-labels-container"
+                        style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex: 1;">
+                    </div>
+
+                    <!-- Labels visibility toggle -->
+                    <button id="btn-toggle-bookmark-labels" title="Show / Hide Labels"
+                        style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; background-color: var(--bg-surface); border: 1px solid var(--border-light); border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 500; color: var(--text-muted); cursor: pointer; box-shadow: var(--shadow-sm); transition: transform var(--transition-fast), box-shadow var(--transition-fast); flex-shrink: 0;"
+                        onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='var(--shadow-md)';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
+                        <span class="material-symbols-outlined" id="bookmark-labels-toggle-icon"
+                            style="font-size: 14px; pointer-events: none;">label</span>
+                        <span style="pointer-events: none;">Labels</span>
+                    </button>
+
+                    <!-- New Bookmark Label popover -->
+                    <div style="position: relative; display: flex;">
+                        <button id="btn-show-add-bookmark-label"
+                            style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; background-color: var(--bg-surface); border: 1px dashed var(--border-light); border-left: 3px solid var(--text-muted); border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 500; color: var(--text-muted); cursor: pointer; box-shadow: var(--shadow-sm); transition: transform var(--transition-fast), box-shadow var(--transition-fast); flex-shrink: 0;"
+                            title="Create New Bookmark Label"
+                            onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='var(--shadow-md)';"
+                            onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
+                            <span class="material-symbols-outlined"
+                                style="font-size: 14px; pointer-events: none;">add</span>
+                            <span style="pointer-events: none;">New Label</span>
+                        </button>
+                        <div id="add-bookmark-label-popover"
+                            style="display: none; position: absolute; top: 120%; right: 0; width: 250px; flex-direction: column; gap: 12px; padding: 16px; background: var(--bg-surface); border-radius: var(--radius-xl); border: 1px solid var(--border-primary); box-shadow: var(--shadow-lg); z-index: 100;">
+                            <div
+                                style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary); text-align: center;">
+                                Create New Label</div>
+                            <input type="text" id="new-bookmark-label-name" class="form-input form-input-sm"
+                                placeholder="Label name..." style="background: var(--bg-body);" autocomplete="off" />
+                            <div
+                                style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-body); padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="material-symbols-outlined"
+                                        style="color: var(--text-muted); font-size: 18px;">palette</span>
+                                    <span style="font-size: 0.85rem; color: var(--text-secondary);">Color</span>
+                                </div>
+                                <div class="color-picker-wrapper"
+                                    style="position: relative; width: 24px; height: 24px; border-radius: 50%; overflow: hidden; border: 2px solid var(--border-primary); cursor: pointer;">
+                                    <input type="color" id="new-bookmark-label-color" value="#6366f1"
+                                        style="position: absolute; top: -10px; left: -10px; width: 44px; height: 44px; cursor: pointer; border: none; padding: 0;" />
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:8px; margin-top: 4px;">
+                                <button class="btn btn-primary btn-sm" id="btn-save-bookmark-label"
+                                    style="flex: 1;">Create</button>
+                                <button class="btn btn-outline btn-sm" id="btn-cancel-bookmark-label"
+                                    style="flex: 1;">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Bookmark button -->
+                    <button class="btn btn-primary" id="btn-topbar-create-bookmark" style="gap: 8px; flex-shrink: 0;">
+                        <span class="material-symbols-outlined">bookmark_add</span>
+                        Add Bookmark
+                    </button>
                 </div>
             </header>
 
             <!-- Dashboard Layout -->
             <div class="dashboard-layout">
-                <!-- Calendar Column (left — takes more room now) -->
-                <aside class="calendar-column">
-                    <div class="calendar-column-header">
-                        <h3>Calendar</h3>
-                        <button class="btn-icon" data-tooltip="Today">
-                            <span class="material-symbols-outlined">today</span>
-                        </button>
+                <!-- Left Column (Header + Calendar) -->
+                <div class="left-column" style="display: flex; flex-direction: column; gap: var(--space-md);">
+                    <div class="board-header" style="padding: 0;">
+                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">Main
+                            Board</h2>
                     </div>
-                    <p class="text-sm text-muted" style="text-align:center; padding: var(--space-3xl) 0;">
-                        Calendar will be built in Phase 8
-                    </p>
-                </aside>
 
-                <!-- Bucket Grid (center/right) — Label-based squares -->
-                <section class="bucket-grid stagger-children">
-                    <!-- Label Bucket: Bookkeeping -->
-                    <div class="bucket animate-slide-up">
-                        <div class="bucket-header">
-                            <h4>
-                                <span class="label-dot" style="background-color: #6366f1;"></span>
-                                Bookkeeping
-                            </h4>
-                            <div class="bucket-header-actions">
-                                <span class="task-count">3</span>
-                                <button class="btn-icon btn-sm" data-tooltip="More options">
-                                    <span class="material-symbols-outlined">more_horiz</span>
+                    <!-- Calendar Column (left) -->
+                    <aside class="calendar-column" style="flex: 1;">
+                        <div class="calendar-column-header">
+                            <h3>Calendar</h3>
+                            <div class="calendar-actions" style="display: flex; gap: 2px;">
+                                <button class="btn btn-sm btn-filter-tab" id="btn-today">
+                                    Today
+                                </button>
+                                <button class="btn btn-sm btn-filter-tab" id="btn-this-week">
+                                    This Week
+                                </button>
+                                <button class="btn btn-sm btn-filter-tab active" id="btn-all-tasks">
+                                    All
                                 </button>
                             </div>
                         </div>
-                        <div class="bucket-cards">
-                            <div class="task-card">
-                                <div class="task-card-title">Reconcile Q4 statements</div>
-                                <div class="task-card-meta">
-                                    <span class="material-symbols-outlined task-meta-icon">calendar_today</span>
-                                    <span>Feb 21</span>
-                                </div>
-                            </div>
-                            <div class="task-card">
-                                <div class="task-card-title">Review invoice batch #47</div>
-                                <div class="task-card-meta">
-                                    <span class="material-symbols-outlined task-meta-icon">calendar_today</span>
-                                    <span>Feb 23</span>
-                                </div>
-                            </div>
-                            <div class="task-card">
-                                <div class="task-card-title">Payroll adjustments</div>
-                                <div class="task-card-meta">
-                                    <span class="material-symbols-outlined task-meta-icon">calendar_today</span>
-                                    <span>Feb 25</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Label Bucket: Tax Filing -->
-                    <div class="bucket animate-slide-up">
-                        <div class="bucket-header">
-                            <h4>
-                                <span class="label-dot" style="background-color: #22c55e;"></span>
-                                Tax Filing
-                            </h4>
-                            <div class="bucket-header-actions">
-                                <span class="task-count">2</span>
-                                <button class="btn-icon btn-sm" data-tooltip="More options">
-                                    <span class="material-symbols-outlined">more_horiz</span>
+                        <!-- Calendar Section (Phase 8) -->
+                        <section class="nav-calendar">
+                            <div class="calendar-header">
+                                <button class="btn-icon" id="btn-prev-month">
+                                    <span class="material-symbols-outlined" style="font-size: 18px;">chevron_left</span>
+                                </button>
+                                <h4 id="calendar-month-year" style="margin: 0; font-size: 0.85rem; font-weight: 500;">
+                                    Month
+                                    Year
+                                </h4>
+                                <button class="btn-icon" id="btn-next-month">
+                                    <span class="material-symbols-outlined"
+                                        style="font-size: 18px;">chevron_right</span>
                                 </button>
                             </div>
+                            <div class="calendar-days-header"
+                                style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 0.7rem; color: var(--text-muted); margin-bottom: var(--spacing-2);">
+                                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                            </div>
+                            <div class="calendar-grid" id="calendar-grid">
+                                <!-- Days injected via JS -->
+                            </div>
+                        </section>
+                    </aside>
+                </div> <!-- Close Left Column -->
+
+                <!-- Right Side Container containing the buckets -->
+                <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                    <!-- Global Search Indicator (Injected dynamically) -->
+                    <div id="search-indicator" class="search-indicator"
+                        style="display: none; align-items: center; justify-content: center; background: var(--warning-subtle); color: var(--warning); padding: 8px 16px; font-weight: 500; font-size: 0.85rem; border-bottom: 1px solid var(--border-light);">
+                        <span class="material-symbols-outlined"
+                            style="font-size: 16px; margin-right: 6px;">search</span>
+                        <span id="search-indicator-text">Filtered by search: ''</span>
+                    </div>
+
+                    <!-- MAIN DASHBOARD CONTENT -->
+                    <div id="main-board-container" class="board-container active"
+                        style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                        <!-- Filter Banner (Phase 8 JS injects here) -->
+                        <div id="date-filter-banner" class="date-filter-banner"
+                            style="display: none; margin: 0 var(--spacing-6) var(--spacing-4) 0;">
+                            <span class="material-symbols-outlined dropdown-icon filter-icon">filter_alt</span>
+                            <span id="date-filter-text" class="filter-text"></span>
+                            <button class="btn-icon" id="btn-clear-date-filter" aria-label="Clear filter"
+                                title="Clear filter (ESC)">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
                         </div>
-                        <div class="bucket-cards">
-                            <div class="task-card">
-                                <div class="task-card-title">Prepare 1099 forms</div>
-                                <div class="task-card-meta">
-                                    <span class="material-symbols-outlined task-meta-icon">calendar_today</span>
-                                    <span>Feb 20</span>
-                                </div>
+                        <!-- Star Filter Toggle & Zoom Control -->
+                        <div id="star-filter-bar" class="star-filter-bar"
+                            style="margin: 0 var(--spacing-6) var(--spacing-4) 0; display: flex; align-items: center; justify-content: space-between;">
+                            <button class="btn btn-sm btn-outline btn-star-filter" id="btn-star-filter" type="button">
+                                <span class="material-symbols-outlined" id="star-filter-icon"
+                                    style="font-size: 18px;">star</span>
+                                <span id="star-filter-label">Show Starred Only</span>
+                            </button>
+                            <div class="zoom-controls" style="display: flex; align-items: center; gap: 8px;">
+                                <span class="material-symbols-outlined"
+                                    style="font-size: 16px; color: var(--text-muted);">zoom_out</span>
+                                <input type="range" id="zoom-slider" min="0.5" max="1.5" step="0.1" value="1.0"
+                                    style="width: 100px;">
+                                <span class="material-symbols-outlined"
+                                    style="font-size: 16px; color: var(--text-muted);">zoom_in</span>
                             </div>
-                            <div class="task-card">
-                                <div class="task-card-title">State tax extensions</div>
-                                <div class="task-card-meta">
-                                    <span class="material-symbols-outlined task-meta-icon">calendar_today</span>
-                                    <span>Feb 28</span>
-                                </div>
-                            </div>
+                        </div>
+                        <div id="dashboard-container" class="layout-container"
+                            style="flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0 var(--spacing-6) 0 0;">
+                            <section class="bucket-grid stagger-children" id="main-board">
+                                <!-- JS auto injects bucket columns here -->
+                            </section>
                         </div>
                     </div>
 
-                    <!-- Label Bucket: Client Follow-up (empty — collapsed) -->
-                    <div class="bucket bucket-empty animate-slide-up">
-                        <div class="bucket-header">
-                            <h4>
-                                <span class="label-dot" style="background-color: #f59e0b;"></span>
-                                Client Follow-up
-                            </h4>
-                            <div class="bucket-header-actions">
-                                <span class="task-count">0</span>
-                                <button class="btn-icon btn-sm" data-tooltip="More options">
-                                    <span class="material-symbols-outlined">more_horiz</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Label Bucket: Urgent -->
-                    <div class="bucket animate-slide-up">
-                        <div class="bucket-header">
-                            <h4>
-                                <span class="label-dot" style="background-color: #ef4444;"></span>
-                                Urgent
-                            </h4>
-                            <div class="bucket-header-actions">
-                                <span class="task-count">1</span>
-                                <button class="btn-icon btn-sm" data-tooltip="More options">
-                                    <span class="material-symbols-outlined">more_horiz</span>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="bucket-cards">
-                            <div class="task-card">
-                                <div class="task-card-title">Missing receipt from vendor</div>
-                                <div class="task-card-meta">
-                                    <span class="material-symbols-outlined task-meta-icon">calendar_today</span>
-                                    <span>Today</span>
-                                    <span class="badge badge-danger">Overdue</span>
+                    <!-- COMPLETED TASKS DASHBOARD -->
+                    <div id="completed-board-container" class="board-container"
+                        style="flex: 1; min-height: 0; display: none;">
+                        <section class="bucket-grid" style="display: block;">
+                            <div class="bucket"
+                                style="width: 100%; max-width: 800px; margin: 0 auto; min-height: unset; height: auto;">
+                                <div class="bucket-header"
+                                    style="justify-content: center; border-bottom: 1px solid var(--border-light); margin-bottom: 24px; padding-bottom: 12px;">
+                                    <h3 class="bucket-title" style="font-size: 1.5rem; text-align: center;">Completed
+                                        Tasks</h3>
+                                </div>
+                                <div class="task-list" id="completed-tasks-list">
+                                    <div class="empty-state">Loading completed tasks...</div>
                                 </div>
                             </div>
-                        </div>
+                        </section>
                     </div>
 
-                    <!-- Label Bucket: Reports -->
-                    <div class="bucket animate-slide-up">
-                        <div class="bucket-header">
-                            <h4>
-                                <span class="label-dot" style="background-color: #3b82f6;"></span>
-                                Reports
-                            </h4>
-                            <div class="bucket-header-actions">
-                                <span class="task-count">2</span>
-                                <button class="btn-icon btn-sm" data-tooltip="More options">
-                                    <span class="material-symbols-outlined">more_horiz</span>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="bucket-cards">
-                            <div class="task-card">
-                                <div class="task-card-title">Monthly P&L summary</div>
-                                <div class="task-card-meta">
-                                    <span class="material-symbols-outlined task-meta-icon">calendar_today</span>
-                                    <span>Mar 1</span>
+                    <!-- ARCHIVED TASKS DASHBOARD -->
+                    <div id="archive-board-container" class="board-container"
+                        style="flex: 1; min-height: 0; display: none;">
+                        <section class="bucket-grid" style="display: block;">
+                            <div class="bucket"
+                                style="width: 100%; max-width: 800px; margin: 0 auto; min-height: unset; height: auto;">
+                                <div class="bucket-header"
+                                    style="align-items: center; border-bottom: 1px solid var(--border-light); margin-bottom: 24px; padding-bottom: 12px; display: flex; position: relative;">
+                                    <h3 class="bucket-title" style="font-size: 1.5rem; text-align: center; flex: 1;">
+                                        Archived Tasks</h3>
+                                    <button class="btn btn-sm btn-outline btn-danger" id="btn-delete-old-archive"
+                                        style="position: absolute; right: 0; border-color: var(--danger); color: var(--danger);">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 16px; margin-right: 4px;">delete_forever</span>
+                                        Delete Tasks > 6 Months Old
+                                    </button>
+                                </div>
+                                <div class="task-list" id="archived-tasks-list">
+                                    <div class="empty-state">Loading archived tasks...</div>
                                 </div>
                             </div>
-                            <div class="task-card">
-                                <div class="task-card-title">Cash flow forecast</div>
-                                <div class="task-card-meta">
-                                    <span class="material-symbols-outlined task-meta-icon">calendar_today</span>
-                                    <span>Mar 5</span>
-                                </div>
+                        </section>
+                    </div>
+                    <!-- BOOKMARKS DASHBOARD -->
+                    <div id="bookmark-board-container" class="board-container"
+                        style="flex: 1; display: none; flex-direction: column; min-height: 0;">
+                        <!-- Bookmark Zoom Controls -->
+                        <div
+                            style="display: flex; align-items: center; justify-content: flex-end; padding: 0 var(--space-3xl) var(--space-lg) var(--space-3xl);">
+                            <div class="zoom-controls" style="display: flex; align-items: center; gap: 8px;">
+                                <span class="material-symbols-outlined"
+                                    style="font-size: 16px; color: var(--text-muted);">zoom_out</span>
+                                <input type="range" id="bookmark-zoom-slider" min="0.5" max="1.5" step="0.1" value="1.0"
+                                    style="width: 100px;">
+                                <span class="material-symbols-outlined"
+                                    style="font-size: 16px; color: var(--text-muted);">zoom_in</span>
                             </div>
+                        </div>
+                        <!-- Bookmark Bucket Grid -->
+                        <div id="bookmark-dashboard-container" class="layout-container"
+                            style="flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0 var(--space-3xl) 0 var(--space-3xl);">
+                            <section class="bucket-grid stagger-children" id="bookmark-board">
+                                <!-- JS auto injects bookmark buckets here -->
+                            </section>
                         </div>
                     </div>
 
-                    <!-- Label Bucket: Admin -->
-                    <div class="bucket bucket-empty animate-slide-up">
-                        <div class="bucket-header">
-                            <h4>
-                                <span class="label-dot" style="background-color: #a855f7;"></span>
-                                Admin
-                            </h4>
-                            <div class="bucket-header-actions">
-                                <span class="task-count">0</span>
-                                <button class="btn-icon btn-sm" data-tooltip="More options">
-                                    <span class="material-symbols-outlined">more_horiz</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Add Label Button -->
-                    <div class="bucket-add animate-slide-up">
-                        <button class="btn-add-label" id="add-label-btn">
-                            <span class="material-symbols-outlined">add</span>
-                            <span>New Label</span>
-                        </button>
-                    </div>
-                </section>
-            </div>
+                </div> <!-- Close right-side flex container -->
+            </div> <!-- Close .dashboard-layout -->
         </main>
+    </div>
+
+    <!-- ===== MOVE OR ADD MODAL ===== -->
+    <div class="modal-overlay" id="move-add-modal">
+        <div class="modal" style="width: 400px; max-width: 90%;">
+            <div class="modal-header">
+                <h2 class="modal-title">Move or Add Task</h2>
+                <button class="btn-icon" id="btn-move-add-close" data-tooltip="Close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding-bottom: 24px;">
+                <p style="margin-bottom: 24px; color: var(--text-secondary);">Do you want to move this task to the new
+                    bucket, or add it to both?</p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button class="btn btn-primary" id="btn-move-add-move">Move Task</button>
+                    <button class="btn btn-outline" id="btn-move-add-add"
+                        style="color: var(--primary); border-color: var(--primary);">Add to Both</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== BOOKMARK DETAIL MODAL ===== -->
+    <div class="modal-overlay" id="bookmark-modal-overlay"
+        onclick="if(event.target===this) document.getElementById('bookmark-modal-overlay').classList.remove('active')">
+        <div class="modal" style="max-width: 500px; width: 90%;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="bookmark-modal-title-text">Edit Bookmark</h2>
+                <div style="display: flex; gap: 4px;">
+                    <button class="btn-icon" id="btn-bookmark-delete" data-tooltip="Delete">
+                        <span class="material-symbols-outlined" style="color: var(--danger);">delete</span>
+                    </button>
+                    <button class="btn-icon" id="btn-bookmark-close" data-tooltip="Close">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div>
+                        <label
+                            style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px;">Name</label>
+                        <input type="text" id="bookmark-modal-name" class="form-input" placeholder="Bookmark name..."
+                            autocomplete="off">
+                    </div>
+                    <div>
+                        <label
+                            style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px;">URL</label>
+                        <input type="url" id="bookmark-modal-url" class="form-input" placeholder="https://..."
+                            autocomplete="off">
+                    </div>
+                    <!-- Labels Multi-Select -->
+                    <div>
+                        <label
+                            style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px;">Labels</label>
+                        <div class="custom-select-wrapper" id="bookmark-label-select-wrapper">
+                            <div class="custom-select-trigger" id="bookmark-label-trigger">
+                                <span id="bookmark-label-display" style="color: var(--text-muted);">Select
+                                    labels...</span>
+                                <span class="material-symbols-outlined">expand_more</span>
+                            </div>
+                            <div class="custom-select-dropdown" id="bookmark-label-dropdown" style="display: none;">
+                                <div class="custom-select-search">
+                                    <input type="text" id="bookmark-label-search" placeholder="Search or create..."
+                                        autocomplete="off">
+                                </div>
+                                <div class="custom-select-options" id="bookmark-label-options">
+                                    <!-- Labels injected here by JS -->
+                                </div>
+                                <div class="custom-select-create" id="bookmark-label-create-section"
+                                    style="display: none;">
+                                    <button class="btn btn-sm btn-outline" id="btn-create-new-bookmark-label-modal"
+                                        style="width: 100%;">+ Create "<span
+                                            id="new-bookmark-label-text"></span>"</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="selected-labels-container" id="bookmark-selected-labels"></div>
+                    </div>
+                    <div>
+                        <label
+                            style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px;">Notes</label>
+                        <textarea id="bookmark-modal-notes" class="form-input" rows="3" placeholder="Optional notes..."
+                            style="resize: vertical;"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer"
+                style="display: flex; justify-content: flex-end; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--border-primary);">
+                <button class="btn btn-primary" id="btn-bookmark-save">Save</button>
+                <button class="btn btn-outline" id="btn-bookmark-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== BOOKMARK MOVE MODAL ===== -->
+    <div class="modal-overlay" id="bookmark-move-modal">
+        <div class="modal" style="width: 400px; max-width: 90%;">
+            <div class="modal-header">
+                <h2 class="modal-title">Move or Add Bookmark</h2>
+                <button class="btn-icon" id="btn-bookmark-move-close" data-tooltip="Close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding-bottom: 24px;">
+                <p style="margin-bottom: 24px; color: var(--text-secondary);">Do you want to move this bookmark to the
+                    new bucket, or add it to both?</p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button class="btn btn-primary" id="btn-bookmark-move-move">Move Bookmark</button>
+                    <button class="btn btn-outline" id="btn-bookmark-move-add"
+                        style="color: var(--primary); border-color: var(--primary);">Add to Both</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== SETTINGS MODAL ===== -->
+    <div class="modal-overlay" id="settings-modal" onclick="if(event.target === this) closeSettingsModal()">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Settings</h2>
+                <button class="btn-icon" onclick="closeSettingsModal()" data-tooltip="Close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+
+                <!-- Appearance Section -->
+                <div class="settings-section">
+                    <h4>Appearance</h4>
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <span class="settings-row-title">Dark Mode</span>
+                            <span class="settings-row-desc">Switch between light and dark themes</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="modal-theme-toggle" onchange="toggleTheme()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Account Section -->
+                <div class="settings-section">
+                    <h4>Account</h4>
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <span class="settings-row-title">Sign Out</span>
+                            <span class="settings-row-desc" id="settings-account-email">You are currently signed
+                                in</span>
+                        </div>
+                        <button class="btn btn-outline" id="btn-settings-signout"
+                            style="color: var(--danger); border-color: var(--danger);">
+                            Sign Out
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TASK DETAIL MODAL ===== -->
+    <div class="task-modal-overlay" id="task-modal-overlay">
+        <div class="task-modal" id="task-modal-container">
+            <!-- Modal Header -->
+            <div class="task-modal-header">
+                <div class="task-modal-breadcrumbs">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    <span id="task-modal-board-name">Main Board</span>
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <button class="btn-icon btn-star-task" id="btn-task-star" data-tooltip="Star Task">
+                        <span class="material-symbols-outlined" id="task-star-icon" style="font-size: 22px;">star</span>
+                    </button>
+                    <span id="task-modal-created-info"
+                        style="font-size: 0.75rem; color: var(--text-muted); margin-left: 8px;"></span>
+                </div>
+                <div class="task-modal-actions" style="display: flex; align-items: center; gap: 4px;">
+                    <button class="btn btn-sm btn-outline" id="btn-task-complete"
+                        style="color: var(--success); border-color: var(--success); margin-right: 8px;">
+                        Complete
+                    </button>
+                    <button class="btn-icon" id="btn-task-print" data-tooltip="Print Task">
+                        <span class="material-symbols-outlined" style="color: var(--info);">print</span>
+                    </button>
+                    <button class="btn-icon" id="btn-task-delete" data-tooltip="Delete Task">
+                        <span class="material-symbols-outlined" style="color: var(--danger);">delete</span>
+                    </button>
+                    <button class="btn-icon" id="btn-task-close" data-tooltip="Close">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Content Layout (Left: Form, Right: Comments) -->
+            <div class="task-modal-layout">
+
+                <!-- Main Task Form -->
+                <div class="task-modal-main">
+                    <!-- Title -->
+                    <input type="text" id="task-modal-title" class="task-title-input" placeholder="Task title..."
+                        autocomplete="off">
+
+                    <!-- Meta Grid (Labels & Dates) -->
+                    <div class="task-meta-grid">
+
+                        <!-- Labels Multi-Select -->
+                        <div class="task-meta-item">
+                            <span class="meta-label">Labels</span>
+                            <div class="custom-select-wrapper" id="task-label-select-wrapper">
+                                <div class="custom-select-trigger" id="task-label-trigger">
+                                    <span id="task-label-display" style="color: var(--text-muted);">Select
+                                        labels...</span>
+                                    <span class="material-symbols-outlined">expand_more</span>
+                                </div>
+                                <div class="custom-select-dropdown" id="task-label-dropdown" style="display: none;">
+                                    <div class="custom-select-search">
+                                        <input type="text" id="task-label-search" placeholder="Search or create..."
+                                            autocomplete="off">
+                                    </div>
+                                    <div class="custom-select-options" id="task-label-options">
+                                        <!-- Labels injected here by JS -->
+                                    </div>
+                                    <div class="custom-select-create" id="task-label-create-section"
+                                        style="display: none;">
+                                        <button class="btn btn-sm btn-outline" id="btn-create-new-label-modal"
+                                            style="width: 100%;">+ Create "<span id="new-label-text"></span>"</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Tags Container for showing selected labels -->
+                            <div class="selected-labels-container" id="task-selected-labels"></div>
+                        </div>
+
+                        <!-- Due Date -->
+                        <div class="task-meta-item">
+                            <span class="meta-label">Due Date</span>
+                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                <input type="date" id="task-modal-date" class="form-input form-input-sm"
+                                    style="width: 140px; flex-shrink: 0;">
+                                <div id="task-detail-date-punches" class="date-punches">
+                                    <!-- Punches injected by JS -->
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Description -->
+                    <div class="task-desc-section">
+                        <span class="meta-label">Description</span>
+                        <div class="comment-editor-wrapper" style="margin-top: 8px;">
+                            <div class="comment-toolbar">
+                                <button class="comment-toolbar-btn" id="btn-desc-bold" data-tooltip="Bold"
+                                    type="button">
+                                    <span class="material-symbols-outlined" style="font-size: 18px;">format_bold</span>
+                                </button>
+                                <button class="comment-toolbar-btn" id="btn-desc-highlight" data-tooltip="Highlight"
+                                    type="button">
+                                    <span class="material-symbols-outlined"
+                                        style="font-size: 18px;">ink_highlighter</span>
+                                </button>
+                                <button class="comment-toolbar-btn" id="btn-desc-link" data-tooltip="Link"
+                                    type="button">
+                                    <span class="material-symbols-outlined" style="font-size: 18px;">link</span>
+                                </button>
+                            </div>
+                            <div class="comment-editor" id="task-modal-desc" contenteditable="true"
+                                data-placeholder="Add a more detailed description... (paste images here)"></div>
+                        </div>
+                    </div>
+
+                    <!-- Related Tasks -->
+                    <div class="related-tasks-section">
+                        <div class="related-tasks-header">
+                            <span class="meta-label">
+                                <span class="material-symbols-outlined"
+                                    style="font-size: 16px; vertical-align: middle;">link</span>
+                                Related Tasks
+                            </span>
+                            <button class="btn btn-sm btn-outline" id="btn-link-task" type="button">+ Link Task</button>
+                        </div>
+                        <!-- Search Dropdown (hidden by default) -->
+                        <div class="related-tasks-search" id="related-tasks-search" style="display: none;">
+                            <input type="text" id="related-tasks-search-input" class="form-input form-input-sm"
+                                placeholder="Search tasks to link..." autocomplete="off">
+                            <div class="related-tasks-search-results" id="related-tasks-search-results"></div>
+                        </div>
+                        <!-- Linked Tasks List -->
+                        <div class="related-tasks-list" id="related-tasks-list">
+                            <!-- Linked task cards rendered here by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div class="task-modal-footer">
+                        <button class="btn btn-primary" id="btn-task-save">Save Task</button>
+                        <button class="btn btn-outline" id="btn-task-cancel">Cancel</button>
+                    </div>
+                </div>
+
+                <!-- Comments Sidebar -->
+                <div class="task-modal-sidebar">
+                    <div class="comments-header">
+                        <h4>Activity & Comments</h4>
+                    </div>
+                    <div class="comments-body">
+                        <!-- Comment Editor (pinned at top, does not scroll) -->
+                        <div class="comment-editor-wrapper">
+                            <div class="comment-toolbar">
+                                <button class="comment-toolbar-btn" id="btn-comment-bold" data-tooltip="Bold"
+                                    type="button">
+                                    <span class="material-symbols-outlined" style="font-size: 18px;">format_bold</span>
+                                </button>
+                                <button class="comment-toolbar-btn" id="btn-comment-highlight" data-tooltip="Highlight"
+                                    type="button">
+                                    <span class="material-symbols-outlined"
+                                        style="font-size: 18px;">ink_highlighter</span>
+                                </button>
+                                <button class="comment-toolbar-btn" id="btn-comment-link" data-tooltip="Link"
+                                    type="button">
+                                    <span class="material-symbols-outlined" style="font-size: 18px;">link</span>
+                                </button>
+                            </div>
+                            <div class="comment-editor" id="comment-editor" contenteditable="true"
+                                data-placeholder="Write a comment... (paste images here)"></div>
+                            <div class="comment-editor-actions">
+                                <button class="btn btn-primary btn-sm" id="btn-add-comment" type="button">Add
+                                    Comment</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Comments List (scrollable) -->
+                    <div class="comments-list-scroll">
+                        <div class="comments-list" id="comments-list">
+                            <!-- Comments rendered here by JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Lightbox Overlay -->
+    <div class="image-lightbox" id="image-lightbox" style="display: none;">
+        <img id="lightbox-image" src="" alt="Enlarged image" />
+        <button class="lightbox-close" id="lightbox-close">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+    </div>
+
+    <!-- ===== EDITOR CONTEXT MENU ===== -->
+    <div id="editor-context-menu"
+        style="display: none; position: absolute; z-index: 10000; background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: 4px 0; min-width: 160px; flex-direction: column;">
+        <button class="context-menu-btn" id="btn-ctx-cut">
+            <span class="material-symbols-outlined">content_cut</span>
+            Cut
+        </button>
+        <button class="context-menu-btn" id="btn-ctx-copy">
+            <span class="material-symbols-outlined">content_copy</span>
+            Copy
+        </button>
+        <div style="height: 1px; background: var(--border-light); margin: 4px 0;"></div>
+        <button class="context-menu-btn" id="btn-ctx-link">
+            <span class="material-symbols-outlined">link</span>
+            <span id="ctx-link-text"></span>Insert link</span>
+        </button>
+        <button class="context-menu-btn" id="btn-ctx-remove-link" style="display: none;">
+            <span class="material-symbols-outlined">link_off</span>
+            Remove link
+        </button>
     </div>
 
     <!-- Inline UI script — works regardless of module loading -->
@@ -301,15 +816,19 @@
             document.getElementById('sidebar').classList.remove('open');
             document.getElementById('sidebar-overlay').classList.remove('active');
         }
+        function openSettingsModal() {
+            document.getElementById('settings-modal').classList.add('active');
+        }
+        function closeSettingsModal() {
+            document.getElementById('settings-modal').classList.remove('active');
+        }
         function toggleTheme() {
             var html = document.documentElement;
             var current = html.getAttribute('data-theme');
             var next = current === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-theme', next);
-            var label = document.getElementById('theme-label');
-            if (label) label.textContent = next === 'dark' ? 'Dark Mode' : 'Light Mode';
-            var icon = document.getElementById('theme-icon');
-            if (icon) icon.textContent = next === 'dark' ? 'dark_mode' : 'light_mode';
+            var toggle = document.getElementById('modal-theme-toggle');
+            if (toggle) toggle.checked = (next === 'dark');
             try { localStorage.setItem('taskmanager-theme', next); } catch (e) { }
         }
         // Restore saved theme on load
@@ -318,9 +837,32 @@
                 var saved = localStorage.getItem('taskmanager-theme');
                 if (saved === 'dark' || saved === 'light') {
                     document.documentElement.setAttribute('data-theme', saved);
+                    // Defer setting the checkbox state until DOM is parsed
+                    window.addEventListener('DOMContentLoaded', () => {
+                        var toggle = document.getElementById('modal-theme-toggle');
+                        if (toggle) toggle.checked = (saved === 'dark');
+                    });
                 }
             } catch (e) { }
         })();
+
+        // Global Keyboard Shortcut: Press 'F' or 'f' to focus search
+        document.addEventListener('keydown', function (e) {
+            // Ignore if the user is already typing in an input, textarea, or contenteditable
+            const tagName = e.target.tagName;
+            const isContentEditable = e.target.isContentEditable;
+            if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || isContentEditable) {
+                return;
+            }
+
+            if (e.key === 'f' || e.key === 'F') {
+                e.preventDefault();
+                const searchInput = document.getElementById('global-search');
+                if (searchInput) {
+                    searchInput.focus();
+                }
+            }
+        });
     </script>
 
     <!-- App module (Firebase, future features) -->

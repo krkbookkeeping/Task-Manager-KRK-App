@@ -30,6 +30,9 @@ export class Dashboard {
         this.unsubTasks = null;
 
         this.gridEl = document.querySelector('.bucket-grid');
+
+        // AbortController for cleaning up event listeners on destroy
+        this._abortController = null;
     }
 
     init() {
@@ -68,6 +71,10 @@ export class Dashboard {
             this.render();
         });
 
+        // Abort any previous event listeners (in case of re-init)
+        if (this._abortController) this._abortController.abort();
+        this._abortController = new AbortController();
+
         this.setupEventListeners();
     }
 
@@ -76,6 +83,8 @@ export class Dashboard {
         if (this.unsubTasks) this.unsubTasks();
         if (this.unsubCompletedTasks) this.unsubCompletedTasks();
         if (this.unsubArchivedTasks) this.unsubArchivedTasks();
+        // Clean up all event listeners
+        if (this._abortController) this._abortController.abort();
     }
 
     render() {
@@ -92,6 +101,32 @@ export class Dashboard {
 
         // Update Parked Labels header UI
         this.renderParkedLabels(parkedLabels);
+
+        // Empty state: no labels at all — show CTA
+        if (visibleLabels.length === 0 && parkedLabels.length === 0) {
+            const emptyState = document.createElement('div');
+            emptyState.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 60px 20px; text-align: center; width: 100%;';
+            emptyState.innerHTML = `
+                <span class="material-symbols-outlined" style="font-size: 48px; color: var(--text-muted); opacity: 0.5;">label</span>
+                <div style="font-size: 1rem; font-weight: 600; color: var(--text-secondary);">No labels yet</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); max-width: 280px;">Labels act as columns for your tasks. Create your first one to get started.</div>
+                <button class="btn btn-primary" id="btn-empty-create-label" style="padding: 10px 24px; display: flex; align-items: center; gap: 8px;">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">add</span>
+                    Create Your First Label
+                </button>
+            `;
+            this.gridEl.appendChild(emptyState);
+
+            // Wire up the CTA button to trigger the existing add-label popover
+            const ctaBtn = document.getElementById('btn-empty-create-label');
+            if (ctaBtn) {
+                ctaBtn.addEventListener('click', () => {
+                    const btnShowAddTop = document.getElementById('btn-show-add-label-top');
+                    if (btnShowAddTop) btnShowAddTop.click();
+                });
+            }
+            return;
+        }
 
         // Render each label as a bucket
         visibleLabels.forEach((label) => {
@@ -690,6 +725,7 @@ export class Dashboard {
     }
 
     setupEventListeners() {
+        const signal = this._abortController.signal;
         // Add Label logic moving to top bar
         const btnShowAddTop = document.getElementById('btn-show-add-label-top');
         const popoverAdd = document.getElementById('add-label-popover');
@@ -708,14 +744,14 @@ export class Dashboard {
                 } else {
                     popoverAdd.style.display = 'none';
                 }
-            });
+            }, { signal });
 
             // Close popover when clicking anywhere outside
             document.addEventListener('click', (e) => {
                 if (popoverAdd.style.display === 'flex' && !popoverAdd.contains(e.target) && !btnShowAddTop.contains(e.target)) {
                     popoverAdd.style.display = 'none';
                 }
-            });
+            }, { signal });
 
             const closePopover = () => {
                 inputNameTop.value = '';
@@ -725,7 +761,7 @@ export class Dashboard {
                 btnSaveTop.textContent = 'Create';
             };
 
-            btnCancelTop.addEventListener('click', closePopover);
+            btnCancelTop.addEventListener('click', closePopover, { signal });
 
             btnSaveTop.addEventListener('click', async () => {
                 const name = inputNameTop.value.trim();
@@ -743,7 +779,7 @@ export class Dashboard {
                         btnSaveTop.textContent = 'Create';
                     }
                 }
-            });
+            }, { signal });
         }
         // Delegate bucket park action explicitly
         if (this.gridEl) {
@@ -760,7 +796,7 @@ export class Dashboard {
                         }
                     }
                 }
-            });
+            }, { signal });
         }
 
         // Sidebar Navigation Toggles
@@ -772,11 +808,38 @@ export class Dashboard {
         const completedBoardContainer = document.getElementById('completed-board-container');
         const archiveBoardContainer = document.getElementById('archive-board-container');
 
+        const btnNavBookmarks = document.getElementById('btn-nav-bookmarks');
+        const bookmarkBoardContainer = document.getElementById('bookmark-board-container');
+
         if (btnNavBoards && btnNavCompleted && btnNavArchive && mainBoardContainer && completedBoardContainer && archiveBoardContainer) {
 
             const activateTab = (tabId) => {
                 [btnNavBoards, btnNavCompleted, btnNavArchive].forEach(btn => btn.classList.remove('active'));
+                if (btnNavBookmarks) btnNavBookmarks.classList.remove('active');
                 [mainBoardContainer, completedBoardContainer, archiveBoardContainer].forEach(container => container.classList.remove('active'));
+                if (bookmarkBoardContainer) {
+                    bookmarkBoardContainer.classList.remove('active');
+                    bookmarkBoardContainer.style.display = 'none';
+                }
+
+                // Restore left column and task-specific UI when switching away from bookmarks
+                const leftColumn = document.querySelector('.left-column');
+                if (leftColumn) leftColumn.style.display = 'flex';
+
+                // Swap topbar groups: show task controls, hide bookmark controls
+                const taskTopbarGroup = document.getElementById('task-topbar-group');
+                if (taskTopbarGroup) taskTopbarGroup.style.display = 'flex';
+
+                const bookmarkTopbarGroup = document.getElementById('bookmark-topbar-group');
+                if (bookmarkTopbarGroup) bookmarkTopbarGroup.style.display = 'none';
+
+                // Restore global search
+                const globalSearch = document.querySelector('.top-bar .search-container');
+                if (globalSearch) globalSearch.style.display = 'flex';
+
+                // Restore star filter bar
+                const starFilterBar = document.getElementById('star-filter-bar');
+                if (starFilterBar) starFilterBar.style.display = 'flex';
 
                 if (tabId === 'boards') {
                     btnNavBoards.classList.add('active');
@@ -799,17 +862,17 @@ export class Dashboard {
             btnNavBoards.addEventListener('click', (e) => {
                 e.preventDefault();
                 activateTab('boards');
-            });
+            }, { signal });
 
             btnNavCompleted.addEventListener('click', (e) => {
                 e.preventDefault();
                 activateTab('completed');
-            });
+            }, { signal });
 
             btnNavArchive.addEventListener('click', (e) => {
                 e.preventDefault();
                 activateTab('archive');
-            });
+            }, { signal });
         }
 
         // ── Global Search Binding ──
@@ -846,7 +909,7 @@ export class Dashboard {
                     this.searchQuery = e.target.value.trim();
                     updateSearchUI();
                 }, 300);
-            });
+            }, { signal });
 
             searchInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
@@ -864,7 +927,7 @@ export class Dashboard {
                     this.searchQuery = '';
                     updateSearchUI();
                 }
-            });
+            }, { signal });
 
             searchClearBtn.addEventListener('click', () => {
                 if (this.currentFilterDate || this.currentFilterDateEnd) {
@@ -880,7 +943,7 @@ export class Dashboard {
 
                 this.searchQuery = '';
                 updateSearchUI();
-            });
+            }, { signal });
         }
 
         // Star Filter Toggle
@@ -905,7 +968,7 @@ export class Dashboard {
                 }
 
                 this.render();
-            });
+            }, { signal });
         }
 
         // ── Zoom Slider ──
@@ -920,7 +983,7 @@ export class Dashboard {
                 const zoomVal = e.target.value;
                 this.gridEl.style.zoom = zoomVal;
                 localStorage.setItem('bucketGridZoom', zoomVal);
-            });
+            }, { signal });
         }
 
         // ── Cross-Bucket Move/Add Modal Handlers ──
@@ -936,7 +999,7 @@ export class Dashboard {
             this.render();
         };
 
-        if (btnMoveAddClose) btnMoveAddClose.addEventListener('click', closeMoveAddModal);
+        if (btnMoveAddClose) btnMoveAddClose.addEventListener('click', closeMoveAddModal, { signal });
 
         if (btnMoveAddMove) {
             btnMoveAddMove.addEventListener('click', async () => {
@@ -979,7 +1042,7 @@ export class Dashboard {
                     }
                 }
                 closeMoveAddModal();
-            });
+            }, { signal });
         }
 
         if (btnMoveAddAdd) {
@@ -1023,7 +1086,7 @@ export class Dashboard {
                     }
                 }
                 closeMoveAddModal();
-            });
+            }, { signal });
         }
     }
 

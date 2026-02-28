@@ -49,21 +49,51 @@
             <!-- Sidebar Navigation -->
             <nav class="sidebar-nav">
                 <div class="nav-content">
-                    <a href="#" class="nav-item active" id="btn-nav-boards" data-tooltip="Boards">
+                    <!-- Workspace Switcher -->
+                    <div class="workspace-switcher-section" style="padding: 0; margin: 4px 0;">
+                        <button id="workspace-switcher-trigger" class="nav-item workspace-trigger"
+                            data-tooltip="My Workspaces">
+                            <span class="material-symbols-outlined nav-icon">business</span>
+                            <span class="nav-text"
+                                style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+                                <span class="workspace-dot" id="workspace-current-dot"
+                                    style="width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background-color: #6366f1;"></span>
+                                <span id="workspace-current-name"
+                                    style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Workspace</span>
+                            </span>
+                            <span class="material-symbols-outlined nav-icon"
+                                style="font-size: 16px; opacity: 0.5;">expand_more</span>
+                        </button>
+
+                        <!-- Workspace Dropdown Panel -->
+                        <div id="workspace-dropdown" class="workspace-dropdown" style="display: none;">
+                            <div id="workspace-dropdown-list" class="workspace-dropdown-list">
+                                <!-- JS renders workspace items here -->
+                            </div>
+                            <div class="workspace-create-section">
+                                <button class="btn btn-outline btn-sm" id="btn-create-workspace"
+                                    style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px;">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">add</span>
+                                    Create Workspace
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="#" class="nav-item active" id="btn-nav-boards" data-tooltip="Main Dashboard">
                         <span class="material-symbols-outlined nav-icon">dashboard</span>
-                        <span class="nav-text">Boards</span>
+                        <span class="nav-text">Main Dashboard</span>
                     </a>
                     <a href="#" class="nav-item" id="btn-nav-completed" data-tooltip="Completed">
                         <span class="material-symbols-outlined nav-icon">check_circle</span>
                         <span class="nav-text">Completed</span>
                     </a>
-                    <a href="#" class="nav-item" data-tooltip="Labels">
-                        <span class="material-symbols-outlined nav-icon">label</span>
-                        <span class="nav-text">Labels</span>
-                    </a>
                     <a href="#" class="nav-item" id="btn-nav-archive" data-tooltip="Archive">
                         <span class="material-symbols-outlined nav-icon">inventory_2</span>
                         <span class="nav-text">Archive</span>
+                    </a>
+                    <a href="#" class="nav-item" id="btn-nav-bookmarks" data-tooltip="Bookmarks">
+                        <span class="material-symbols-outlined nav-icon">bookmarks</span>
+                        <span class="nav-text">Bookmarks</span>
                     </a>
 
                     <div style="flex: 1;"></div>
@@ -93,7 +123,7 @@
                 </button>
 
                 <!-- Search -->
-                <div class="search-container">
+                <div class="search-container" style="flex: 0 1 420px; min-width: 240px; max-width: 460px;">
                     <span class="material-symbols-outlined search-icon">search</span>
                     <input type="text" id="global-search" placeholder="Search tasks, descriptions, comments..."
                         autocomplete="off">
@@ -102,16 +132,16 @@
                     </button>
                 </div>
 
-                <!-- Header Actions -->
-                <div
-                    style="display: flex; gap: var(--space-md); align-items: center; width: 100%; justify-content: flex-end;">
+                <!-- Header Actions: Task view controls (hidden when bookmarks active) -->
+                <div id="task-topbar-group"
+                    style="display: flex; gap: var(--space-md); align-items: center; flex: 1; justify-content: flex-end; min-width: 0;">
 
                     <!-- JS injects parked label chips here -->
                     <div id="parked-labels-container"
-                        style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex: 1;">
+                        style="display: flex; gap: 8px; flex-wrap: nowrap; justify-content: flex-end; flex: 1; overflow-x: auto; overflow-y: hidden;">
                     </div>
 
-                    <div style="position: relative; display: flex;">
+                    <div style="position: relative; display: flex; flex-shrink: 0;">
                         <button id="btn-show-add-label-top"
                             style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; background-color: var(--bg-surface); border: 1px dashed var(--border-light); border-left: 3px solid var(--text-muted); border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 500; color: var(--text-muted); cursor: pointer; box-shadow: var(--shadow-sm); transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast); flex-shrink: 0;"
                             title="Create New Label"
@@ -155,6 +185,79 @@
                     <button class="btn btn-primary" id="btn-topbar-create-task" style="gap: 8px; flex-shrink: 0;">
                         <span class="material-symbols-outlined">add_task</span>
                         Create Task
+                    </button>
+                </div>
+
+                <!-- Header Actions: Bookmark view controls (hidden by default, shown when bookmarks active) -->
+                <div id="bookmark-topbar-group"
+                    style="display: none; gap: var(--space-md); align-items: center; flex: 1; justify-content: flex-end; min-width: 0;">
+
+                    <!-- Bookmark search -->
+                    <div class="search-container" style="max-width: 220px; flex-shrink: 0;">
+                        <span class="material-symbols-outlined search-icon">search</span>
+                        <input type="text" id="bookmark-search" placeholder="Search bookmarks..." autocomplete="off"
+                            class="form-input form-input-sm" style="padding-left: 32px; width: 100%;">
+                    </div>
+
+                    <!-- Parked bookmark label chips -->
+                    <div id="bookmark-parked-labels-container"
+                        style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex: 1;">
+                    </div>
+
+                    <!-- Labels visibility toggle -->
+                    <button id="btn-toggle-bookmark-labels" title="Show / Hide Labels"
+                        style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; background-color: var(--bg-surface); border: 1px solid var(--border-light); border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 500; color: var(--text-muted); cursor: pointer; box-shadow: var(--shadow-sm); transition: transform var(--transition-fast), box-shadow var(--transition-fast); flex-shrink: 0;"
+                        onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='var(--shadow-md)';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
+                        <span class="material-symbols-outlined" id="bookmark-labels-toggle-icon"
+                            style="font-size: 14px; pointer-events: none;">label</span>
+                        <span style="pointer-events: none;">Labels</span>
+                    </button>
+
+                    <!-- New Bookmark Label popover -->
+                    <div style="position: relative; display: flex;">
+                        <button id="btn-show-add-bookmark-label"
+                            style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; background-color: var(--bg-surface); border: 1px dashed var(--border-light); border-left: 3px solid var(--text-muted); border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 500; color: var(--text-muted); cursor: pointer; box-shadow: var(--shadow-sm); transition: transform var(--transition-fast), box-shadow var(--transition-fast); flex-shrink: 0;"
+                            title="Create New Bookmark Label"
+                            onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='var(--shadow-md)';"
+                            onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
+                            <span class="material-symbols-outlined"
+                                style="font-size: 14px; pointer-events: none;">add</span>
+                            <span style="pointer-events: none;">New Label</span>
+                        </button>
+                        <div id="add-bookmark-label-popover"
+                            style="display: none; position: absolute; top: 120%; right: 0; width: 250px; flex-direction: column; gap: 12px; padding: 16px; background: var(--bg-surface); border-radius: var(--radius-xl); border: 1px solid var(--border-primary); box-shadow: var(--shadow-lg); z-index: 100;">
+                            <div
+                                style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary); text-align: center;">
+                                Create New Label</div>
+                            <input type="text" id="new-bookmark-label-name" class="form-input form-input-sm"
+                                placeholder="Label name..." style="background: var(--bg-body);" autocomplete="off" />
+                            <div
+                                style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-body); padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="material-symbols-outlined"
+                                        style="color: var(--text-muted); font-size: 18px;">palette</span>
+                                    <span style="font-size: 0.85rem; color: var(--text-secondary);">Color</span>
+                                </div>
+                                <div class="color-picker-wrapper"
+                                    style="position: relative; width: 24px; height: 24px; border-radius: 50%; overflow: hidden; border: 2px solid var(--border-primary); cursor: pointer;">
+                                    <input type="color" id="new-bookmark-label-color" value="#6366f1"
+                                        style="position: absolute; top: -10px; left: -10px; width: 44px; height: 44px; cursor: pointer; border: none; padding: 0;" />
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:8px; margin-top: 4px;">
+                                <button class="btn btn-primary btn-sm" id="btn-save-bookmark-label"
+                                    style="flex: 1;">Create</button>
+                                <button class="btn btn-outline btn-sm" id="btn-cancel-bookmark-label"
+                                    style="flex: 1;">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Bookmark button -->
+                    <button class="btn btn-primary" id="btn-topbar-create-bookmark" style="gap: 8px; flex-shrink: 0;">
+                        <span class="material-symbols-outlined">bookmark_add</span>
+                        Add Bookmark
                     </button>
                 </div>
             </header>
@@ -300,6 +403,30 @@
                             </div>
                         </section>
                     </div>
+                    <!-- BOOKMARKS DASHBOARD -->
+                    <div id="bookmark-board-container" class="board-container"
+                        style="flex: 1; display: none; flex-direction: column; min-height: 0;">
+                        <!-- Bookmark Zoom Controls -->
+                        <div
+                            style="display: flex; align-items: center; justify-content: flex-end; padding: 0 var(--space-3xl) var(--space-lg) var(--space-3xl);">
+                            <div class="zoom-controls" style="display: flex; align-items: center; gap: 8px;">
+                                <span class="material-symbols-outlined"
+                                    style="font-size: 16px; color: var(--text-muted);">zoom_out</span>
+                                <input type="range" id="bookmark-zoom-slider" min="0.5" max="1.5" step="0.1" value="1.0"
+                                    style="width: 100px;">
+                                <span class="material-symbols-outlined"
+                                    style="font-size: 16px; color: var(--text-muted);">zoom_in</span>
+                            </div>
+                        </div>
+                        <!-- Bookmark Bucket Grid -->
+                        <div id="bookmark-dashboard-container" class="layout-container"
+                            style="flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0 var(--space-3xl) 0 var(--space-3xl);">
+                            <section class="bucket-grid stagger-children" id="bookmark-board">
+                                <!-- JS auto injects bookmark buckets here -->
+                            </section>
+                        </div>
+                    </div>
+
                 </div> <!-- Close right-side flex container -->
             </div> <!-- Close .dashboard-layout -->
         </main>
@@ -320,6 +447,100 @@
                 <div style="display: flex; gap: 12px; justify-content: center;">
                     <button class="btn btn-primary" id="btn-move-add-move">Move Task</button>
                     <button class="btn btn-outline" id="btn-move-add-add"
+                        style="color: var(--primary); border-color: var(--primary);">Add to Both</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== BOOKMARK DETAIL MODAL ===== -->
+    <div class="modal-overlay" id="bookmark-modal-overlay"
+        onclick="if(event.target===this) document.getElementById('bookmark-modal-overlay').classList.remove('active')">
+        <div class="modal" style="max-width: 500px; width: 90%;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="bookmark-modal-title-text">Edit Bookmark</h2>
+                <div style="display: flex; gap: 4px;">
+                    <button class="btn-icon" id="btn-bookmark-delete" data-tooltip="Delete">
+                        <span class="material-symbols-outlined" style="color: var(--danger);">delete</span>
+                    </button>
+                    <button class="btn-icon" id="btn-bookmark-close" data-tooltip="Close">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div>
+                        <label
+                            style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px;">Name</label>
+                        <input type="text" id="bookmark-modal-name" class="form-input" placeholder="Bookmark name..."
+                            autocomplete="off">
+                    </div>
+                    <div>
+                        <label
+                            style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px;">URL</label>
+                        <input type="url" id="bookmark-modal-url" class="form-input" placeholder="https://..."
+                            autocomplete="off">
+                    </div>
+                    <!-- Labels Multi-Select -->
+                    <div>
+                        <label
+                            style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px;">Labels</label>
+                        <div class="custom-select-wrapper" id="bookmark-label-select-wrapper">
+                            <div class="custom-select-trigger" id="bookmark-label-trigger">
+                                <span id="bookmark-label-display" style="color: var(--text-muted);">Select
+                                    labels...</span>
+                                <span class="material-symbols-outlined">expand_more</span>
+                            </div>
+                            <div class="custom-select-dropdown" id="bookmark-label-dropdown" style="display: none;">
+                                <div class="custom-select-search">
+                                    <input type="text" id="bookmark-label-search" placeholder="Search or create..."
+                                        autocomplete="off">
+                                </div>
+                                <div class="custom-select-options" id="bookmark-label-options">
+                                    <!-- Labels injected here by JS -->
+                                </div>
+                                <div class="custom-select-create" id="bookmark-label-create-section"
+                                    style="display: none;">
+                                    <button class="btn btn-sm btn-outline" id="btn-create-new-bookmark-label-modal"
+                                        style="width: 100%;">+ Create "<span
+                                            id="new-bookmark-label-text"></span>"</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="selected-labels-container" id="bookmark-selected-labels"></div>
+                    </div>
+                    <div>
+                        <label
+                            style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px;">Notes</label>
+                        <textarea id="bookmark-modal-notes" class="form-input" rows="3" placeholder="Optional notes..."
+                            style="resize: vertical;"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer"
+                style="display: flex; justify-content: flex-end; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--border-primary);">
+                <button class="btn btn-primary" id="btn-bookmark-save">Save</button>
+                <button class="btn btn-outline" id="btn-bookmark-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== BOOKMARK MOVE MODAL ===== -->
+    <div class="modal-overlay" id="bookmark-move-modal">
+        <div class="modal" style="width: 400px; max-width: 90%;">
+            <div class="modal-header">
+                <h2 class="modal-title">Move or Add Bookmark</h2>
+                <button class="btn-icon" id="btn-bookmark-move-close" data-tooltip="Close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding-bottom: 24px;">
+                <p style="margin-bottom: 24px; color: var(--text-secondary);">Do you want to move this bookmark to the
+                    new bucket, or add it to both?</p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button class="btn btn-primary" id="btn-bookmark-move-move">Move Bookmark</button>
+                    <button class="btn btn-outline" id="btn-bookmark-move-add"
                         style="color: var(--primary); border-color: var(--primary);">Add to Both</button>
                 </div>
             </div>

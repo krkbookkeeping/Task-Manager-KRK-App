@@ -89,6 +89,22 @@ export class TaskModal {
         if (this.unsubLabels) this.unsubLabels();
     }
 
+    /**
+     * Updates workspace context without re-binding DOM event listeners.
+     * Used by workspace switcher since TaskModal has ~53 listeners bound in constructor.
+     */
+    switchContext(uid, workspaceId, boardId, calendar = null) {
+        if (this.unsubLabels) this.unsubLabels();
+        this.uid = uid;
+        this.workspaceId = workspaceId;
+        this.boardId = boardId;
+        this.calendar = calendar;
+        this.currentTaskId = null;
+        this.allLabels = [];
+        this.selectedLabels = [];
+        this.init();
+    }
+
     promptLink() {
         const url = prompt("Enter link URL:", "https://");
         if (url) {
