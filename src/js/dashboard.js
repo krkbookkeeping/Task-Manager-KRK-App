@@ -821,17 +821,27 @@ export class Dashboard {
                     bookmarkBoardContainer.classList.remove('active');
                     bookmarkBoardContainer.style.display = 'none';
                 }
+                const noteBoardContainer = document.getElementById('note-board-container');
+                if (noteBoardContainer) {
+                    noteBoardContainer.classList.remove('active');
+                    noteBoardContainer.style.display = 'none';
+                }
+                const btnNavNotes = document.getElementById('btn-nav-notes');
+                if (btnNavNotes) btnNavNotes.classList.remove('active');
 
-                // Restore left column and task-specific UI when switching away from bookmarks
+                // Restore left column and task-specific UI when switching away from bookmarks/notes
                 const leftColumn = document.querySelector('.left-column');
                 if (leftColumn) leftColumn.style.display = 'flex';
 
-                // Swap topbar groups: show task controls, hide bookmark controls
+                // Swap topbar groups: show task controls, hide bookmark & note controls
                 const taskTopbarGroup = document.getElementById('task-topbar-group');
                 if (taskTopbarGroup) taskTopbarGroup.style.display = 'flex';
 
                 const bookmarkTopbarGroup = document.getElementById('bookmark-topbar-group');
                 if (bookmarkTopbarGroup) bookmarkTopbarGroup.style.display = 'none';
+
+                const noteTopbarGroup = document.getElementById('note-topbar-group');
+                if (noteTopbarGroup) noteTopbarGroup.style.display = 'none';
 
                 // Restore global search
                 const globalSearch = document.querySelector('.top-bar .search-container');
@@ -844,16 +854,22 @@ export class Dashboard {
                 if (tabId === 'boards') {
                     btnNavBoards.classList.add('active');
                     mainBoardContainer.classList.add('active');
+                    const pageLabel = document.getElementById('workspace-page-label');
+                    if (pageLabel) pageLabel.textContent = ' \u2014 Tasks';
                     this.currentView = 'active';
                     this.render();
                 } else if (tabId === 'completed') {
                     btnNavCompleted.classList.add('active');
                     completedBoardContainer.classList.add('active');
+                    const pageLabel = document.getElementById('workspace-page-label');
+                    if (pageLabel) pageLabel.textContent = ' \u2014 Completed';
                     this.currentView = 'completed';
                     this.loadCompletedTasks();
                 } else if (tabId === 'archive') {
                     btnNavArchive.classList.add('active');
                     archiveBoardContainer.classList.add('active');
+                    const pageLabel = document.getElementById('workspace-page-label');
+                    if (pageLabel) pageLabel.textContent = ' \u2014 Archived';
                     this.currentView = 'archived';
                     this.loadArchivedTasks();
                 }
@@ -861,16 +877,19 @@ export class Dashboard {
 
             btnNavBoards.addEventListener('click', (e) => {
                 e.preventDefault();
+                if (typeof closeSidebar === 'function') closeSidebar();
                 activateTab('boards');
             }, { signal });
 
             btnNavCompleted.addEventListener('click', (e) => {
                 e.preventDefault();
+                if (typeof closeSidebar === 'function') closeSidebar();
                 activateTab('completed');
             }, { signal });
 
             btnNavArchive.addEventListener('click', (e) => {
                 e.preventDefault();
+                if (typeof closeSidebar === 'function') closeSidebar();
                 activateTab('archive');
             }, { signal });
         }

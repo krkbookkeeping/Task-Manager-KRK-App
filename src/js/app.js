@@ -87,6 +87,8 @@ async function bootWorkspace(uid, workspaceId, boardId) {
     const { Calendar } = await import('./calendar.js?v=3');
     const { BookmarkDashboard } = await import('./bookmark-dashboard.js');
     const { BookmarkModal } = await import('./bookmark-modal.js');
+    const { NoteDashboard } = await import('./note-dashboard.js');
+    const { NoteModal } = await import('./note-modal.js');
 
     // --- Dashboard: full teardown + re-create (has AbortController cleanup) ---
     if (window.currentDashboard) {
@@ -94,6 +96,9 @@ async function bootWorkspace(uid, workspaceId, boardId) {
     }
     if (window.currentBookmarkDashboard) {
         window.currentBookmarkDashboard.destroy();
+    }
+    if (window.currentNoteDashboard) {
+        window.currentNoteDashboard.destroy();
     }
 
     // --- Calendar ---
@@ -122,6 +127,18 @@ async function bootWorkspace(uid, workspaceId, boardId) {
     } else {
         window.currentBookmarkModal = new BookmarkModal(uid, workspaceId);
         window.currentBookmarkModal.init();
+    }
+
+    // --- NoteDashboard ---
+    window.currentNoteDashboard = new NoteDashboard(uid, workspaceId);
+    window.currentNoteDashboard.init();
+
+    // --- NoteModal: switchContext on re-boot, full create on first boot ---
+    if (window.currentNoteModal) {
+        window.currentNoteModal.switchContext(uid, workspaceId);
+    } else {
+        window.currentNoteModal = new NoteModal(uid, workspaceId);
+        window.currentNoteModal.init();
     }
 
     // Store current workspace context globally
@@ -155,7 +172,8 @@ async function switchWorkspace(uid, newWorkspaceId) {
     // Update sidebar trigger immediately
     updateWorkspaceTrigger();
 
-    // Reset view to Boards tab
+    // Close sidebar and reset view to Boards tab
+    if (typeof closeSidebar === 'function') closeSidebar();
     const btnNavBoards = document.getElementById('btn-nav-boards');
     if (btnNavBoards) btnNavBoards.click();
 }
@@ -192,6 +210,10 @@ function initWorkspaceSwitcher(uid, activeWorkspaceId) {
                 e.stopPropagation();
                 const isOpen = dropdown.style.display === 'flex';
                 dropdown.style.display = isOpen ? 'none' : 'flex';
+                // Re-render list on open so the checkmark always reflects the current workspace
+                if (!isOpen && window.__workspaces) {
+                    renderWorkspaceList(uid, window.__workspaces);
+                }
             });
 
             // Close dropdown when clicking outside
@@ -233,6 +255,16 @@ function updateWorkspaceTrigger() {
     if (activeWs) {
         currentNameEl.textContent = activeWs.name;
         if (currentDotEl) currentDotEl.style.backgroundColor = activeWs.color || '#6366f1';
+
+        // Update workspace name on all page headers
+        const pageTitleEl = document.getElementById('workspace-page-title');
+        if (pageTitleEl) pageTitleEl.textContent = activeWs.name;
+
+        const nameTargets = ['workspace-name-bookmarks', 'workspace-name-notes'];
+        nameTargets.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = activeWs.name;
+        });
     }
 }
 
@@ -304,9 +336,9 @@ function renderWorkspaceList(uid, workspaces) {
         if (wsItem) {
             const wsId = wsItem.dataset.wsId;
             if (wsId) {
-                await switchWorkspace(uid, wsId);
                 const dropdown = document.getElementById('workspace-dropdown');
                 if (dropdown) dropdown.style.display = 'none';
+                await switchWorkspace(uid, wsId);
             }
         }
     };

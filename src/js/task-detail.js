@@ -1,5 +1,7 @@
 import { taskService } from './services/task-service.js';
 import { labelService } from './services/label-service.js';
+import { noteService } from './services/note-service.js';
+import { noteLabelService } from './services/note-label-service.js';
 import { DATE_PUNCH_OFFSETS, calculateOffsetDate } from './utils/date-utils.js';
 
 export class TaskModal {
@@ -72,6 +74,16 @@ export class TaskModal {
         this.relatedTasksList = document.getElementById('related-tasks-list');
         this.relatedTaskIds = [];
         this.allBoardTasks = []; // cache of all tasks in the board
+
+        // Related Notes Elements
+        this.btnLinkNote = document.getElementById('btn-link-note');
+        this.relatedNotesSearch = document.getElementById('related-notes-search');
+        this.relatedNotesSearchInput = document.getElementById('related-notes-search-input');
+        this.relatedNotesSearchResults = document.getElementById('related-notes-search-results');
+        this.relatedNotesList = document.getElementById('related-notes-list');
+        this.relatedNoteIds = [];
+        this.allWorkspaceNotes = [];
+        this.allNoteLabels = [];
 
         this.bindEvents();
     }
@@ -488,7 +500,31 @@ export class TaskModal {
             if (!this.relatedSearch.contains(e.target) && e.target !== this.btnLinkTask) {
                 this.relatedSearch.style.display = 'none';
             }
+            if (this.relatedNotesSearch && !this.relatedNotesSearch.contains(e.target) && e.target !== this.btnLinkNote) {
+                this.relatedNotesSearch.style.display = 'none';
+            }
         });
+
+        // Related Notes - Link button
+        if (this.btnLinkNote) {
+            this.btnLinkNote.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const visible = this.relatedNotesSearch.style.display !== 'none';
+                this.relatedNotesSearch.style.display = visible ? 'none' : 'block';
+                if (!visible) {
+                    this.relatedNotesSearchInput.value = '';
+                    this.relatedNotesSearchInput.focus();
+                    this.renderNoteSearchResults('');
+                }
+            });
+        }
+
+        // Related Notes - Search input
+        if (this.relatedNotesSearchInput) {
+            this.relatedNotesSearchInput.addEventListener('input', () => {
+                this.renderNoteSearchResults(this.relatedNotesSearchInput.value.trim().toLowerCase());
+            });
+        }
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -550,6 +586,12 @@ export class TaskModal {
         this.allBoardTasks = await this.loadAllBoardTasks();
         this.renderRelatedTasks();
         this.relatedSearch.style.display = 'none';
+
+        // Load all workspace notes for the related notes search
+        this.allWorkspaceNotes = await this.loadAllWorkspaceNotes();
+        this.allNoteLabels = await this.loadAllNoteLabels();
+        this.renderRelatedNotes();
+        if (this.relatedNotesSearch) this.relatedNotesSearch.style.display = 'none';
     }
 
     renderDatePunches() {
@@ -653,6 +695,9 @@ export class TaskModal {
                 // Load related tasks
                 this.relatedTaskIds = task.relatedTasks || [];
 
+                // Load related notes
+                this.relatedNoteIds = task.relatedNotes || [];
+
                 // Load starred state
                 this.starred = task.starred === true;
             }
@@ -682,6 +727,7 @@ export class TaskModal {
                 labels: Array.from(this.selectedLabelIds),
                 comments: this.comments,
                 relatedTasks: this.relatedTaskIds,
+                relatedNotes: this.relatedNoteIds,
                 starred: this.starred
             };
 
@@ -1255,6 +1301,190 @@ export class TaskModal {
         // Save current task first, then open the linked one
         await this.saveTask();
         this.open(taskId);
+    }
+
+    // --- Related Notes Logic ---
+
+    async loadAllWorkspaceNotes() {
+        try {
+            return await noteService.getAllNotes(this.uid, this.workspaceId) || [];
+        } catch (err) {
+            console.error('Failed to load workspace notes:', err);
+            return [];
+        }
+    }
+
+    async loadAllNoteLabels() {
+        try {
+            const { getDocs, collection, query, orderBy } = await import('firebase/firestore');
+            const { db } = await import('./firebase-config.js');
+            const q = query(collection(db, 'users', this.uid, 'workspaces', this.workspaceId, 'noteLabels'), orderBy('order', 'asc'));
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map(d => d.data());
+        } catch (err) {
+            console.error('Failed to load note labels:', err);
+            return [];
+        }
+    }
+
+    renderRelatedNotes() {
+        if (!this.relatedNotesList) return;
+
+        if (this.relatedNoteIds.length === 0) {
+            this.relatedNotesList.innerHTML = `
+                <div style="color: var(--text-muted); font-size: 0.85rem; padding: 8px 0;">
+                    No linked notes yet.
+                </div>
+            `;
+            return;
+        }
+
+        const linkedNotes = this.relatedNoteIds
+            .map(id => this.allWorkspaceNotes.find(n => n.id === id))
+            .filter(Boolean);
+
+        this.relatedNotesList.innerHTML = linkedNotes.map(n => {
+            const labelId = n.labels && n.labels.length > 0 ? n.labels[0] : null;
+            const label = labelId ? this.allNoteLabels.find(l => l.id === labelId) : null;
+            const color = label ? label.color : '#9ca3af';
+
+            return `
+                <div class="related-task-card" data-note-id="${n.id}">
+                    <span class="related-task-dot" style="background: ${color};"></span>
+                    <span class="related-task-title">${this.escapeHtml(n.name)}</span>
+                    <button class="related-task-unlink" data-note-id="${n.id}" title="Unlink">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+                    </button>
+                </div>
+            `;
+        }).join('');
+
+        this.relatedNotesList.querySelectorAll('.related-task-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.related-task-unlink')) return;
+                this.openRelatedNote(card.getAttribute('data-note-id'));
+            });
+        });
+
+        this.relatedNotesList.querySelectorAll('.related-task-unlink').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.unlinkNote(btn.getAttribute('data-note-id'));
+            });
+        });
+    }
+
+    renderNoteSearchResults(filterText) {
+        const exclude = new Set([...this.relatedNoteIds]);
+        let results = this.allWorkspaceNotes.filter(n => !exclude.has(n.id));
+
+        if (filterText) {
+            results = results.filter(n => n.name && n.name.toLowerCase().includes(filterText));
+        }
+
+        if (results.length === 0) {
+            this.relatedNotesSearchResults.innerHTML = `
+                <div style="padding: 8px 12px; color: var(--text-muted); font-size: 0.85rem;">
+                    No notes found.
+                </div>
+            `;
+            return;
+        }
+
+        this.relatedNotesSearchResults.innerHTML = results.slice(0, 10).map(n => {
+            const labelId = n.labels && n.labels.length > 0 ? n.labels[0] : null;
+            const label = labelId ? this.allNoteLabels.find(l => l.id === labelId) : null;
+            const color = label ? label.color : '#9ca3af';
+
+            return `
+                <div class="related-search-item" data-note-id="${n.id}">
+                    <span class="related-task-dot" style="background: ${color};"></span>
+                    <span>${this.escapeHtml(n.name)}</span>
+                </div>
+            `;
+        }).join('');
+
+        this.relatedNotesSearchResults.querySelectorAll('.related-search-item').forEach(item => {
+            item.addEventListener('click', () => {
+                this.linkNote(item.getAttribute('data-note-id'));
+            });
+        });
+    }
+
+    async linkNote(noteId) {
+        if (this.relatedNoteIds.includes(noteId)) return;
+
+        // Add to current task
+        this.relatedNoteIds.push(noteId);
+
+        // Add current task to target note (bidirectional)
+        const targetNote = this.allWorkspaceNotes.find(n => n.id === noteId);
+        if (targetNote) {
+            const targetRelated = targetNote.relatedTasks || [];
+            if (!targetRelated.includes(this.currentTaskId)) {
+                targetRelated.push(this.currentTaskId);
+                try {
+                    await noteService.update(this.uid, this.workspaceId, noteId, {
+                        relatedTasks: targetRelated
+                    });
+                    targetNote.relatedTasks = targetRelated;
+                } catch (err) {
+                    console.error('Failed to update target note:', err);
+                }
+            }
+        }
+
+        // Save current task
+        if (this.currentTaskId) {
+            try {
+                await taskService.update(this.uid, this.workspaceId, this.boardId, this.currentTaskId, {
+                    relatedNotes: this.relatedNoteIds
+                });
+            } catch (err) {
+                console.error('Failed to save related notes:', err);
+            }
+        }
+
+        if (this.relatedNotesSearch) this.relatedNotesSearch.style.display = 'none';
+        this.renderRelatedNotes();
+    }
+
+    async unlinkNote(noteId) {
+        this.relatedNoteIds = this.relatedNoteIds.filter(id => id !== noteId);
+
+        // Remove current task from target note (bidirectional)
+        const targetNote = this.allWorkspaceNotes.find(n => n.id === noteId);
+        if (targetNote) {
+            const targetRelated = (targetNote.relatedTasks || []).filter(id => id !== this.currentTaskId);
+            try {
+                await noteService.update(this.uid, this.workspaceId, noteId, {
+                    relatedTasks: targetRelated
+                });
+                targetNote.relatedTasks = targetRelated;
+            } catch (err) {
+                console.error('Failed to update target note:', err);
+            }
+        }
+
+        // Save current task
+        if (this.currentTaskId) {
+            try {
+                await taskService.update(this.uid, this.workspaceId, this.boardId, this.currentTaskId, {
+                    relatedNotes: this.relatedNoteIds
+                });
+            } catch (err) {
+                console.error('Failed to save related notes:', err);
+            }
+        }
+
+        this.renderRelatedNotes();
+    }
+
+    async openRelatedNote(noteId) {
+        await this.saveTask();
+        if (window.currentNoteModal) {
+            window.currentNoteModal.open(noteId);
+        }
     }
 
     // --- Label Dropdown Logic ---

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Task Manager KRK — Cloud-based task management for teams and freelancers">
     <title>Task Manager KRK</title>
-    <link rel="stylesheet" href="./src/css/style.css?v=5">
+    <link rel="stylesheet" href="./src/css/style.css?v=6">
     <!-- Google Material Symbols (Outlined) -->
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
@@ -94,6 +94,10 @@
                     <a href="#" class="nav-item" id="btn-nav-bookmarks" data-tooltip="Bookmarks">
                         <span class="material-symbols-outlined nav-icon">bookmarks</span>
                         <span class="nav-text">Bookmarks</span>
+                    </a>
+                    <a href="#" class="nav-item" id="btn-nav-notes" data-tooltip="Notes">
+                        <span class="material-symbols-outlined nav-icon">sticky_note_2</span>
+                        <span class="nav-text">Notes</span>
                     </a>
 
                     <div style="flex: 1;"></div>
@@ -260,15 +264,91 @@
                         Add Bookmark
                     </button>
                 </div>
+
+                <!-- Header Actions: Notes view controls (hidden by default, shown when notes active) -->
+                <div id="note-topbar-group"
+                    style="display: none; gap: var(--space-md); align-items: center; flex: 1; justify-content: flex-end; min-width: 0;">
+
+                    <!-- Note search -->
+                    <div class="search-container" style="max-width: 220px; flex-shrink: 0;">
+                        <span class="material-symbols-outlined search-icon">search</span>
+                        <input type="text" id="note-search" placeholder="Search notes..." autocomplete="off"
+                            class="form-input form-input-sm" style="padding-left: 32px; width: 100%;">
+                    </div>
+
+                    <!-- Parked note label chips -->
+                    <div id="note-parked-labels-container"
+                        style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex: 1;">
+                    </div>
+
+                    <!-- Labels visibility toggle -->
+                    <button id="btn-toggle-note-labels" title="Show / Hide Labels"
+                        style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; background-color: var(--bg-surface); border: 1px solid var(--border-light); border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 500; color: var(--text-muted); cursor: pointer; box-shadow: var(--shadow-sm); transition: transform var(--transition-fast), box-shadow var(--transition-fast); flex-shrink: 0;"
+                        onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='var(--shadow-md)';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
+                        <span class="material-symbols-outlined" id="note-labels-toggle-icon"
+                            style="font-size: 14px; pointer-events: none;">label</span>
+                        <span style="pointer-events: none;">Labels</span>
+                    </button>
+
+                    <!-- New Note Label popover -->
+                    <div style="position: relative; display: flex;">
+                        <button id="btn-show-add-note-label"
+                            style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; background-color: var(--bg-surface); border: 1px dashed var(--border-light); border-left: 3px solid var(--text-muted); border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 500; color: var(--text-muted); cursor: pointer; box-shadow: var(--shadow-sm); transition: transform var(--transition-fast), box-shadow var(--transition-fast); flex-shrink: 0;"
+                            title="Create New Note Label"
+                            onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='var(--shadow-md)';"
+                            onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
+                            <span class="material-symbols-outlined"
+                                style="font-size: 14px; pointer-events: none;">add</span>
+                            <span style="pointer-events: none;">New Label</span>
+                        </button>
+                        <div id="add-note-label-popover"
+                            style="display: none; position: absolute; top: 120%; right: 0; width: 250px; flex-direction: column; gap: 12px; padding: 16px; background: var(--bg-surface); border-radius: var(--radius-xl); border: 1px solid var(--border-primary); box-shadow: var(--shadow-lg); z-index: 100;">
+                            <div
+                                style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary); text-align: center;">
+                                Create New Label</div>
+                            <input type="text" id="new-note-label-name" class="form-input form-input-sm"
+                                placeholder="Label name..." style="background: var(--bg-body);" autocomplete="off" />
+                            <div
+                                style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-body); padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="material-symbols-outlined"
+                                        style="color: var(--text-muted); font-size: 18px;">palette</span>
+                                    <span style="font-size: 0.85rem; color: var(--text-secondary);">Color</span>
+                                </div>
+                                <div class="color-picker-wrapper"
+                                    style="position: relative; width: 24px; height: 24px; border-radius: 50%; overflow: hidden; border: 2px solid var(--border-primary); cursor: pointer;">
+                                    <input type="color" id="new-note-label-color" value="#6366f1"
+                                        style="position: absolute; top: -10px; left: -10px; width: 44px; height: 44px; cursor: pointer; border: none; padding: 0;" />
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:8px; margin-top: 4px;">
+                                <button class="btn btn-primary btn-sm" id="btn-save-note-label"
+                                    style="flex: 1;">Create</button>
+                                <button class="btn btn-outline btn-sm" id="btn-cancel-note-label"
+                                    style="flex: 1;">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Note button -->
+                    <button class="btn btn-primary" id="btn-topbar-create-note" style="gap: 8px; flex-shrink: 0;">
+                        <span class="material-symbols-outlined">note_add</span>
+                        Add Note
+                    </button>
+                </div>
             </header>
 
             <!-- Dashboard Layout -->
-            <div class="dashboard-layout">
+            <div class="dashboard-layout" style="padding: 16px; gap: 16px;">
                 <!-- Left Column (Header + Calendar) -->
                 <div class="left-column" style="display: flex; flex-direction: column; gap: var(--space-md);">
                     <div class="board-header" style="padding: 0;">
-                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">Main
-                            Board</h2>
+                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
+                            <span id="workspace-page-title">Workspace</span>
+                            <span id="workspace-page-label" style="font-weight: 400; color: var(--text-muted);"> —
+                                Tasks</span>
+                        </h2>
                     </div>
 
                     <!-- Calendar Column (left) -->
@@ -355,7 +435,7 @@
                             </div>
                         </div>
                         <div id="dashboard-container" class="layout-container"
-                            style="flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0 var(--spacing-6) 0 0;">
+                            style="flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0 16px 0 0;">
                             <section class="bucket-grid stagger-children" id="main-board">
                                 <!-- JS auto injects bucket columns here -->
                             </section>
@@ -370,8 +450,9 @@
                                 style="width: 100%; max-width: 800px; margin: 0 auto; min-height: unset; height: auto;">
                                 <div class="bucket-header"
                                     style="justify-content: center; border-bottom: 1px solid var(--border-light); margin-bottom: 24px; padding-bottom: 12px;">
-                                    <h3 class="bucket-title" style="font-size: 1.5rem; text-align: center;">Completed
-                                        Tasks</h3>
+                                    <h3 class="bucket-title"
+                                        style="font-size: 1.5rem; text-align: center; color: var(--success);">Completed
+                                    </h3>
                                 </div>
                                 <div class="task-list" id="completed-tasks-list">
                                     <div class="empty-state">Loading completed tasks...</div>
@@ -388,8 +469,10 @@
                                 style="width: 100%; max-width: 800px; margin: 0 auto; min-height: unset; height: auto;">
                                 <div class="bucket-header"
                                     style="align-items: center; border-bottom: 1px solid var(--border-light); margin-bottom: 24px; padding-bottom: 12px; display: flex; position: relative;">
-                                    <h3 class="bucket-title" style="font-size: 1.5rem; text-align: center; flex: 1;">
-                                        Archived Tasks</h3>
+                                    <div style="flex: 1; text-align: center;">
+                                        <h3 class="bucket-title" style="font-size: 1.5rem; color: var(--danger);">
+                                            Archived</h3>
+                                    </div>
                                     <button class="btn btn-sm btn-outline btn-danger" id="btn-delete-old-archive"
                                         style="position: absolute; right: 0; border-color: var(--danger); color: var(--danger);">
                                         <span class="material-symbols-outlined"
@@ -406,6 +489,13 @@
                     <!-- BOOKMARKS DASHBOARD -->
                     <div id="bookmark-board-container" class="board-container"
                         style="flex: 1; display: none; flex-direction: column; min-height: 0;">
+                        <!-- Bookmark Page Header -->
+                        <div style="padding: 0 var(--space-3xl) 0 var(--space-3xl);">
+                            <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
+                                <span id="workspace-name-bookmarks"></span>
+                                <span style="font-weight: 400; color: var(--text-muted);"> — Bookmarks</span>
+                            </h2>
+                        </div>
                         <!-- Bookmark Zoom Controls -->
                         <div
                             style="display: flex; align-items: center; justify-content: flex-end; padding: 0 var(--space-3xl) var(--space-lg) var(--space-3xl);">
@@ -423,6 +513,36 @@
                             style="flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0 var(--space-3xl) 0 var(--space-3xl);">
                             <section class="bucket-grid stagger-children" id="bookmark-board">
                                 <!-- JS auto injects bookmark buckets here -->
+                            </section>
+                        </div>
+                    </div>
+                    <!-- NOTES DASHBOARD -->
+                    <div id="note-board-container" class="board-container"
+                        style="flex: 1; display: none; flex-direction: column; min-height: 0;">
+                        <!-- Note Page Header -->
+                        <div style="padding: 0 var(--space-3xl) 0 var(--space-3xl);">
+                            <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
+                                <span id="workspace-name-notes"></span>
+                                <span style="font-weight: 400; color: var(--text-muted);"> — Notes</span>
+                            </h2>
+                        </div>
+                        <!-- Note Zoom Controls -->
+                        <div
+                            style="display: flex; align-items: center; justify-content: flex-end; padding: 0 var(--space-3xl) var(--space-lg) var(--space-3xl);">
+                            <div class="zoom-controls" style="display: flex; align-items: center; gap: 8px;">
+                                <span class="material-symbols-outlined"
+                                    style="font-size: 16px; color: var(--text-muted);">zoom_out</span>
+                                <input type="range" id="note-zoom-slider" min="0.5" max="1.5" step="0.1" value="1.0"
+                                    style="width: 100px;">
+                                <span class="material-symbols-outlined"
+                                    style="font-size: 16px; color: var(--text-muted);">zoom_in</span>
+                            </div>
+                        </div>
+                        <!-- Note Bucket Grid -->
+                        <div id="note-dashboard-container" class="layout-container"
+                            style="flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0 var(--space-3xl) 0 var(--space-3xl);">
+                            <section class="bucket-grid stagger-children" id="note-board">
+                                <!-- JS auto injects note buckets here -->
                             </section>
                         </div>
                     </div>
@@ -541,6 +661,157 @@
                 <div style="display: flex; gap: 12px; justify-content: center;">
                     <button class="btn btn-primary" id="btn-bookmark-move-move">Move Bookmark</button>
                     <button class="btn btn-outline" id="btn-bookmark-move-add"
+                        style="color: var(--primary); border-color: var(--primary);">Add to Both</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== NOTE DETAIL MODAL ===== -->
+    <div class="modal-overlay" id="note-modal-overlay"
+        onclick="if(event.target===this) document.getElementById('note-modal-overlay').classList.remove('active')">
+        <div class="modal" style="max-width: 700px; width: 95%;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="note-modal-title-text">New Note</h2>
+                <div style="display: flex; gap: 4px; align-items: center;">
+                    <span id="note-modal-created-info"
+                        style="font-size: 0.75rem; color: var(--text-muted); margin-right: 8px;"></span>
+                    <button class="btn-icon" id="btn-note-delete" data-tooltip="Delete" style="display: none;">
+                        <span class="material-symbols-outlined" style="color: var(--danger);">delete</span>
+                    </button>
+                    <button class="btn-icon" id="btn-note-close" data-tooltip="Close">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body"
+                style="display: flex; flex-direction: column; gap: 16px; max-height: 75vh; overflow-y: auto;">
+                <!-- Note Name -->
+                <div>
+                    <label
+                        style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px;">Name</label>
+                    <input type="text" id="note-modal-name" class="form-input" placeholder="Note name..."
+                        autocomplete="off">
+                </div>
+                <!-- Labels Multi-Select -->
+                <div>
+                    <label
+                        style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px;">Labels</label>
+                    <div class="custom-select-wrapper" id="note-label-select-wrapper">
+                        <div class="custom-select-trigger" id="note-label-trigger">
+                            <span id="note-label-display" style="color: var(--text-muted);">Select
+                                labels...</span>
+                            <span class="material-symbols-outlined">expand_more</span>
+                        </div>
+                        <div class="custom-select-dropdown" id="note-label-dropdown" style="display: none;">
+                            <div class="custom-select-search">
+                                <input type="text" id="note-label-search" placeholder="Search or create..."
+                                    autocomplete="off">
+                            </div>
+                            <div class="custom-select-options" id="note-label-options">
+                                <!-- Labels injected here by JS -->
+                            </div>
+                            <div class="custom-select-create" id="note-label-create-section" style="display: none;">
+                                <button class="btn btn-sm btn-outline" id="btn-create-new-note-label-modal"
+                                    style="width: 100%;">+ Create "<span id="new-note-label-text"></span>"</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="selected-labels-container" id="note-selected-labels"></div>
+                </div>
+                <!-- Divider -->
+                <hr style="border: none; border-top: 1px solid var(--border-light); margin: 4px 0;">
+                <!-- Comments Section (Main Body) -->
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
+                    <label
+                        style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary);">Comments</label>
+                    <!-- Comment Editor -->
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <div class="comment-toolbar" style="display: flex; gap: 4px;">
+                            <button class="comment-toolbar-btn" id="btn-note-comment-bold" type="button" title="Bold">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">format_bold</span>
+                            </button>
+                            <button class="comment-toolbar-btn" id="btn-note-comment-highlight" type="button"
+                                title="Highlight">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">ink_highlighter</span>
+                            </button>
+                            <button class="comment-toolbar-btn" id="btn-note-comment-link" type="button"
+                                title="Insert Link">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">link</span>
+                            </button>
+                        </div>
+                        <div id="note-comment-editor" contenteditable="true" class="form-input note-comment-editor"
+                            style="min-height: 80px; max-height: none; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word; width: 100%;"
+                            data-placeholder="Write a comment..."></div>
+                        <div style="display: flex; justify-content: flex-end;">
+                            <button class="btn btn-primary btn-sm" id="btn-note-add-comment">Add Comment</button>
+                        </div>
+                    </div>
+                    <!-- Comments List -->
+                    <div id="note-comments-list" style="display: flex; flex-direction: column; gap: 12px;">
+                        <!-- JS renders comments here -->
+                    </div>
+                </div>
+                <!-- Related Tasks in Note -->
+                <div class="related-tasks-section" style="border-top: 1px solid var(--border-light); padding-top: 12px;">
+                    <div class="related-tasks-header">
+                        <span class="meta-label">
+                            <span class="material-symbols-outlined"
+                                style="font-size: 16px; vertical-align: middle;">link</span>
+                            Related Tasks
+                        </span>
+                        <button class="btn btn-sm btn-outline" id="btn-note-link-task" type="button">+ Link Task</button>
+                    </div>
+                    <div class="related-tasks-search" id="note-related-tasks-search" style="display: none;">
+                        <input type="text" id="note-related-tasks-search-input" class="form-input form-input-sm"
+                            placeholder="Search tasks to link..." autocomplete="off">
+                        <div class="related-tasks-search-results" id="note-related-tasks-search-results"></div>
+                    </div>
+                    <div class="related-tasks-list" id="note-related-tasks-list">
+                    </div>
+                </div>
+                <!-- Related Notes in Note -->
+                <div class="related-tasks-section" style="padding-top: 8px;">
+                    <div class="related-tasks-header">
+                        <span class="meta-label">
+                            <span class="material-symbols-outlined"
+                                style="font-size: 16px; vertical-align: middle;">sticky_note_2</span>
+                            Related Notes
+                        </span>
+                        <button class="btn btn-sm btn-outline" id="btn-note-link-note" type="button">+ Link Note</button>
+                    </div>
+                    <div class="related-tasks-search" id="note-related-notes-search" style="display: none;">
+                        <input type="text" id="note-related-notes-search-input" class="form-input form-input-sm"
+                            placeholder="Search notes to link..." autocomplete="off">
+                        <div class="related-tasks-search-results" id="note-related-notes-search-results"></div>
+                    </div>
+                    <div class="related-tasks-list" id="note-related-notes-list">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer"
+                style="display: flex; justify-content: flex-end; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--border-primary);">
+                <button class="btn btn-primary" id="btn-note-save">Save</button>
+                <button class="btn btn-outline" id="btn-note-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== NOTE MOVE MODAL ===== -->
+    <div class="modal-overlay" id="note-move-modal">
+        <div class="modal" style="width: 400px; max-width: 90%;">
+            <div class="modal-header">
+                <h2 class="modal-title">Move or Add Note</h2>
+                <button class="btn-icon" id="btn-note-move-close" data-tooltip="Close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding-bottom: 24px;">
+                <p style="margin-bottom: 24px; color: var(--text-secondary);">Do you want to move this note to the
+                    new bucket, or add it to both?</p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button class="btn btn-primary" id="btn-note-move-move">Move Note</button>
+                    <button class="btn btn-outline" id="btn-note-move-add"
                         style="color: var(--primary); border-color: var(--primary);">Add to Both</button>
                 </div>
             </div>
@@ -723,6 +994,25 @@
                         <!-- Linked Tasks List -->
                         <div class="related-tasks-list" id="related-tasks-list">
                             <!-- Linked task cards rendered here by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Related Notes -->
+                    <div class="related-tasks-section">
+                        <div class="related-tasks-header">
+                            <span class="meta-label">
+                                <span class="material-symbols-outlined"
+                                    style="font-size: 16px; vertical-align: middle;">sticky_note_2</span>
+                                Related Notes
+                            </span>
+                            <button class="btn btn-sm btn-outline" id="btn-link-note" type="button">+ Link Note</button>
+                        </div>
+                        <div class="related-tasks-search" id="related-notes-search" style="display: none;">
+                            <input type="text" id="related-notes-search-input" class="form-input form-input-sm"
+                                placeholder="Search notes to link..." autocomplete="off">
+                            <div class="related-tasks-search-results" id="related-notes-search-results"></div>
+                        </div>
+                        <div class="related-tasks-list" id="related-notes-list">
                         </div>
                     </div>
 

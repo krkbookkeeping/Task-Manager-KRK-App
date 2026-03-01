@@ -1,27 +1,27 @@
-import { bookmarkLabelService } from './services/bookmark-label-service.js';
-import { bookmarkService } from './services/bookmark-service.js';
+import { noteLabelService } from './services/note-label-service.js';
+import { noteService } from './services/note-service.js';
 
-export class BookmarkDashboard {
+export class NoteDashboard {
     constructor(uid, workspaceId) {
         this.uid = uid;
         this.workspaceId = workspaceId;
 
         this.labels = [];
-        this.bookmarks = [];
+        this.notes = [];
         this.searchQuery = '';
 
         this.bucketSortMode = {};
         try {
-            const saved = localStorage.getItem(`bookmarkBucketSort_${this.workspaceId}`);
+            const saved = localStorage.getItem(`noteBucketSort_${this.workspaceId}`);
             this.bucketSortMode = saved ? JSON.parse(saved) : {};
         } catch (e) {
             this.bucketSortMode = {};
         }
 
         this.unsubLabels = null;
-        this.unsubBookmarks = null;
+        this.unsubNotes = null;
 
-        this.gridEl = document.getElementById('bookmark-board');
+        this.gridEl = document.getElementById('note-board');
 
         // AbortController for cleaning up event listeners on destroy
         this._abortController = null;
@@ -30,13 +30,13 @@ export class BookmarkDashboard {
     init() {
         if (!this.gridEl) return;
 
-        this.unsubLabels = bookmarkLabelService.subscribe(this.uid, this.workspaceId, (labels) => {
+        this.unsubLabels = noteLabelService.subscribe(this.uid, this.workspaceId, (labels) => {
             this.labels = labels;
             this.render();
         });
 
-        this.unsubBookmarks = bookmarkService.subscribe(this.uid, this.workspaceId, (bookmarks) => {
-            this.bookmarks = bookmarks;
+        this.unsubNotes = noteService.subscribe(this.uid, this.workspaceId, (notes) => {
+            this.notes = notes;
             this.render();
         });
 
@@ -49,8 +49,7 @@ export class BookmarkDashboard {
 
     destroy() {
         if (this.unsubLabels) this.unsubLabels();
-        if (this.unsubBookmarks) this.unsubBookmarks();
-        // Clean up all event listeners
+        if (this.unsubNotes) this.unsubNotes();
         if (this._abortController) this._abortController.abort();
     }
 
@@ -68,50 +67,58 @@ export class BookmarkDashboard {
 
         this.renderParkedLabels(parkedLabels);
 
-        // Empty state: no labels at all — show CTA
+        // Empty state: no labels at all
         if (visibleLabels.length === 0 && parkedLabels.length === 0) {
             const emptyState = document.createElement('div');
             emptyState.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 60px 20px; text-align: center; width: 100%;';
             emptyState.innerHTML = `
-                <span class="material-symbols-outlined" style="font-size: 48px; color: var(--text-muted); opacity: 0.5;">bookmarks</span>
-                <div style="font-size: 1rem; font-weight: 600; color: var(--text-secondary);">No bookmark labels yet</div>
-                <div style="font-size: 0.85rem; color: var(--text-muted); max-width: 280px;">Labels organize your bookmarks into groups. Create your first one to get started.</div>
-                <button class="btn btn-primary" id="btn-empty-create-bookmark-label" style="padding: 10px 24px; display: flex; align-items: center; gap: 8px;">
+                <span class="material-symbols-outlined" style="font-size: 48px; color: var(--text-muted); opacity: 0.5;">sticky_note_2</span>
+                <div style="font-size: 1rem; font-weight: 600; color: var(--text-secondary);">No note labels yet</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); max-width: 280px;">Labels organize your notes into groups. Create your first one to get started.</div>
+                <button class="btn btn-primary" id="btn-empty-create-note-label" style="padding: 10px 24px; display: flex; align-items: center; gap: 8px;">
                     <span class="material-symbols-outlined" style="font-size: 18px;">add</span>
                     Create Your First Label
                 </button>
             `;
             this.gridEl.appendChild(emptyState);
 
-            const ctaBtn = document.getElementById('btn-empty-create-bookmark-label');
+            const ctaBtn = document.getElementById('btn-empty-create-note-label');
             if (ctaBtn) {
-                ctaBtn.addEventListener('click', () => {
-                    const btnShowAdd = document.getElementById('btn-show-add-bookmark-label');
-                    if (btnShowAdd) btnShowAdd.click();
+                ctaBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const popover = document.getElementById('add-note-label-popover');
+                    const inputName = document.getElementById('new-note-label-name');
+                    if (popover) {
+                        popover.style.display = 'flex';
+                        if (inputName) inputName.focus();
+                    }
                 });
             }
             return;
         }
 
         visibleLabels.forEach((label) => {
-            let bucketBookmarks = this.bookmarks.filter(b => b.labels && b.labels.includes(label.id));
+            let bucketNotes = this.notes.filter(n => n.labels && n.labels.includes(label.id));
 
             // Apply search filter
             if (this.searchQuery) {
                 const q = this.searchQuery.toLowerCase();
-                bucketBookmarks = bucketBookmarks.filter(b =>
-                    (b.name && b.name.toLowerCase().includes(q)) ||
-                    (b.url && b.url.toLowerCase().includes(q)) ||
-                    (b.notes && b.notes.toLowerCase().includes(q))
-                );
+                bucketNotes = bucketNotes.filter(n => {
+                    if (n.name && n.name.toLowerCase().includes(q)) return true;
+                    // Search in comments
+                    if (n.comments && n.comments.length > 0) {
+                        return n.comments.some(c => c.content && c.content.toLowerCase().includes(q));
+                    }
+                    return false;
+                });
             }
 
             // Sort
             const sortMode = this.bucketSortMode[label.id] || 'manual';
             if (sortMode === 'name') {
-                bucketBookmarks.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+                bucketNotes.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
             } else {
-                bucketBookmarks.sort((a, b) => {
+                bucketNotes.sort((a, b) => {
                     const orderA = a.order?.[label.id] || 0;
                     const orderB = b.order?.[label.id] || 0;
                     return orderA - orderB;
@@ -119,7 +126,7 @@ export class BookmarkDashboard {
             }
 
             const bucketEl = document.createElement('div');
-            bucketEl.className = `bucket animate-slide-up ${bucketBookmarks.length === 0 ? 'bucket-empty' : ''}`;
+            bucketEl.className = `bucket animate-slide-up ${bucketNotes.length === 0 ? 'bucket-empty' : ''}`;
             bucketEl.style.borderTop = `4px solid ${label.color}`;
             bucketEl.draggable = true;
             bucketEl.setAttribute('data-label-id', label.id);
@@ -135,7 +142,7 @@ export class BookmarkDashboard {
                         <button class="btn-icon btn-sm btn-park-bucket" data-label-id="${label.id}" data-tooltip="Park / Hide Label">
                             <span class="material-symbols-outlined" style="font-size: 16px;">visibility_off</span>
                         </button>
-                        <span class="task-count">${bucketBookmarks.length}</span>
+                        <span class="task-count">${bucketNotes.length}</span>
                         <button class="btn-icon btn-sm btn-sort-bucket ${sortMode === 'name' ? 'sort-active' : ''}" data-label-id="${label.id}" data-sort="name" data-tooltip="Sort by Name">
                             <span class="material-symbols-outlined" style="font-size: 16px;">sort_by_alpha</span>
                         </button>
@@ -166,15 +173,21 @@ export class BookmarkDashboard {
                 </div>
             `;
 
-            // Bookmark cards
+            // Note cards
             let cardsHtml = `<div class="bucket-cards" data-label-id="${label.id}">`;
-            bucketBookmarks.forEach(bm => {
+            bucketNotes.forEach(note => {
+                const commentCount = (note.comments && note.comments.length) || 0;
+                const createdDate = note.createdAt ? this.formatDate(note.createdAt) : '';
                 cardsHtml += `
-                    <div class="bookmark-card" data-bookmark-id="${bm.id}" draggable="true">
-                        <div class="bookmark-card-body" data-url="${this.escapeHtml(bm.url || '')}">
-                            <span class="bookmark-card-name">${this.escapeHtml(bm.name)}</span>
+                    <div class="note-card" data-note-id="${note.id}" draggable="true">
+                        <div class="note-card-body">
+                            <span class="note-card-name">${this.escapeHtml(note.name)}</span>
+                            <div class="note-card-meta">
+                                ${createdDate ? `<span class="note-card-date">${createdDate}</span>` : ''}
+                                ${commentCount > 0 ? `<span class="note-card-comments"><span class="material-symbols-outlined" style="font-size: 13px;">comment</span> ${commentCount}</span>` : ''}
+                            </div>
                         </div>
-                        <button class="btn-icon btn-bookmark-settings" data-bookmark-id="${bm.id}" data-tooltip="Edit Bookmark">
+                        <button class="btn-icon btn-note-settings" data-note-id="${note.id}" data-tooltip="Edit Note">
                             <span class="material-symbols-outlined" style="font-size: 16px;">settings</span>
                         </button>
                     </div>
@@ -185,7 +198,7 @@ export class BookmarkDashboard {
             // Quick add
             const quickAddHtml = `
                 <div class="quick-add-task" style="padding: 10px; display: flex; gap: 8px;">
-                    <input type="text" class="form-input form-input-sm quick-add-bookmark-input" data-label-id="${label.id}" placeholder="Add bookmark & press Enter..." />
+                    <input type="text" class="form-input form-input-sm quick-add-note-input" data-label-id="${label.id}" placeholder="Add note & press Enter..." />
                 </div>
             `;
 
@@ -196,9 +209,25 @@ export class BookmarkDashboard {
         this.bindEventsAfterRender();
     }
 
+    formatDate(timestamp) {
+        if (!timestamp) return '';
+        let d;
+        if (timestamp.toDate) {
+            d = timestamp.toDate();
+        } else if (timestamp.seconds) {
+            d = new Date(timestamp.seconds * 1000);
+        } else {
+            d = new Date(timestamp);
+        }
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${month}/${day}/${year}`;
+    }
+
     bindEventsAfterRender() {
-        // Quick add bookmark
-        const inputs = this.gridEl.querySelectorAll('.quick-add-bookmark-input');
+        // Quick add note
+        const inputs = this.gridEl.querySelectorAll('.quick-add-note-input');
         inputs.forEach(input => {
             input.addEventListener('keypress', async (e) => {
                 if (e.key === 'Enter' && input.value.trim() !== '') {
@@ -207,13 +236,13 @@ export class BookmarkDashboard {
                     input.value = '';
                     input.disabled = true;
                     try {
-                        const newBm = await bookmarkService.create(this.uid, this.workspaceId, name, labelId);
-                        // Open modal immediately so user can add URL
-                        if (window.currentBookmarkModal && newBm) {
-                            window.currentBookmarkModal.open(newBm.id);
+                        const newNote = await noteService.create(this.uid, this.workspaceId, name, labelId);
+                        // Open modal immediately so user can add comments
+                        if (window.currentNoteModal && newNote) {
+                            window.currentNoteModal.open(newNote.id);
                         }
                     } catch (err) {
-                        console.error('Failed to create bookmark:', err);
+                        console.error('Failed to create note:', err);
                     } finally {
                         input.disabled = false;
                         input.focus();
@@ -222,25 +251,26 @@ export class BookmarkDashboard {
             });
         });
 
-        // Click bookmark card body → open URL
-        const cardBodies = this.gridEl.querySelectorAll('.bookmark-card-body');
+        // Click note card body → open modal
+        const cardBodies = this.gridEl.querySelectorAll('.note-card-body');
         cardBodies.forEach(body => {
             body.addEventListener('click', (e) => {
-                const url = body.getAttribute('data-url');
-                if (url) {
-                    window.open(url, '_blank');
+                const card = body.closest('.note-card');
+                const noteId = card.getAttribute('data-note-id');
+                if (window.currentNoteModal) {
+                    window.currentNoteModal.open(noteId);
                 }
             });
         });
 
         // Click settings icon → open modal
-        const settingsBtns = this.gridEl.querySelectorAll('.btn-bookmark-settings');
+        const settingsBtns = this.gridEl.querySelectorAll('.btn-note-settings');
         settingsBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const bmId = btn.getAttribute('data-bookmark-id');
-                if (window.currentBookmarkModal) {
-                    window.currentBookmarkModal.open(bmId);
+                const noteId = btn.getAttribute('data-note-id');
+                if (window.currentNoteModal) {
+                    window.currentNoteModal.open(noteId);
                 }
             });
         });
@@ -288,7 +318,7 @@ export class BookmarkDashboard {
                     const newName = input.value.trim();
                     if (newName && newName !== currentName) {
                         try {
-                            await bookmarkLabelService.update(this.uid, this.workspaceId, labelId, { name: newName });
+                            await noteLabelService.update(this.uid, this.workspaceId, labelId, { name: newName });
                         } catch (err) {
                             console.error('Failed to rename label:', err);
                         }
@@ -317,7 +347,7 @@ export class BookmarkDashboard {
 
                 colorInput.addEventListener('input', async (ev) => {
                     try {
-                        await bookmarkLabelService.update(this.uid, this.workspaceId, labelId, { color: ev.target.value });
+                        await noteLabelService.update(this.uid, this.workspaceId, labelId, { color: ev.target.value });
                     } catch (err) {
                         console.error('Failed to change color:', err);
                     }
@@ -335,12 +365,12 @@ export class BookmarkDashboard {
                 menu.style.display = 'none';
 
                 const labelName = label ? label.name : 'this label';
-                if (!confirm(`Delete "${labelName}"?\n\nAll bookmarks in this label will be moved to "No Label".`)) return;
+                if (!confirm(`Delete "${labelName}"?\n\nAll notes in this label will be moved to "No Label".`)) return;
 
                 try {
-                    const noLabelId = await bookmarkLabelService.ensureNoLabelExists(this.uid, this.workspaceId);
-                    await bookmarkService.migrateBookmarksToLabel(this.uid, this.workspaceId, labelId, noLabelId);
-                    await bookmarkLabelService.delete(this.uid, this.workspaceId, labelId);
+                    const noLabelId = await noteLabelService.ensureNoLabelExists(this.uid, this.workspaceId);
+                    await noteService.migrateNotesToLabel(this.uid, this.workspaceId, labelId, noLabelId);
+                    await noteLabelService.delete(this.uid, this.workspaceId, labelId);
                 } catch (err) {
                     console.error('Failed to delete label:', err);
                     alert('Failed to delete label.');
@@ -356,63 +386,63 @@ export class BookmarkDashboard {
                 const labelId = btn.getAttribute('data-label-id');
                 const sortType = btn.getAttribute('data-sort');
                 this.bucketSortMode[labelId] = sortType;
-                localStorage.setItem(`bookmarkBucketSort_${this.workspaceId}`, JSON.stringify(this.bucketSortMode));
+                localStorage.setItem(`noteBucketSort_${this.workspaceId}`, JSON.stringify(this.bucketSortMode));
                 this.render();
             });
         });
 
-        // ── Drag and Drop for Bookmark Cards ──
+        // ── Drag and Drop for Note Cards ──
         let cardDragThrottle = null;
-        const allCards = this.gridEl.querySelectorAll('.bookmark-card');
+        const allCards = this.gridEl.querySelectorAll('.note-card');
         allCards.forEach(card => {
             card.addEventListener('dragstart', (e) => {
                 e.stopPropagation();
-                requestAnimationFrame(() => card.classList.add('dragging-bookmark'));
+                requestAnimationFrame(() => card.classList.add('dragging-note'));
                 e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('application/x-bookmark-card', card.getAttribute('data-bookmark-id'));
-                this.draggedBookmarkSourceLabelId = card.closest('.bucket').getAttribute('data-label-id');
+                e.dataTransfer.setData('application/x-note-card', card.getAttribute('data-note-id'));
+                this.draggedNoteSourceLabelId = card.closest('.bucket').getAttribute('data-label-id');
             });
 
             card.addEventListener('dragend', async (e) => {
                 e.stopPropagation();
-                card.classList.remove('dragging-bookmark');
+                card.classList.remove('dragging-note');
                 cardDragThrottle = null;
 
                 const bucketEl = card.closest('.bucket');
                 if (!bucketEl) return;
                 const targetLabelId = bucketEl.getAttribute('data-label-id');
-                const bmId = card.getAttribute('data-bookmark-id');
-                const cardElements = Array.from(bucketEl.querySelectorAll('.bookmark-card'));
+                const noteId = card.getAttribute('data-note-id');
+                const cardElements = Array.from(bucketEl.querySelectorAll('.note-card'));
 
                 // Cross-bucket drop
-                if (this.draggedBookmarkSourceLabelId && targetLabelId !== this.draggedBookmarkSourceLabelId) {
-                    const modal = document.getElementById('bookmark-move-modal');
+                if (this.draggedNoteSourceLabelId && targetLabelId !== this.draggedNoteSourceLabelId) {
+                    const modal = document.getElementById('note-move-modal');
                     if (modal) {
                         modal.classList.add('active');
                         this.pendingMoveAdd = {
-                            bookmarkId: bmId,
-                            sourceLabelId: this.draggedBookmarkSourceLabelId,
+                            noteId: noteId,
+                            sourceLabelId: this.draggedNoteSourceLabelId,
                             targetLabelId,
-                            targetCardIds: cardElements.map(c => c.getAttribute('data-bookmark-id'))
+                            targetCardIds: cardElements.map(c => c.getAttribute('data-note-id'))
                         };
                     }
-                    this.draggedBookmarkSourceLabelId = null;
+                    this.draggedNoteSourceLabelId = null;
                     return;
                 }
 
                 // Within-bucket reorder
-                this.draggedBookmarkSourceLabelId = null;
+                this.draggedNoteSourceLabelId = null;
                 this.bucketSortMode[targetLabelId] = 'manual';
-                localStorage.setItem(`bookmarkBucketSort_${this.workspaceId}`, JSON.stringify(this.bucketSortMode));
+                localStorage.setItem(`noteBucketSort_${this.workspaceId}`, JSON.stringify(this.bucketSortMode));
 
                 const updates = cardElements.map((c, index) => {
-                    const id = c.getAttribute('data-bookmark-id');
-                    const bm = this.bookmarks.find(b => b.id === id);
-                    if (bm) {
-                        const newOrder = { ...bm.order };
+                    const id = c.getAttribute('data-note-id');
+                    const note = this.notes.find(n => n.id === id);
+                    if (note) {
+                        const newOrder = { ...note.order };
                         newOrder[targetLabelId] = index;
-                        bm.order = newOrder;
-                        return bookmarkService.update(this.uid, this.workspaceId, id, { order: newOrder });
+                        note.order = newOrder;
+                        return noteService.update(this.uid, this.workspaceId, id, { order: newOrder });
                     }
                     return Promise.resolve();
                 });
@@ -420,17 +450,17 @@ export class BookmarkDashboard {
                 try {
                     await Promise.all(updates);
                 } catch (err) {
-                    console.error('Failed to reorder bookmarks:', err);
+                    console.error('Failed to reorder notes:', err);
                 }
                 this.render();
             });
         });
 
-        // Drop zones for bookmark cards
+        // Drop zones for note cards
         const dropTargets = this.gridEl.querySelectorAll('.bucket');
         dropTargets.forEach(bucket => {
             bucket.addEventListener('dragover', (e) => {
-                const dragging = this.gridEl.querySelector('.dragging-bookmark');
+                const dragging = this.gridEl.querySelector('.dragging-note');
                 if (!dragging) return;
 
                 e.preventDefault();
@@ -451,7 +481,7 @@ export class BookmarkDashboard {
             });
 
             bucket.addEventListener('drop', (e) => {
-                if (this.gridEl.querySelector('.dragging-bookmark')) {
+                if (this.gridEl.querySelector('.dragging-note')) {
                     e.preventDefault();
                     e.stopPropagation();
                 }
@@ -481,7 +511,7 @@ export class BookmarkDashboard {
 
                 if (newOrderIds.length > 0) {
                     try {
-                        await bookmarkLabelService.updateOrders(this.uid, this.workspaceId, newOrderIds);
+                        await noteLabelService.updateOrders(this.uid, this.workspaceId, newOrderIds);
                     } catch (err) {
                         console.error("Failed to update label order", err);
                     }
@@ -522,7 +552,7 @@ export class BookmarkDashboard {
     }
 
     getDragAfterElement(container, y) {
-        const draggableElements = [...container.querySelectorAll('.bookmark-card:not(.dragging-bookmark)')];
+        const draggableElements = [...container.querySelectorAll('.note-card:not(.dragging-note)')];
         return draggableElements.reduce((closest, child) => {
             const box = child.getBoundingClientRect();
             const offset = y - box.top - box.height / 2;
@@ -536,12 +566,12 @@ export class BookmarkDashboard {
     setupEventListeners() {
         const signal = this._abortController.signal;
         // New Label popover
-        const btnShowAdd = document.getElementById('btn-show-add-bookmark-label');
-        const popover = document.getElementById('add-bookmark-label-popover');
-        const inputName = document.getElementById('new-bookmark-label-name');
-        const inputColor = document.getElementById('new-bookmark-label-color');
-        const btnSave = document.getElementById('btn-save-bookmark-label');
-        const btnCancel = document.getElementById('btn-cancel-bookmark-label');
+        const btnShowAdd = document.getElementById('btn-show-add-note-label');
+        const popover = document.getElementById('add-note-label-popover');
+        const inputName = document.getElementById('new-note-label-name');
+        const inputColor = document.getElementById('new-note-label-color');
+        const btnSave = document.getElementById('btn-save-note-label');
+        const btnCancel = document.getElementById('btn-cancel-note-label');
 
         if (btnShowAdd && popover) {
             btnShowAdd.addEventListener('click', (e) => {
@@ -577,7 +607,7 @@ export class BookmarkDashboard {
                     btnSave.disabled = true;
                     btnSave.textContent = 'Saving...';
                     try {
-                        await bookmarkLabelService.create(this.uid, this.workspaceId, name, color);
+                        await noteLabelService.create(this.uid, this.workspaceId, name, color);
                         closePopover();
                     } catch (err) {
                         console.error(err);
@@ -598,7 +628,7 @@ export class BookmarkDashboard {
                     const lid = btnPark.getAttribute('data-label-id');
                     if (lid) {
                         try {
-                            await bookmarkLabelService.update(this.uid, this.workspaceId, lid, { isParked: true });
+                            await noteLabelService.update(this.uid, this.workspaceId, lid, { isParked: true });
                         } catch (err) {
                             console.error("Failed to park label:", err);
                         }
@@ -607,18 +637,18 @@ export class BookmarkDashboard {
             }, { signal });
         }
 
-        // Sidebar navigation - Bookmarks tab
-        const btnNavBookmarks = document.getElementById('btn-nav-bookmarks');
-        if (btnNavBookmarks) {
-            btnNavBookmarks.addEventListener('click', (e) => {
+        // Sidebar navigation - Notes tab
+        const btnNavNotes = document.getElementById('btn-nav-notes');
+        if (btnNavNotes) {
+            btnNavNotes.addEventListener('click', (e) => {
                 e.preventDefault();
                 if (typeof closeSidebar === 'function') closeSidebar();
-                this.activateBookmarksView();
+                this.activateNotesView();
             }, { signal });
         }
 
         // Search
-        const searchInput = document.getElementById('bookmark-search');
+        const searchInput = document.getElementById('note-search');
         let searchDebounce = null;
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -639,33 +669,33 @@ export class BookmarkDashboard {
         }
 
         // Zoom slider
-        const zoomSlider = document.getElementById('bookmark-zoom-slider');
+        const zoomSlider = document.getElementById('note-zoom-slider');
         if (zoomSlider && this.gridEl) {
-            const savedZoom = localStorage.getItem('bookmarkGridZoom') || '1';
+            const savedZoom = localStorage.getItem('noteGridZoom') || '1';
             zoomSlider.value = savedZoom;
             this.gridEl.style.zoom = savedZoom;
 
             zoomSlider.addEventListener('input', (e) => {
                 const zoomVal = e.target.value;
                 this.gridEl.style.zoom = zoomVal;
-                localStorage.setItem('bookmarkGridZoom', zoomVal);
+                localStorage.setItem('noteGridZoom', zoomVal);
             }, { signal });
         }
 
-        // ── Add Bookmark button (top bar) ──
-        const btnCreateBookmark = document.getElementById('btn-topbar-create-bookmark');
-        if (btnCreateBookmark) {
-            btnCreateBookmark.addEventListener('click', () => {
-                if (window.currentBookmarkModal) {
-                    window.currentBookmarkModal.open(null);
+        // ── Add Note button (top bar) ──
+        const btnCreateNote = document.getElementById('btn-topbar-create-note');
+        if (btnCreateNote) {
+            btnCreateNote.addEventListener('click', () => {
+                if (window.currentNoteModal) {
+                    window.currentNoteModal.open(null);
                 }
             }, { signal });
         }
 
         // ── Labels visibility toggle ──
-        const btnToggleLabels = document.getElementById('btn-toggle-bookmark-labels');
-        const labelsContainer = document.getElementById('bookmark-parked-labels-container');
-        const labelsToggleIcon = document.getElementById('bookmark-labels-toggle-icon');
+        const btnToggleLabels = document.getElementById('btn-toggle-note-labels');
+        const labelsContainer = document.getElementById('note-parked-labels-container');
+        const labelsToggleIcon = document.getElementById('note-labels-toggle-icon');
 
         const applyLabelsVisibility = (visible) => {
             if (labelsContainer) labelsContainer.style.display = visible ? 'flex' : 'none';
@@ -678,24 +708,23 @@ export class BookmarkDashboard {
             }
         };
 
-        // Restore saved state (default: visible)
-        const savedLabelsVisible = localStorage.getItem('bookmarkLabelsVisible');
+        const savedLabelsVisible = localStorage.getItem('noteLabelsVisible');
         this._labelsVisible = savedLabelsVisible === null ? true : savedLabelsVisible === 'true';
         applyLabelsVisibility(this._labelsVisible);
 
         if (btnToggleLabels) {
             btnToggleLabels.addEventListener('click', () => {
                 this._labelsVisible = !this._labelsVisible;
-                localStorage.setItem('bookmarkLabelsVisible', this._labelsVisible);
+                localStorage.setItem('noteLabelsVisible', this._labelsVisible);
                 applyLabelsVisibility(this._labelsVisible);
             }, { signal });
         }
 
         // Cross-bucket move/add modal
-        const moveModal = document.getElementById('bookmark-move-modal');
-        const btnMoveClose = document.getElementById('btn-bookmark-move-close');
-        const btnMoveMove = document.getElementById('btn-bookmark-move-move');
-        const btnMoveAdd = document.getElementById('btn-bookmark-move-add');
+        const moveModal = document.getElementById('note-move-modal');
+        const btnMoveClose = document.getElementById('btn-note-move-close');
+        const btnMoveMove = document.getElementById('btn-note-move-move');
+        const btnMoveAdd = document.getElementById('btn-note-move-add');
 
         const closeMoveModal = () => {
             if (moveModal) moveModal.classList.remove('active');
@@ -708,35 +737,35 @@ export class BookmarkDashboard {
         if (btnMoveMove) {
             btnMoveMove.addEventListener('click', async () => {
                 if (!this.pendingMoveAdd) return;
-                const { bookmarkId, sourceLabelId, targetLabelId, targetCardIds } = this.pendingMoveAdd;
-                const bm = this.bookmarks.find(b => b.id === bookmarkId);
+                const { noteId, sourceLabelId, targetLabelId, targetCardIds } = this.pendingMoveAdd;
+                const note = this.notes.find(n => n.id === noteId);
 
-                if (bm) {
-                    const newLabels = bm.labels.filter(l => l !== sourceLabelId);
+                if (note) {
+                    const newLabels = note.labels.filter(l => l !== sourceLabelId);
                     if (!newLabels.includes(targetLabelId)) newLabels.push(targetLabelId);
 
-                    const newOrder = { ...bm.order };
+                    const newOrder = { ...note.order };
                     delete newOrder[sourceLabelId];
 
-                    bm.labels = newLabels;
-                    bm.order = newOrder;
+                    note.labels = newLabels;
+                    note.order = newOrder;
 
                     const updates = targetCardIds.map((id, index) => {
-                        if (id === bookmarkId) {
+                        if (id === noteId) {
                             newOrder[targetLabelId] = index;
-                            return bookmarkService.update(this.uid, this.workspaceId, bookmarkId, { labels: newLabels, order: newOrder });
+                            return noteService.update(this.uid, this.workspaceId, noteId, { labels: newLabels, order: newOrder });
                         }
-                        const current = this.bookmarks.find(b => b.id === id);
+                        const current = this.notes.find(n => n.id === id);
                         if (current) {
                             const ord = { ...current.order };
                             ord[targetLabelId] = index;
                             current.order = ord;
-                            return bookmarkService.update(this.uid, this.workspaceId, id, { order: ord });
+                            return noteService.update(this.uid, this.workspaceId, id, { order: ord });
                         }
                         return Promise.resolve();
                     });
 
-                    try { await Promise.all(updates); } catch (e) { console.error('Failed to move bookmark:', e); }
+                    try { await Promise.all(updates); } catch (e) { console.error('Failed to move note:', e); }
                 }
                 closeMoveModal();
             }, { signal });
@@ -745,49 +774,48 @@ export class BookmarkDashboard {
         if (btnMoveAdd) {
             btnMoveAdd.addEventListener('click', async () => {
                 if (!this.pendingMoveAdd) return;
-                const { bookmarkId, targetLabelId, targetCardIds } = this.pendingMoveAdd;
-                const bm = this.bookmarks.find(b => b.id === bookmarkId);
+                const { noteId, targetLabelId, targetCardIds } = this.pendingMoveAdd;
+                const note = this.notes.find(n => n.id === noteId);
 
-                if (bm) {
-                    const newLabels = [...bm.labels];
+                if (note) {
+                    const newLabels = [...note.labels];
                     if (!newLabels.includes(targetLabelId)) newLabels.push(targetLabelId);
 
-                    const newOrder = { ...bm.order };
-                    bm.labels = newLabels;
-                    bm.order = newOrder;
+                    const newOrder = { ...note.order };
+                    note.labels = newLabels;
+                    note.order = newOrder;
 
                     const updates = targetCardIds.map((id, index) => {
-                        if (id === bookmarkId) {
+                        if (id === noteId) {
                             newOrder[targetLabelId] = index;
-                            return bookmarkService.update(this.uid, this.workspaceId, bookmarkId, { labels: newLabels, order: newOrder });
+                            return noteService.update(this.uid, this.workspaceId, noteId, { labels: newLabels, order: newOrder });
                         }
-                        const current = this.bookmarks.find(b => b.id === id);
+                        const current = this.notes.find(n => n.id === id);
                         if (current) {
                             const ord = { ...current.order };
                             ord[targetLabelId] = index;
                             current.order = ord;
-                            return bookmarkService.update(this.uid, this.workspaceId, id, { order: ord });
+                            return noteService.update(this.uid, this.workspaceId, id, { order: ord });
                         }
                         return Promise.resolve();
                     });
 
-                    try { await Promise.all(updates); } catch (e) { console.error('Failed to add bookmark:', e); }
+                    try { await Promise.all(updates); } catch (e) { console.error('Failed to add note:', e); }
                 }
                 closeMoveModal();
             }, { signal });
         }
     }
 
-    activateBookmarksView() {
-        // Close sidebar when switching to bookmarks view
+    activateNotesView() {
         if (typeof closeSidebar === 'function') closeSidebar();
         // Deactivate all nav items
         const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
         navItems.forEach(item => item.classList.remove('active'));
 
-        // Activate bookmarks nav
-        const btnNavBookmarks = document.getElementById('btn-nav-bookmarks');
-        if (btnNavBookmarks) btnNavBookmarks.classList.add('active');
+        // Activate notes nav
+        const btnNavNotes = document.getElementById('btn-nav-notes');
+        if (btnNavNotes) btnNavNotes.classList.add('active');
 
         // Hide all board containers
         const containers = ['main-board-container', 'completed-board-container', 'archive-board-container', 'bookmark-board-container', 'note-board-container'];
@@ -799,29 +827,29 @@ export class BookmarkDashboard {
             }
         });
 
-        // Show bookmark container
-        const bmContainer = document.getElementById('bookmark-board-container');
-        if (bmContainer) {
-            bmContainer.style.display = 'flex';
-            bmContainer.classList.add('active');
+        // Show note container
+        const noteContainer = document.getElementById('note-board-container');
+        if (noteContainer) {
+            noteContainer.style.display = 'flex';
+            noteContainer.classList.add('active');
         }
 
         // Hide left column (calendar)
         const leftColumn = document.querySelector('.left-column');
         if (leftColumn) leftColumn.style.display = 'none';
 
-        // Swap top bar groups: hide task & note controls, show bookmark controls
+        // Swap top bar groups: hide task & bookmark controls, show note controls
         const taskTopbarGroup = document.getElementById('task-topbar-group');
         if (taskTopbarGroup) taskTopbarGroup.style.display = 'none';
 
-        const noteTopbarGroup = document.getElementById('note-topbar-group');
-        if (noteTopbarGroup) noteTopbarGroup.style.display = 'none';
-
         const bookmarkTopbarGroup = document.getElementById('bookmark-topbar-group');
-        if (bookmarkTopbarGroup) bookmarkTopbarGroup.style.display = 'flex';
+        if (bookmarkTopbarGroup) bookmarkTopbarGroup.style.display = 'none';
 
-        // Hide global search (bookmarks has its own in the bookmark-topbar-group)
-        const globalSearch = document.querySelector('.top-bar .search-container:not(#bookmark-topbar-group .search-container)');
+        const noteTopbarGroup = document.getElementById('note-topbar-group');
+        if (noteTopbarGroup) noteTopbarGroup.style.display = 'flex';
+
+        // Hide global search
+        const globalSearch = document.querySelector('.top-bar .search-container:not(#note-topbar-group .search-container):not(#bookmark-topbar-group .search-container)');
         if (globalSearch) globalSearch.style.display = 'none';
 
         // Hide task-specific sub-bar elements
@@ -835,7 +863,7 @@ export class BookmarkDashboard {
     }
 
     renderParkedLabels(parkedLabels) {
-        const container = document.getElementById('bookmark-parked-labels-container');
+        const container = document.getElementById('note-parked-labels-container');
         if (!container) return;
 
         container.innerHTML = '';
@@ -876,7 +904,7 @@ export class BookmarkDashboard {
 
             chip.onclick = async () => {
                 try {
-                    await bookmarkLabelService.update(this.uid, this.workspaceId, label.id, { isParked: false });
+                    await noteLabelService.update(this.uid, this.workspaceId, label.id, { isParked: false });
                 } catch (e) {
                     console.error("Failed to restore parked label:", e);
                 }

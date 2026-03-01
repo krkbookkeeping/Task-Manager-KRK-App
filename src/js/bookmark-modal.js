@@ -71,6 +71,12 @@ export class BookmarkModal {
         this.btnSave.addEventListener('click', () => this.save());
         this.btnDelete.addEventListener('click', () => this.deleteBookmark());
 
+        // Sync name input to title
+        this.nameInput.addEventListener('input', () => {
+            const val = this.nameInput.value.trim();
+            this.titleText.textContent = val || (this.currentBookmarkId ? 'Untitled Bookmark' : 'New Bookmark');
+        });
+
         // Label dropdown
         this.labelTrigger.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -119,7 +125,7 @@ export class BookmarkModal {
         this.renderLabelOptions();
 
         if (bookmarkId) {
-            this.titleText.textContent = 'Edit Bookmark';
+            this.titleText.textContent = 'Loading...';
             this.btnDelete.style.display = 'flex';
             this.btnSave.textContent = 'Save Changes';
             this.populateBookmarkData(bookmarkId);
@@ -155,6 +161,7 @@ export class BookmarkModal {
                 this.nameInput.value = bm.name || '';
                 this.urlInput.value = bm.url || '';
                 this.notesInput.value = bm.notes || '';
+                this.titleText.textContent = bm.name || 'Untitled Bookmark';
                 if (bm.labels && Array.isArray(bm.labels)) {
                     bm.labels.forEach(id => this.selectedLabelIds.add(id));
                 }
