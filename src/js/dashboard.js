@@ -91,13 +91,34 @@ export class Dashboard {
         if (!this.gridEl) return;
         this.gridEl.innerHTML = '';
 
-        const visibleLabels = this.labels.filter(label => !label.isParked);
-        const parkedLabels = this.labels.filter(label => label.isParked)
-            .sort((a, b) => {
-                if (a.name === 'No Label') return 1;
-                if (b.name === 'No Label') return -1;
-                return a.name.localeCompare(b.name);
+        let visibleLabels, parkedLabels;
+
+        if (this.starFilter) {
+            // When star filter is active, show ALL labels that have starred tasks
+            // (even if parked) and hide labels that have no starred tasks
+            const labelsWithStarredTasks = new Set();
+            this.tasks.forEach(t => {
+                if (t.starred === true && t.labels) {
+                    t.labels.forEach(lid => labelsWithStarredTasks.add(lid));
+                }
             });
+
+            visibleLabels = this.labels.filter(label => labelsWithStarredTasks.has(label.id));
+            parkedLabels = this.labels.filter(label => !labelsWithStarredTasks.has(label.id))
+                .sort((a, b) => {
+                    if (a.name === 'No Label') return 1;
+                    if (b.name === 'No Label') return -1;
+                    return a.name.localeCompare(b.name);
+                });
+        } else {
+            visibleLabels = this.labels.filter(label => !label.isParked);
+            parkedLabels = this.labels.filter(label => label.isParked)
+                .sort((a, b) => {
+                    if (a.name === 'No Label') return 1;
+                    if (b.name === 'No Label') return -1;
+                    return a.name.localeCompare(b.name);
+                });
+        }
 
         // Update Parked Labels header UI
         this.renderParkedLabels(parkedLabels);
