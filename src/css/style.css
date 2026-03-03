@@ -1724,6 +1724,12 @@ textarea.input {
     border-color: #f59e0b;
 }
 
+#btn-sort-all-date.active {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: #ef4444;
+    color: #dc2626;
+}
+
 /* Star in Modal Header */
 .btn-star-task {
     background: none;
