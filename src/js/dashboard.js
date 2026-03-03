@@ -932,6 +932,8 @@ export class Dashboard {
 
             searchInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
+                    // Stage 1: If date filters are active, clear them first.
+                    // Also clear any typed search text so a second Escape can fully exit.
                     if (this.currentFilterDate || this.currentFilterDateEnd) {
                         if (this.calendar) {
                             this.calendar.clearSelection();
@@ -940,11 +942,20 @@ export class Dashboard {
                             this.currentFilterDateEnd = null;
                             this.render();
                         }
+                        // Also wipe the typed query so the next Escape exits cleanly
+                        clearTimeout(searchDebounce);
+                        this.searchQuery = '';
+                        searchInput.value = '';
+                        searchClearBtn.style.display = 'none';
+                        searchIndicator.style.display = 'none';
                         return;
                     }
 
+                    // Stage 2: No date filters — clear search and blur the input to fully exit
+                    clearTimeout(searchDebounce);
                     this.searchQuery = '';
                     updateSearchUI();
+                    searchInput.blur();
                 }
             }, { signal });
 
@@ -990,7 +1001,47 @@ export class Dashboard {
             }, { signal });
         }
 
-        // ── Zoom Slider ──
+        // ── Sort All By Date ──
+        const btnSortAllDate = document.getElementById('btn-sort-all-date');
+        const sortAllDateLabel = document.getElementById('sort-all-date-label');
+
+        if (btnSortAllDate) {
+            // Restore active state if every visible label is already sorted by date
+            const updateSortAllUI = () => {
+                const allByDate = this.labels.length > 0 &&
+                    this.labels.every(l => this.bucketSortMode[l.id] === 'date');
+                if (allByDate) {
+                    btnSortAllDate.classList.add('active');
+                    sortAllDateLabel.textContent = 'Sorted by Date';
+                } else {
+                    btnSortAllDate.classList.remove('active');
+                    sortAllDateLabel.textContent = 'Sort All by Date';
+                }
+            };
+            updateSortAllUI();
+
+            btnSortAllDate.addEventListener('click', () => {
+                const allByDate = this.labels.length > 0 &&
+                    this.labels.every(l => this.bucketSortMode[l.id] === 'date');
+
+                if (allByDate) {
+                    // Toggle off — reset all buckets to manual
+                    this.labels.forEach(l => { this.bucketSortMode[l.id] = 'manual'; });
+                    btnSortAllDate.classList.remove('active');
+                    sortAllDateLabel.textContent = 'Sort All by Date';
+                } else {
+                    // Apply date sort to every bucket
+                    this.labels.forEach(l => { this.bucketSortMode[l.id] = 'date'; });
+                    btnSortAllDate.classList.add('active');
+                    sortAllDateLabel.textContent = 'Sorted by Date';
+                }
+
+                localStorage.setItem(`bucketSortMode_${this.boardId}`, JSON.stringify(this.bucketSortMode));
+                this.render();
+            }, { signal });
+        }
+
+
         const zoomSlider = document.getElementById('zoom-slider');
         if (zoomSlider && this.gridEl) {
             // Load saved zoom preference
@@ -1106,6 +1157,26 @@ export class Dashboard {
                 }
                 closeMoveAddModal();
             }, { signal });
+        }
+    }
+
+    /**
+     * Toggle the starred-tasks filter on/off.
+     * Called by the global Alt+S keyboard shortcut.
+     */
+    toggleStarFilter() {
+        const btn = document.getElementById('btn-star-filter');
+        if (btn) btn.click();
+    }
+
+    /**
+     * Clear the starred-tasks filter if it is active.
+     * Called by the global Escape handler.
+     */
+    clearStarFilter() {
+        if (this.starFilter) {
+            const btn = document.getElementById('btn-star-filter');
+            if (btn) btn.click();
         }
     }
 

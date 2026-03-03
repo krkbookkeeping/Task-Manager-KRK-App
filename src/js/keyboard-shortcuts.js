@@ -1,0 +1,162 @@
+/**
+ * keyboard-shortcuts.js
+ *
+ * Global Alt+key shortcuts for fast workspace and view navigation.
+ *
+ * Shortcut map:
+ *   Alt+B  → Bookmarks of the current workspace
+ *   Alt+N  → Notes of the current workspace
+ *   Alt+S  → Toggle starred-task filter on the current dashboard
+ *   Alt+D  → DEX workspace (main dashboard)
+ *   Alt+G  → GC workspace (main dashboard)
+ *   Alt+Q  → Bar workspace (main dashboard)  [B is taken by Bookmarks]
+ *   Alt+T  → Teg workspace (main dashboard)
+ *   Alt+K  → KRK workspace (main dashboard)
+ *   Alt+F  → FCA workspace (main dashboard)
+ *
+ * Escape → Clears the starred-task filter if active (when not focused on an input)
+ */
+
+// Maps Alt key letters to workspace name prefixes (lowercase, partial match).
+const WORKSPACE_SHORTCUTS = {
+    'd': 'dex',
+    'g': 'gc',
+    'q': 'bar',
+    't': 'teg',
+    'k': 'krk',
+    'f': 'fca',
+};
+
+/**
+ * Returns true when the keyboard event should be ignored —
+ * i.e. the user is typing in an input/textarea/contenteditable, or a modal is open.
+ */
+function shouldIgnore(e) {
+    const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+    if (e.target && e.target.isContentEditable) return true;
+
+    // Skip if any modal overlay is currently active/visible
+    const activeModal = document.querySelector('.modal-overlay.active');
+    if (activeModal) return true;
+
+    return false;
+}
+
+/**
+ * Navigate to the bookmarks view of the current workspace.
+ */
+function goToBookmarks() {
+    if (window.currentBookmarkDashboard && typeof window.currentBookmarkDashboard.activateBookmarksView === 'function') {
+        window.currentBookmarkDashboard.activateBookmarksView();
+    }
+}
+
+/**
+ * Navigate to the notes view of the current workspace.
+ */
+function goToNotes() {
+    if (window.currentNoteDashboard && typeof window.currentNoteDashboard.activateNotesView === 'function') {
+        window.currentNoteDashboard.activateNotesView();
+    }
+}
+
+/**
+ * Toggle the starred-task filter on the current dashboard.
+ */
+function toggleStarFilter() {
+    if (window.currentDashboard && typeof window.currentDashboard.toggleStarFilter === 'function') {
+        window.currentDashboard.toggleStarFilter();
+    }
+}
+
+/**
+ * Navigate to the main (tasks) dashboard of the current workspace.
+ */
+function goToMainDashboard() {
+    const btn = document.getElementById('btn-nav-boards');
+    if (btn) btn.click();
+}
+
+/**
+ * Switch to a workspace whose name starts with the given prefix (case-insensitive),
+ * then land on its main dashboard.
+ */
+async function goToWorkspaceByPrefix(uid, prefix) {
+    const workspaces = window.__workspaces || [];
+    const target = workspaces.find(ws =>
+        ws.name && ws.name.toLowerCase().startsWith(prefix)
+    );
+
+    if (!target) {
+        console.warn(`[Keyboard Shortcut] No workspace found with name starting with "${prefix}"`);
+        return;
+    }
+
+    const currentWsId = window.__currentWorkspace?.workspaceId;
+
+    if (currentWsId === target.id) {
+        // Already on this workspace — just make sure we show the main dashboard
+        goToMainDashboard();
+    } else {
+        // switchWorkspace already resets to the boards tab at the end
+        if (typeof window.switchWorkspace === 'function') {
+            await window.switchWorkspace(uid, target.id);
+        }
+    }
+}
+
+/**
+ * Initialize the global keyboard shortcut listener.
+ * Call once after the user is authenticated.
+ */
+export function initKeyboardShortcuts(uid) {
+    // ── Alt+key shortcuts ──
+    document.addEventListener('keydown', async (e) => {
+        // Only fire on Alt combos with no Ctrl/Meta (avoid OS/browser shortcuts)
+        if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+        if (shouldIgnore(e)) return;
+
+        const key = e.key.toLowerCase();
+
+        // View shortcuts (operate on current workspace)
+        if (key === 'b') {
+            e.preventDefault();
+            goToBookmarks();
+            return;
+        }
+
+        if (key === 'n') {
+            e.preventDefault();
+            goToNotes();
+            return;
+        }
+
+        if (key === 's') {
+            e.preventDefault();
+            toggleStarFilter();
+            return;
+        }
+
+        // Workspace shortcuts
+        const wsPrefix = WORKSPACE_SHORTCUTS[key];
+        if (wsPrefix) {
+            e.preventDefault();
+            await goToWorkspaceByPrefix(uid, wsPrefix);
+            return;
+        }
+    });
+
+    // ── Global Escape: clear star filter when active (and not typing in an input) ──
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        if (shouldIgnore(e)) return; // Let inputs (e.g. search bar) handle their own Escape
+
+        // Clear the star filter if it's currently active
+        if (window.currentDashboard && typeof window.currentDashboard.clearStarFilter === 'function') {
+            window.currentDashboard.clearStarFilter();
+        }
+    });
+
+    console.log('[Keyboard Shortcuts] Initialized. Alt+B=Bookmarks, Alt+N=Notes, Alt+S=StarFilter, Alt+D=DEX, Alt+G=GC, Alt+Q=Bar, Alt+T=Teg, Alt+K=KRK, Alt+F=FCA');
+}

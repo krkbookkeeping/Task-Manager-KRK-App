@@ -40,6 +40,10 @@ import('./firebase-config.js')
                         await bootWorkspace(user.uid, ids.workspaceId, ids.boardId);
                         // Initialize workspace switcher
                         initWorkspaceSwitcher(user.uid, ids.workspaceId);
+                        // Initialize global keyboard shortcuts (Alt+B, Alt+N, Alt+D, etc.)
+                        import('./keyboard-shortcuts.js').then(({ initKeyboardShortcuts }) => {
+                            initKeyboardShortcuts(user.uid);
+                        });
                     }
                 });
 

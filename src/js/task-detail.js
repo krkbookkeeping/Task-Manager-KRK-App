@@ -495,7 +495,12 @@ export class TaskModal {
             this.renderSearchResults(this.relatedSearchInput.value.trim().toLowerCase());
         });
 
-        // Close search when clicking outside
+        // Close search when clicking outside — but NOT when clicking inside the panel itself
+        this.relatedSearch.addEventListener('click', (e) => e.stopPropagation());
+        if (this.relatedNotesSearch) {
+            this.relatedNotesSearch.addEventListener('click', (e) => e.stopPropagation());
+        }
+
         document.addEventListener('click', (e) => {
             if (!this.relatedSearch.contains(e.target) && e.target !== this.btnLinkTask) {
                 this.relatedSearch.style.display = 'none';
@@ -1197,33 +1202,43 @@ export class TaskModal {
             results = results.filter(t => t.title.toLowerCase().includes(filterText));
         }
 
+        let html = '';
         if (results.length === 0) {
-            this.relatedSearchResults.innerHTML = `
-                <div style="padding: 8px 12px; color: var(--text-muted); font-size: 0.85rem;">
-                    No tasks found.
-                </div>
-            `;
-            return;
+            html = `<div style="padding: 8px 12px; color: var(--text-muted); font-size: 0.85rem;">No tasks found.</div>`;
+        } else {
+            html = results.slice(0, 10).map(t => {
+                const labelId = t.labels && t.labels.length > 0 ? t.labels[0] : null;
+                const label = labelId ? this.allLabels.find(l => l.id === labelId) : null;
+                const color = label ? label.color : '#9ca3af';
+                return `
+                    <div class="related-search-item" data-task-id="${t.id}">
+                        <span class="related-task-dot" style="background: ${color};"></span>
+                        <span>${this.escapeHtml(t.title)}</span>
+                    </div>
+                `;
+            }).join('');
         }
 
-        this.relatedSearchResults.innerHTML = results.slice(0, 10).map(t => {
-            const labelId = t.labels && t.labels.length > 0 ? t.labels[0] : null;
-            const label = labelId ? this.allLabels.find(l => l.id === labelId) : null;
-            const color = label ? label.color : '#9ca3af';
+        // Always show a "Create New Task" option at the bottom
+        html += `
+            <div class="related-create-new-btn" style="display:flex;align-items:center;gap:6px;padding:7px 12px;font-size:0.83rem;color:var(--primary);cursor:pointer;border-top:1px solid var(--border-light);">
+                <span class="material-symbols-outlined" style="font-size:16px;">add</span>
+                Create New Task
+            </div>
+        `;
 
-            return `
-                <div class="related-search-item" data-task-id="${t.id}">
-                    <span class="related-task-dot" style="background: ${color};"></span>
-                    <span>${this.escapeHtml(t.title)}</span>
-                </div>
-            `;
-        }).join('');
+        this.relatedSearchResults.innerHTML = html;
 
         this.relatedSearchResults.querySelectorAll('.related-search-item').forEach(item => {
             item.addEventListener('click', () => {
                 this.linkTask(item.getAttribute('data-task-id'));
             });
         });
+
+        const createBtn = this.relatedSearchResults.querySelector('.related-create-new-btn');
+        if (createBtn) {
+            createBtn.addEventListener('click', () => this.showCreateTaskForm(filterText || ''));
+        }
     }
 
     async linkTask(targetTaskId) {
@@ -1382,33 +1397,43 @@ export class TaskModal {
             results = results.filter(n => n.name && n.name.toLowerCase().includes(filterText));
         }
 
+        let html = '';
         if (results.length === 0) {
-            this.relatedNotesSearchResults.innerHTML = `
-                <div style="padding: 8px 12px; color: var(--text-muted); font-size: 0.85rem;">
-                    No notes found.
-                </div>
-            `;
-            return;
+            html = `<div style="padding: 8px 12px; color: var(--text-muted); font-size: 0.85rem;">No notes found.</div>`;
+        } else {
+            html = results.slice(0, 10).map(n => {
+                const labelId = n.labels && n.labels.length > 0 ? n.labels[0] : null;
+                const label = labelId ? this.allNoteLabels.find(l => l.id === labelId) : null;
+                const color = label ? label.color : '#9ca3af';
+                return `
+                    <div class="related-search-item" data-note-id="${n.id}">
+                        <span class="related-task-dot" style="background: ${color};"></span>
+                        <span>${this.escapeHtml(n.name)}</span>
+                    </div>
+                `;
+            }).join('');
         }
 
-        this.relatedNotesSearchResults.innerHTML = results.slice(0, 10).map(n => {
-            const labelId = n.labels && n.labels.length > 0 ? n.labels[0] : null;
-            const label = labelId ? this.allNoteLabels.find(l => l.id === labelId) : null;
-            const color = label ? label.color : '#9ca3af';
+        // Always show a "Create New Note" option at the bottom
+        html += `
+            <div class="related-create-new-btn" style="display:flex;align-items:center;gap:6px;padding:7px 12px;font-size:0.83rem;color:var(--primary);cursor:pointer;border-top:1px solid var(--border-light);">
+                <span class="material-symbols-outlined" style="font-size:16px;">add</span>
+                Create New Note
+            </div>
+        `;
 
-            return `
-                <div class="related-search-item" data-note-id="${n.id}">
-                    <span class="related-task-dot" style="background: ${color};"></span>
-                    <span>${this.escapeHtml(n.name)}</span>
-                </div>
-            `;
-        }).join('');
+        this.relatedNotesSearchResults.innerHTML = html;
 
         this.relatedNotesSearchResults.querySelectorAll('.related-search-item').forEach(item => {
             item.addEventListener('click', () => {
                 this.linkNote(item.getAttribute('data-note-id'));
             });
         });
+
+        const createBtn = this.relatedNotesSearchResults.querySelector('.related-create-new-btn');
+        if (createBtn) {
+            createBtn.addEventListener('click', () => this.showCreateNoteForm(filterText || ''));
+        }
     }
 
     async linkNote(noteId) {
@@ -1484,6 +1509,129 @@ export class TaskModal {
         await this.saveTask();
         if (window.currentNoteModal) {
             window.currentNoteModal.open(noteId);
+        }
+    }
+
+    // --- Inline Create Forms ---
+
+    showCreateTaskForm(prefillTitle) {
+        const labelOptions = this.allLabels
+            .map(l => `<option value="${l.id}">${this.escapeHtml(l.name)}</option>`)
+            .join('');
+
+        const inputStyle = 'padding:5px 8px;border:1px solid var(--border-light);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:0.85rem;width:100%;box-sizing:border-box;';
+
+        this.relatedSearchResults.innerHTML = `
+            <div style="padding:10px 12px;display:flex;flex-direction:column;gap:7px;">
+                <div style="font-size:0.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">New Task</div>
+                <input type="text" class="rtcf-title" placeholder="Task title..." value="${this.escapeHtml(prefillTitle)}" style="${inputStyle}">
+                <select class="rtcf-label" style="${inputStyle}">
+                    <option value="">-- No bucket --</option>
+                    ${labelOptions}
+                </select>
+                <div style="display:flex;gap:6px;">
+                    <button class="btn btn-primary btn-sm rtcf-save" type="button" style="flex:1;">Create &amp; Link</button>
+                    <button class="btn btn-outline btn-sm rtcf-cancel" type="button">Cancel</button>
+                </div>
+            </div>
+        `;
+
+        const titleInput = this.relatedSearchResults.querySelector('.rtcf-title');
+        const labelSelect = this.relatedSearchResults.querySelector('.rtcf-label');
+        const saveBtn = this.relatedSearchResults.querySelector('.rtcf-save');
+        const cancelBtn = this.relatedSearchResults.querySelector('.rtcf-cancel');
+
+        titleInput.focus();
+        titleInput.select();
+
+        saveBtn.addEventListener('click', async () => {
+            const title = titleInput.value.trim();
+            if (!title) { titleInput.focus(); return; }
+            const labelId = labelSelect.value || null;
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Creating...';
+            await this.createAndLinkTask(title, labelId);
+        });
+
+        cancelBtn.addEventListener('click', () => this.renderSearchResults(''));
+
+        titleInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.stopPropagation(); saveBtn.click(); }
+            if (e.key === 'Escape') { e.stopPropagation(); cancelBtn.click(); }
+        });
+    }
+
+    showCreateNoteForm(prefillName) {
+        const labelOptions = this.allNoteLabels
+            .map(l => `<option value="${l.id}">${this.escapeHtml(l.name)}</option>`)
+            .join('');
+
+        const inputStyle = 'padding:5px 8px;border:1px solid var(--border-light);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:0.85rem;width:100%;box-sizing:border-box;';
+
+        this.relatedNotesSearchResults.innerHTML = `
+            <div style="padding:10px 12px;display:flex;flex-direction:column;gap:7px;">
+                <div style="font-size:0.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">New Note</div>
+                <input type="text" class="rncf-name" placeholder="Note name..." value="${this.escapeHtml(prefillName)}" style="${inputStyle}">
+                <select class="rncf-label" style="${inputStyle}">
+                    <option value="">-- No label --</option>
+                    ${labelOptions}
+                </select>
+                <div style="display:flex;gap:6px;">
+                    <button class="btn btn-primary btn-sm rncf-save" type="button" style="flex:1;">Create &amp; Link</button>
+                    <button class="btn btn-outline btn-sm rncf-cancel" type="button">Cancel</button>
+                </div>
+            </div>
+        `;
+
+        const nameInput = this.relatedNotesSearchResults.querySelector('.rncf-name');
+        const labelSelect = this.relatedNotesSearchResults.querySelector('.rncf-label');
+        const saveBtn = this.relatedNotesSearchResults.querySelector('.rncf-save');
+        const cancelBtn = this.relatedNotesSearchResults.querySelector('.rncf-cancel');
+
+        nameInput.focus();
+        nameInput.select();
+
+        saveBtn.addEventListener('click', async () => {
+            const name = nameInput.value.trim();
+            if (!name) { nameInput.focus(); return; }
+            const labelId = labelSelect.value || null;
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Creating...';
+            await this.createAndLinkNote(name, labelId);
+        });
+
+        cancelBtn.addEventListener('click', () => this.renderNoteSearchResults(''));
+
+        nameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.stopPropagation(); saveBtn.click(); }
+            if (e.key === 'Escape') { e.stopPropagation(); cancelBtn.click(); }
+        });
+    }
+
+    async createAndLinkTask(title, labelId) {
+        try {
+            const newTask = await taskService.create(this.uid, this.workspaceId, this.boardId, title, labelId);
+            // Add to local cache so linkTask can find it
+            this.allBoardTasks.push(newTask);
+            // Link it to the current task (bidirectional)
+            await this.linkTask(newTask.id);
+        } catch (err) {
+            console.error('Failed to create and link task:', err);
+            // Re-render the form so user can retry
+            this.renderSearchResults('');
+        }
+    }
+
+    async createAndLinkNote(name, labelId) {
+        try {
+            const newNote = await noteService.create(this.uid, this.workspaceId, name, labelId);
+            // Add to local cache so linkNote can find it
+            this.allWorkspaceNotes.push(newNote);
+            // Link it to the current task (bidirectional)
+            await this.linkNote(newNote.id);
+        } catch (err) {
+            console.error('Failed to create and link note:', err);
+            this.renderNoteSearchResults('');
         }
     }
 

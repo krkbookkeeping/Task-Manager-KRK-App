@@ -420,11 +420,20 @@
                         <!-- Star Filter Toggle & Zoom Control -->
                         <div id="star-filter-bar" class="star-filter-bar"
                             style="margin: 0 var(--spacing-6) var(--spacing-4) 0; display: flex; align-items: center; justify-content: space-between;">
-                            <button class="btn btn-sm btn-outline btn-star-filter" id="btn-star-filter" type="button">
-                                <span class="material-symbols-outlined" id="star-filter-icon"
-                                    style="font-size: 18px;">star</span>
-                                <span id="star-filter-label">Show Starred Only</span>
-                            </button>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button class="btn btn-sm btn-outline btn-star-filter" id="btn-star-filter"
+                                    type="button">
+                                    <span class="material-symbols-outlined" id="star-filter-icon"
+                                        style="font-size: 18px;">star</span>
+                                    <span id="star-filter-label">Show Starred Only</span>
+                                </button>
+                                <button class="btn btn-sm btn-outline" id="btn-sort-all-date" type="button"
+                                    data-tooltip="Sort every bucket by due date">
+                                    <span class="material-symbols-outlined"
+                                        style="font-size: 18px;">calendar_month</span>
+                                    <span id="sort-all-date-label">Sort All by Date</span>
+                                </button>
+                            </div>
                             <div class="zoom-controls" style="display: flex; align-items: center; gap: 8px;">
                                 <span class="material-symbols-outlined"
                                     style="font-size: 16px; color: var(--text-muted);">zoom_out</span>
@@ -753,14 +762,16 @@
                     </div>
                 </div>
                 <!-- Related Tasks in Note -->
-                <div class="related-tasks-section" style="border-top: 1px solid var(--border-light); padding-top: 12px;">
+                <div class="related-tasks-section"
+                    style="border-top: 1px solid var(--border-light); padding-top: 12px;">
                     <div class="related-tasks-header">
                         <span class="meta-label">
                             <span class="material-symbols-outlined"
                                 style="font-size: 16px; vertical-align: middle;">link</span>
                             Related Tasks
                         </span>
-                        <button class="btn btn-sm btn-outline" id="btn-note-link-task" type="button">+ Link Task</button>
+                        <button class="btn btn-sm btn-outline" id="btn-note-link-task" type="button">+ Link
+                            Task</button>
                     </div>
                     <div class="related-tasks-search" id="note-related-tasks-search" style="display: none;">
                         <input type="text" id="note-related-tasks-search-input" class="form-input form-input-sm"
@@ -778,7 +789,8 @@
                                 style="font-size: 16px; vertical-align: middle;">sticky_note_2</span>
                             Related Notes
                         </span>
-                        <button class="btn btn-sm btn-outline" id="btn-note-link-note" type="button">+ Link Note</button>
+                        <button class="btn btn-sm btn-outline" id="btn-note-link-note" type="button">+ Link
+                            Note</button>
                     </div>
                     <div class="related-tasks-search" id="note-related-notes-search" style="display: none;">
                         <input type="text" id="note-related-notes-search-input" class="form-input form-input-sm"
