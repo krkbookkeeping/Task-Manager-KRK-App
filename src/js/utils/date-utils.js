@@ -1,10 +1,11 @@
-export const DATE_PUNCH_OFFSETS = ['0', '2d', '4d', '10d', '1w', '2w', '3w', '1m', '2m'];
+export const DATE_PUNCH_OFFSETS = ['0', '1d', '2d', '4d', '10d', '1w', '2w', '3w', '1m', '2m'];
+export const DASHBOARD_PUNCH_OFFSETS = ['0d', '1d', '2d', '4d', '1w', '2w', '3w', '1m'];
 
 export function calculateOffsetDate(offsetStr) {
     const now = new Date();
 
-    // Explicitly handle "0" for Today
-    if (offsetStr === '0') {
+    // Explicitly handle "0" or "0d" for Today
+    if (offsetStr === '0' || offsetStr === '0d') {
         const yyyy = now.getFullYear();
         const mm = String(now.getMonth() + 1).padStart(2, '0');
         const dd = String(now.getDate()).padStart(2, '0');

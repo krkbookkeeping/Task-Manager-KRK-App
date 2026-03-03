@@ -1,6 +1,6 @@
 import { labelService } from './services/label-service.js';
 import { taskService } from './services/task-service.js';
-import { DATE_PUNCH_OFFSETS, calculateOffsetDate } from './utils/date-utils.js';
+import { DASHBOARD_PUNCH_OFFSETS, calculateOffsetDate } from './utils/date-utils.js';
 
 export class Dashboard {
     constructor(uid, workspaceId, boardId, calendarInstance = null) {
@@ -255,7 +255,7 @@ export class Dashboard {
                             </div>
                             `}
                             <div class="date-punches dashboard-punches" style="margin-left: 8px;">
-                                ${DATE_PUNCH_OFFSETS.filter(offset => offset !== '0').map(offset => `
+                                ${DASHBOARD_PUNCH_OFFSETS.map(offset => `
                                     <button class="btn-date-punch dashboard-punch" data-task-id="${task.id}" data-offset="${offset}" title="Add ${offset}">
                                         ${offset}
                                     </button>
@@ -296,9 +296,11 @@ export class Dashboard {
                     input.disabled = true;
                     try {
                         const newTask = await taskService.create(this.uid, this.workspaceId, this.boardId, title, labelId);
-                        // Auto-set due date from calendar's selected date
-                        if (this.calendar && this.calendar.selectedDate && newTask && newTask.id) {
-                            const dueDate = new Date(this.calendar.selectedDate + 'T12:00:00').toISOString();
+                        if (newTask && newTask.id) {
+                            // Use calendar's selected date if active, otherwise default to tomorrow (1d)
+                            const dueDate = (this.calendar && this.calendar.selectedDate)
+                                ? this.calendar.selectedDate
+                                : calculateOffsetDate('1d');
                             await taskService.update(this.uid, this.workspaceId, this.boardId, newTask.id, { dueDate });
                         }
                     } catch (err) {
