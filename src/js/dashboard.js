@@ -161,6 +161,11 @@ export class Dashboard {
                 bucketTasks.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
             } else if (sortMode === 'date') {
                 bucketTasks.sort((a, b) => {
+                    // Starred tasks always float to the top
+                    const aStarred = a.starred === true ? 1 : 0;
+                    const bStarred = b.starred === true ? 1 : 0;
+                    if (aStarred !== bStarred) return bStarred - aStarred;
+                    // Within the same starred group, sort by date
                     if (!a.dueDate && !b.dueDate) return 0;
                     if (!a.dueDate) return 1;
                     if (!b.dueDate) return -1;
