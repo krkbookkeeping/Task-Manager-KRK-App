@@ -763,6 +763,13 @@ export class Dashboard {
 
             btnCancelTop.addEventListener('click', closePopover, { signal });
 
+            inputNameTop.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    btnSaveTop.click();
+                }
+            }, { signal });
+
             btnSaveTop.addEventListener('click', async () => {
                 const name = inputNameTop.value.trim();
                 const color = inputColorTop.value;

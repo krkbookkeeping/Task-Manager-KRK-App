@@ -600,6 +600,13 @@ export class NoteDashboard {
 
             btnCancel.addEventListener('click', closePopover, { signal });
 
+            inputName.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    btnSave.click();
+                }
+            }, { signal });
+
             btnSave.addEventListener('click', async () => {
                 const name = inputName.value.trim();
                 const color = inputColor.value;

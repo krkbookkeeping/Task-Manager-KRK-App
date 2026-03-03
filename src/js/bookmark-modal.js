@@ -110,10 +110,10 @@ export class BookmarkModal {
             }
         });
 
-        // Escape to close
+        // Escape to save + close
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.overlay.classList.contains('active')) {
-                this.close();
+                this.save();
             }
         });
     }
