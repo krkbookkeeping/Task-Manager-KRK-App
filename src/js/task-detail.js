@@ -644,6 +644,11 @@ export class TaskModal {
         this.overlay.classList.remove('active');
         this.currentTaskId = null;
         this.labelDropdown.style.display = 'none';
+        // Reset complete button so it's not stuck on "Completing..."
+        if (this.btnComplete) {
+            this.btnComplete.disabled = false;
+            this.btnComplete.textContent = 'Complete';
+        }
     }
 
     async populateTaskData(taskId) {
