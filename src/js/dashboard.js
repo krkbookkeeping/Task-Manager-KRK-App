@@ -175,6 +175,11 @@ export class Dashboard {
                 bucketTasks = bucketTasks.filter(t => this.filterTaskByQuery(t, this.searchQuery));
             }
 
+            // When filtering is active, skip buckets that end up empty
+            if ((this.starFilter || this.searchQuery || this.currentFilterDate) && bucketTasks.length === 0) {
+                return;
+            }
+
             // Sort tasks based on per-bucket sort mode
             const sortMode = this.bucketSortMode[label.id] || 'manual';
             if (sortMode === 'name') {
