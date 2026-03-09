@@ -93,31 +93,30 @@ export class Dashboard {
 
         let visibleLabels, parkedLabels;
 
-        if (this.starFilter) {
-            // When star filter is active, show ALL labels that have starred tasks
-            // (even if parked) and hide labels that have no starred tasks
-            const labelsWithStarredTasks = new Set();
+        const sortParked = (arr) => arr.sort((a, b) => {
+            if (a.name === 'No Label') return 1;
+            if (b.name === 'No Label') return -1;
+            return a.name.localeCompare(b.name);
+        });
+
+        if (this.starFilter || this.searchQuery) {
+            // When star filter or search is active, dynamically show/hide buckets
+            // based on whether they contain matching tasks
+            const labelsWithMatchingTasks = new Set();
             this.tasks.forEach(t => {
-                if (t.starred === true && t.labels) {
-                    t.labels.forEach(lid => labelsWithStarredTasks.add(lid));
+                if (!t.labels) return;
+                const matchesStar = !this.starFilter || t.starred === true;
+                const matchesSearch = !this.searchQuery || this.filterTaskByQuery(t, this.searchQuery);
+                if (matchesStar && matchesSearch) {
+                    t.labels.forEach(lid => labelsWithMatchingTasks.add(lid));
                 }
             });
 
-            visibleLabels = this.labels.filter(label => labelsWithStarredTasks.has(label.id));
-            parkedLabels = this.labels.filter(label => !labelsWithStarredTasks.has(label.id))
-                .sort((a, b) => {
-                    if (a.name === 'No Label') return 1;
-                    if (b.name === 'No Label') return -1;
-                    return a.name.localeCompare(b.name);
-                });
+            visibleLabels = this.labels.filter(label => labelsWithMatchingTasks.has(label.id));
+            parkedLabels = sortParked(this.labels.filter(label => !labelsWithMatchingTasks.has(label.id)));
         } else {
             visibleLabels = this.labels.filter(label => !label.isParked);
-            parkedLabels = this.labels.filter(label => label.isParked)
-                .sort((a, b) => {
-                    if (a.name === 'No Label') return 1;
-                    if (b.name === 'No Label') return -1;
-                    return a.name.localeCompare(b.name);
-                });
+            parkedLabels = sortParked(this.labels.filter(label => label.isParked));
         }
 
         // Update Parked Labels header UI
