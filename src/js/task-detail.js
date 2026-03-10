@@ -622,20 +622,8 @@ export class TaskModal {
                 punchBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
 
-                if (this.currentTaskId) {
-                    // Editing existing task: save immediately and close
-                    punchBtns.forEach(b => b.disabled = true);
-                    btn.classList.add('saving');
-
-                    try {
-                        await taskService.update(this.uid, this.workspaceId, this.boardId, this.currentTaskId, { dueDate: targetDate });
-                        this.close();
-                    } catch (err) {
-                        console.error('Failed to save date punch', err);
-                        punchBtns.forEach(b => b.disabled = false);
-                        btn.classList.remove('saving');
-                    }
-                }
+                // Save all changes (title, description, date, etc.) and close
+                this.saveTask();
             });
         });
     }

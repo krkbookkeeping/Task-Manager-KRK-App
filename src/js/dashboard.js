@@ -1219,6 +1219,59 @@ export class Dashboard {
         }
     }
 
+    /**
+     * Clear ALL active filters (search, star, date) and reset the dashboard view.
+     * Called by the global Escape handler.
+     * Returns true if any filter was cleared.
+     */
+    clearAllFilters() {
+        let cleared = false;
+
+        // Clear search
+        if (this.searchQuery) {
+            this.searchQuery = '';
+            const searchInput = document.getElementById('global-search');
+            const searchClearBtn = document.getElementById('btn-clear-search');
+            const searchIndicator = document.getElementById('search-indicator');
+            if (searchInput) searchInput.value = '';
+            if (searchClearBtn) searchClearBtn.style.display = 'none';
+            if (searchIndicator) searchIndicator.style.display = 'none';
+            cleared = true;
+        }
+
+        // Clear star filter
+        if (this.starFilter) {
+            this.starFilter = false;
+            const btnStarFilter = document.getElementById('btn-star-filter');
+            const starFilterIcon = document.getElementById('star-filter-icon');
+            const starFilterLabel = document.getElementById('star-filter-label');
+            if (btnStarFilter) btnStarFilter.classList.remove('active');
+            if (starFilterIcon) {
+                starFilterIcon.style.color = '';
+                starFilterIcon.style.fontVariationSettings = '';
+            }
+            if (starFilterLabel) starFilterLabel.textContent = 'Show Starred Only';
+            cleared = true;
+        }
+
+        // Clear date filter
+        if (this.currentFilterDate || this.currentFilterDateEnd) {
+            if (this.calendar) {
+                this.calendar.clearSelection();
+            } else {
+                this.currentFilterDate = null;
+                this.currentFilterDateEnd = null;
+            }
+            cleared = true;
+        }
+
+        if (cleared) {
+            this.render();
+        }
+
+        return cleared;
+    }
+
     escapeHtml(unsafe) {
         if (!unsafe) return '';
         return unsafe

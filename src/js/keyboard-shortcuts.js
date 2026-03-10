@@ -147,14 +147,24 @@ export function initKeyboardShortcuts(uid) {
         }
     });
 
-    // ── Global Escape: clear star filter when active (and not typing in an input) ──
+    // ── Global Escape: clear ALL filters (search, star, date) from anywhere ──
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
-        if (shouldIgnore(e)) return; // Let inputs (e.g. search bar) handle their own Escape
 
-        // Clear the star filter if it's currently active
-        if (window.currentDashboard && typeof window.currentDashboard.clearStarFilter === 'function') {
-            window.currentDashboard.clearStarFilter();
+        // Skip if a modal overlay is open (let the modal handle its own Escape)
+        const activeModal = document.querySelector('.modal-overlay.active');
+        if (activeModal) return;
+
+        // Clear all dashboard filters (search, star, date) in one shot
+        if (window.currentDashboard && typeof window.currentDashboard.clearAllFilters === 'function') {
+            const cleared = window.currentDashboard.clearAllFilters();
+            if (cleared) {
+                // Blur the search input if focused so the cursor exits
+                const searchInput = document.getElementById('global-search');
+                if (searchInput && document.activeElement === searchInput) {
+                    searchInput.blur();
+                }
+            }
         }
     });
 
