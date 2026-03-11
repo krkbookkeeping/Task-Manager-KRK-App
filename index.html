@@ -135,6 +135,16 @@
                         <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
                     </button>
                 </div>
+                <div id="search-scope-toggles" style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+                    <label style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="search-include-completed" style="accent-color: var(--success); cursor: pointer;">
+                        Completed
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="search-include-archived" style="accent-color: var(--text-muted); cursor: pointer;">
+                        Archived
+                    </label>
+                </div>
 
                 <!-- Header Actions: Task view controls (hidden when bookmarks active) -->
                 <div id="task-topbar-group"

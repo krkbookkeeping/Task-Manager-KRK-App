@@ -18,6 +18,10 @@ export class Dashboard {
         this.currentView = 'active'; // 'active' or 'completed' or 'archived'
         this.completedTasks = []; // Cache for completed view
         this.archivedTasks = []; // Cache for archived view
+        this.searchIncludeCompleted = false; // Search scope checkbox
+        this.searchIncludeArchived = false; // Search scope checkbox
+        this.searchCompletedTasks = []; // Completed tasks loaded for search
+        this.searchArchivedTasks = []; // Archived tasks loaded for search
 
         try {
             const savedSortMode = localStorage.getItem(`bucketSortMode_${this.boardId}`);
@@ -28,6 +32,8 @@ export class Dashboard {
 
         this.unsubLabels = null;
         this.unsubTasks = null;
+        this.unsubSearchCompleted = null;
+        this.unsubSearchArchived = null;
 
         this.gridEl = document.querySelector('.bucket-grid');
 
@@ -83,6 +89,8 @@ export class Dashboard {
         if (this.unsubTasks) this.unsubTasks();
         if (this.unsubCompletedTasks) this.unsubCompletedTasks();
         if (this.unsubArchivedTasks) this.unsubArchivedTasks();
+        if (this.unsubSearchCompleted) this.unsubSearchCompleted();
+        if (this.unsubSearchArchived) this.unsubSearchArchived();
         // Clean up all event listeners
         if (this._abortController) this._abortController.abort();
     }
@@ -99,11 +107,20 @@ export class Dashboard {
             return a.name.localeCompare(b.name);
         });
 
+        // Combine extra search-scope tasks when checkboxes are checked
+        const allSearchableTasks = [...this.tasks];
+        if (this.searchQuery && this.searchIncludeCompleted) {
+            allSearchableTasks.push(...this.searchCompletedTasks);
+        }
+        if (this.searchQuery && this.searchIncludeArchived) {
+            allSearchableTasks.push(...this.searchArchivedTasks);
+        }
+
         if (this.starFilter || this.searchQuery) {
             // When star filter or search is active, dynamically show/hide buckets
             // based on whether they contain matching tasks
             const labelsWithMatchingTasks = new Set();
-            this.tasks.forEach(t => {
+            allSearchableTasks.forEach(t => {
                 if (!t.labels) return;
                 const matchesStar = !this.starFilter || t.starred === true;
                 const matchesSearch = !this.searchQuery || this.filterTaskByQuery(t, this.searchQuery);
@@ -150,7 +167,7 @@ export class Dashboard {
 
         // Render each label as a bucket
         visibleLabels.forEach((label) => {
-            let bucketTasks = this.tasks.filter(t => t.labels && t.labels.includes(label.id));
+            let bucketTasks = allSearchableTasks.filter(t => t.labels && t.labels.includes(label.id));
 
             // Apply Date Filter if active
             if (this.currentFilterDate) {
@@ -264,10 +281,12 @@ export class Dashboard {
             bucketTasks.forEach(task => {
                 const dueDateStr = task.dueDate ? this.formatDate(task.dueDate) : 'No date';
                 const isStarred = task.starred === true;
+                const isInactive = task.completed === true || task.archived === true;
+                const inactiveLabel = task.completed ? 'Completed' : (task.archived ? 'Archived' : '');
                 cardsHtml += `
-                    <div class="task-card ${isStarred ? 'task-starred' : ''}" data-task-id="${task.id}" draggable="true">
+                    <div class="task-card ${isStarred ? 'task-starred' : ''} ${isInactive ? 'task-inactive' : ''}" data-task-id="${task.id}" draggable="${!isInactive}">
                         <div class="task-card-title-row">
-                            <div class="task-card-title">${this.escapeHtml(task.title)}</div>
+                            <div class="task-card-title" style="${isInactive ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${this.escapeHtml(task.title)}${isInactive ? ` <span style="font-size: 0.7rem; font-weight: 400; color: var(--text-muted);">(${inactiveLabel})</span>` : ''}</div>
                             <button class="btn-icon btn-star-card ${isStarred ? 'starred' : ''}" data-task-id="${task.id}" data-tooltip="${isStarred ? 'Unstar' : 'Star'}" style="padding: 0;">
                                 <span class="material-symbols-outlined" style="font-size: 18px;">star</span>
                             </button>
@@ -1037,6 +1056,50 @@ export class Dashboard {
                 }
 
                 this.render();
+            }, { signal });
+        }
+
+        // ── Search Scope Checkboxes (Completed / Archived) ──
+        const chkCompleted = document.getElementById('search-include-completed');
+        const chkArchived = document.getElementById('search-include-archived');
+
+        if (chkCompleted) {
+            chkCompleted.checked = this.searchIncludeCompleted;
+            chkCompleted.addEventListener('change', () => {
+                this.searchIncludeCompleted = chkCompleted.checked;
+                if (this.searchIncludeCompleted) {
+                    // Subscribe to completed tasks for search
+                    if (this.unsubSearchCompleted) this.unsubSearchCompleted();
+                    this.unsubSearchCompleted = taskService.subscribeCompleted(this.uid, this.workspaceId, this.boardId, (tasks) => {
+                        this.searchCompletedTasks = tasks;
+                        if (this.searchQuery) this.render();
+                    });
+                } else {
+                    if (this.unsubSearchCompleted) this.unsubSearchCompleted();
+                    this.unsubSearchCompleted = null;
+                    this.searchCompletedTasks = [];
+                    if (this.searchQuery) this.render();
+                }
+            }, { signal });
+        }
+
+        if (chkArchived) {
+            chkArchived.checked = this.searchIncludeArchived;
+            chkArchived.addEventListener('change', () => {
+                this.searchIncludeArchived = chkArchived.checked;
+                if (this.searchIncludeArchived) {
+                    // Subscribe to archived tasks for search
+                    if (this.unsubSearchArchived) this.unsubSearchArchived();
+                    this.unsubSearchArchived = taskService.subscribeArchived(this.uid, this.workspaceId, this.boardId, (tasks) => {
+                        this.searchArchivedTasks = tasks;
+                        if (this.searchQuery) this.render();
+                    });
+                } else {
+                    if (this.unsubSearchArchived) this.unsubSearchArchived();
+                    this.unsubSearchArchived = null;
+                    this.searchArchivedTasks = [];
+                    if (this.searchQuery) this.render();
+                }
             }, { signal });
         }
 
