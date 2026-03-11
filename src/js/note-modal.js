@@ -2,6 +2,7 @@ import { noteService } from './services/note-service.js';
 import { noteLabelService } from './services/note-label-service.js';
 import { taskService } from './services/task-service.js';
 import { labelService } from './services/label-service.js';
+import { uploadImage } from './utils/image-upload.js';
 
 export class NoteModal {
     constructor(uid, workspaceId) {
@@ -554,15 +555,26 @@ export class NoteModal {
             if (item.type.startsWith('image/')) {
                 e.preventDefault();
                 const file = item.getAsFile();
-                const reader = new FileReader();
-                reader.onload = (ev) => {
+
+                // Show a placeholder while uploading
+                const placeholder = document.createElement('div');
+                placeholder.textContent = 'Uploading image...';
+                placeholder.style.cssText = 'padding: 8px; color: var(--text-muted); font-size: 0.85rem; font-style: italic;';
+                editorElement.appendChild(placeholder);
+
+                uploadImage(this.uid, file).then(url => {
+                    placeholder.remove();
                     const img = document.createElement('img');
-                    img.src = ev.target.result;
+                    img.src = url;
                     img.className = 'comment-pasted-image';
+                    img.style.cursor = 'pointer';
                     img.addEventListener('click', () => this.openLightbox(img.src));
                     editorElement.appendChild(img);
-                };
-                reader.readAsDataURL(file);
+                }).catch(err => {
+                    console.error('Failed to upload image:', err);
+                    placeholder.textContent = 'Image upload failed.';
+                    placeholder.style.color = 'var(--danger)';
+                });
                 break;
             }
         }
