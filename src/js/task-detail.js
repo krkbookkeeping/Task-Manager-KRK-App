@@ -723,7 +723,6 @@ export class TaskModal {
                 description: this.descInput.innerHTML.trim(),
                 dueDate: this.dateInput.value ? new Date(this.dateInput.value).toISOString() : null,
                 labels: Array.from(this.selectedLabelIds),
-                comments: this.comments,
                 relatedTasks: this.relatedTaskIds,
                 relatedNotes: this.relatedNoteIds,
                 starred: this.starred
