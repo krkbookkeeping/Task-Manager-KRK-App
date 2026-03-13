@@ -225,6 +225,7 @@ export class NoteModal {
         // Escape to save + close
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.overlay.classList.contains('active')) {
+                e.stopImmediatePropagation();
                 this.save();
             }
         });

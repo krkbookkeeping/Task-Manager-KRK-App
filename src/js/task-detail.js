@@ -547,8 +547,10 @@ export class TaskModal {
             if (e.key === 'Escape') {
                 // Priority: close lightbox first, then save+close modal
                 if (this.lightbox.style.display !== 'none') {
+                    e.stopImmediatePropagation();
                     this.closeLightbox();
                 } else if (this.overlay.classList.contains('active')) {
+                    e.stopImmediatePropagation();
                     this.saveTask();
                 }
             }
