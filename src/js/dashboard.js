@@ -22,6 +22,7 @@ export class Dashboard {
         this.searchIncludeArchived = false; // Search scope checkbox
         this.searchCompletedTasks = []; // Completed tasks loaded for search
         this.searchArchivedTasks = []; // Archived tasks loaded for search
+        this.thisWeekFilter = false; // Persistent "This Week" filter
 
         try {
             const savedSortMode = localStorage.getItem(`bucketSortMode_${this.boardId}`);
@@ -119,12 +120,21 @@ export class Dashboard {
         if (this.starFilter || this.searchQuery) {
             // When star filter or search is active, dynamically show/hide buckets
             // based on whether they contain matching tasks
+            let weekOutStr;
+            if (this.thisWeekFilter) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const weekOut = new Date(today);
+                weekOut.setDate(weekOut.getDate() + 7);
+                weekOutStr = weekOut.toISOString().split('T')[0];
+            }
             const labelsWithMatchingTasks = new Set();
             allSearchableTasks.forEach(t => {
                 if (!t.labels) return;
                 const matchesStar = !this.starFilter || t.starred === true;
                 const matchesSearch = !this.searchQuery || this.filterTaskByQuery(t, this.searchQuery);
-                if (matchesStar && matchesSearch) {
+                const matchesWeek = !this.thisWeekFilter || !t.dueDate || t.dueDate.split('T')[0] <= weekOutStr;
+                if (matchesStar && matchesSearch && matchesWeek) {
                     t.labels.forEach(lid => labelsWithMatchingTasks.add(lid));
                 }
             });
@@ -182,6 +192,20 @@ export class Dashboard {
                 });
             }
 
+            // Apply "This Week" filter if active
+            if (this.thisWeekFilter) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const weekOut = new Date(today);
+                weekOut.setDate(weekOut.getDate() + 7);
+                const weekOutStr = weekOut.toISOString().split('T')[0];
+                bucketTasks = bucketTasks.filter(t => {
+                    if (!t.dueDate) return true;
+                    const taskDate = t.dueDate.split('T')[0];
+                    return taskDate <= weekOutStr;
+                });
+            }
+
             // Apply Star Filter if active
             if (this.starFilter) {
                 bucketTasks = bucketTasks.filter(t => t.starred === true);
@@ -193,7 +217,7 @@ export class Dashboard {
             }
 
             // When filtering is active, skip buckets that end up empty
-            if ((this.starFilter || this.searchQuery || this.currentFilterDate) && bucketTasks.length === 0) {
+            if ((this.starFilter || this.searchQuery || this.currentFilterDate || this.thisWeekFilter) && bucketTasks.length === 0) {
                 return;
             }
 
@@ -1100,6 +1124,16 @@ export class Dashboard {
                     this.searchArchivedTasks = [];
                     if (this.searchQuery) this.render();
                 }
+            }, { signal });
+        }
+
+        // ── This Week Filter Checkbox ──
+        const chkThisWeek = document.getElementById('filter-this-week');
+        if (chkThisWeek) {
+            chkThisWeek.checked = this.thisWeekFilter;
+            chkThisWeek.addEventListener('change', () => {
+                this.thisWeekFilter = chkThisWeek.checked;
+                this.render();
             }, { signal });
         }
 
