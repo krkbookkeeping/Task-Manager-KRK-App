@@ -23,6 +23,7 @@ export class Dashboard {
         this.searchCompletedTasks = []; // Completed tasks loaded for search
         this.searchArchivedTasks = []; // Archived tasks loaded for search
         this.thisWeekFilter = false; // Persistent "This Week" filter
+        this.pastDueFilter = false; // Persistent "Past Due" filter
 
         try {
             const savedSortMode = localStorage.getItem(`bucketSortMode_${this.boardId}`);
@@ -120,6 +121,7 @@ export class Dashboard {
         if (this.starFilter || this.searchQuery) {
             // When star filter or search is active, dynamically show/hide buckets
             // based on whether they contain matching tasks
+            const nowStr = new Date().toISOString().split('T')[0];
             let weekOutStr;
             if (this.thisWeekFilter) {
                 const today = new Date();
@@ -131,9 +133,10 @@ export class Dashboard {
             const labelsWithMatchingTasks = new Set();
             allSearchableTasks.forEach(t => {
                 if (!t.labels) return;
-                const matchesStar = !this.starFilter || t.starred === true;
-                const matchesSearch = !this.searchQuery || this.filterTaskByQuery(t, this.searchQuery);
-                const matchesWeek = !this.thisWeekFilter || !t.dueDate || t.dueDate.split('T')[0] <= weekOutStr;
+                const isPastDue = this.pastDueFilter && t.dueDate && t.dueDate.split('T')[0] < nowStr;
+                const matchesStar = !this.starFilter || t.starred === true || isPastDue;
+                const matchesSearch = !this.searchQuery || this.filterTaskByQuery(t, this.searchQuery) || isPastDue;
+                const matchesWeek = !this.thisWeekFilter || !t.dueDate || t.dueDate.split('T')[0] <= weekOutStr || isPastDue;
                 if (matchesStar && matchesSearch && matchesWeek) {
                     t.labels.forEach(lid => labelsWithMatchingTasks.add(lid));
                 }
@@ -192,6 +195,9 @@ export class Dashboard {
                 });
             }
 
+            // Compute today string once for date-based filters
+            const todayStr = new Date().toISOString().split('T')[0];
+
             // Apply "This Week" filter if active
             if (this.thisWeekFilter) {
                 const today = new Date();
@@ -200,6 +206,8 @@ export class Dashboard {
                 weekOut.setDate(weekOut.getDate() + 7);
                 const weekOutStr = weekOut.toISOString().split('T')[0];
                 bucketTasks = bucketTasks.filter(t => {
+                    // Past due tasks always pass when pastDueFilter is on
+                    if (this.pastDueFilter && t.dueDate && t.dueDate.split('T')[0] < todayStr) return true;
                     if (!t.dueDate) return true;
                     const taskDate = t.dueDate.split('T')[0];
                     return taskDate <= weekOutStr;
@@ -208,16 +216,22 @@ export class Dashboard {
 
             // Apply Star Filter if active
             if (this.starFilter) {
-                bucketTasks = bucketTasks.filter(t => t.starred === true);
+                bucketTasks = bucketTasks.filter(t => {
+                    if (this.pastDueFilter && t.dueDate && t.dueDate.split('T')[0] < todayStr) return true;
+                    return t.starred === true;
+                });
             }
 
             // Apply Search Query if active
             if (this.searchQuery) {
-                bucketTasks = bucketTasks.filter(t => this.filterTaskByQuery(t, this.searchQuery));
+                bucketTasks = bucketTasks.filter(t => {
+                    if (this.pastDueFilter && t.dueDate && t.dueDate.split('T')[0] < todayStr) return true;
+                    return this.filterTaskByQuery(t, this.searchQuery);
+                });
             }
 
             // When filtering is active, skip buckets that end up empty
-            if ((this.starFilter || this.searchQuery || this.currentFilterDate || this.thisWeekFilter) && bucketTasks.length === 0) {
+            if ((this.starFilter || this.searchQuery || this.currentFilterDate || this.thisWeekFilter || this.pastDueFilter) && bucketTasks.length === 0) {
                 return;
             }
 
@@ -1133,6 +1147,16 @@ export class Dashboard {
             chkThisWeek.checked = this.thisWeekFilter;
             chkThisWeek.addEventListener('change', () => {
                 this.thisWeekFilter = chkThisWeek.checked;
+                this.render();
+            }, { signal });
+        }
+
+        // ── Past Due Filter Checkbox ──
+        const chkPastDue = document.getElementById('filter-past-due');
+        if (chkPastDue) {
+            chkPastDue.checked = this.pastDueFilter;
+            chkPastDue.addEventListener('change', () => {
+                this.pastDueFilter = chkPastDue.checked;
                 this.render();
             }, { signal });
         }
