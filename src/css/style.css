@@ -1394,12 +1394,18 @@ textarea.input {
    ============================================================ */
 .bucket-grid {
     flex: 1;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    display: flex;
+    flex-direction: row;
     gap: var(--space-md);
-    overflow-y: auto;
-    align-content: start;
+    overflow-x: auto;
+    overflow-y: hidden;
     padding-bottom: var(--space-lg);
+}
+
+.bucket-grid > .bucket,
+.bucket-grid > .bucket-empty {
+    flex: 0 0 280px;
+    min-width: 200px;
 }
 
 .bucket {
@@ -1409,10 +1415,11 @@ textarea.input {
     display: flex;
     flex-direction: column;
     min-height: 200px;
+    align-self: stretch;
     transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
     cursor: grab;
     user-select: none;
-    overflow: visible;
+    overflow: hidden;
     position: relative;
 }
 
@@ -1438,6 +1445,7 @@ textarea.input {
 .bucket-empty {
     min-height: auto;
     max-height: none;
+    align-self: start;
 }
 
 .bucket-header {
@@ -1894,12 +1902,13 @@ textarea.input {
     animation: highlightPop 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-/* Make inner layout container scrollable for the buckets */
-#dashboard-container.layout-container {
+/* Make inner layout container hold the bucket grid */
+#dashboard-container.layout-container,
+#bookmark-dashboard-container.layout-container,
+#note-dashboard-container.layout-container {
     padding: 0;
     height: 100%;
-    overflow-y: hidden;
-    overflow-x: auto;
+    overflow: hidden;
 }
 
 /* ============================================================
