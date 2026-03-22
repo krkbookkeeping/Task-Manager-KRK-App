@@ -1960,7 +1960,7 @@ textarea.input {
     display: flex;
     gap: 4px;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .btn-date-punch {
