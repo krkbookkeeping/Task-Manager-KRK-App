@@ -676,7 +676,7 @@ export class TaskModal {
         // Handle park/unpark after closing
         if (taskId) {
             if (shouldPark) {
-                taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { parked: true })
+                taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { parked: true, parkedOrder: Date.now() })
                     .catch(err => console.error('Failed to park task:', err));
             } else if (shouldUnpark) {
                 taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { parked: false })

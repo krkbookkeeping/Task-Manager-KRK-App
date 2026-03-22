@@ -1139,64 +1139,8 @@
         </button>
     </div>
 
-    <!-- Inline UI script — works regardless of module loading -->
-    <script>
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('sidebar-overlay').classList.toggle('active');
-        }
-        function closeSidebar() {
-            document.getElementById('sidebar').classList.remove('open');
-            document.getElementById('sidebar-overlay').classList.remove('active');
-        }
-        function openSettingsModal() {
-            document.getElementById('settings-modal').classList.add('active');
-        }
-        function closeSettingsModal() {
-            document.getElementById('settings-modal').classList.remove('active');
-        }
-        function toggleTheme() {
-            var html = document.documentElement;
-            var current = html.getAttribute('data-theme');
-            var next = current === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-theme', next);
-            var toggle = document.getElementById('modal-theme-toggle');
-            if (toggle) toggle.checked = (next === 'dark');
-            try { localStorage.setItem('taskmanager-theme', next); } catch (e) { }
-        }
-        // Restore saved theme on load
-        (function () {
-            try {
-                var saved = localStorage.getItem('taskmanager-theme');
-                if (saved === 'dark' || saved === 'light') {
-                    document.documentElement.setAttribute('data-theme', saved);
-                    // Defer setting the checkbox state until DOM is parsed
-                    window.addEventListener('DOMContentLoaded', () => {
-                        var toggle = document.getElementById('modal-theme-toggle');
-                        if (toggle) toggle.checked = (saved === 'dark');
-                    });
-                }
-            } catch (e) { }
-        })();
-
-        // Global Keyboard Shortcut: Press 'F' or 'f' to focus search
-        document.addEventListener('keydown', function (e) {
-            // Ignore if the user is already typing in an input, textarea, or contenteditable
-            const tagName = e.target.tagName;
-            const isContentEditable = e.target.isContentEditable;
-            if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || isContentEditable) {
-                return;
-            }
-
-            if (e.key === 'f' || e.key === 'F') {
-                e.preventDefault();
-                const searchInput = document.getElementById('global-search');
-                if (searchInput) {
-                    searchInput.focus();
-                }
-            }
-        });
-    </script>
+    <!-- UI helpers: sidebar, settings modal, theme toggle, keyboard shortcuts -->
+    <script src="./src/js/ui-helpers.js"></script>
 
     <!-- App module (Firebase, future features) -->
     <script type="module" src="./src/js/app.js?v=2"></script>

@@ -2253,21 +2253,29 @@ textarea.input {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 8px 4px 12px;
+    padding: 4px 8px 4px 10px;
     background: var(--bg-body);
     border: 1px solid var(--border-primary);
+    border-left: 3px solid var(--primary);
     border-radius: var(--radius-md);
     font-size: 0.78rem;
     color: var(--text-primary);
     white-space: nowrap;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
+    cursor: grab;
+    transition: background 0.15s, border-color 0.15s, opacity 0.15s;
     flex-shrink: 0;
+    user-select: none;
 }
 
 .parked-task-chip:hover {
     background: var(--bg-surface);
-    border-color: var(--primary);
+    border-color: var(--border-primary);
+}
+
+.parked-task-chip.dragging {
+    opacity: 0.4;
+    border-style: dashed;
+    cursor: grabbing;
 }
 
 .parked-task-title {

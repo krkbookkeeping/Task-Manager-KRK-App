@@ -452,7 +452,7 @@ export class Dashboard {
                 e.stopPropagation();
                 const taskId = btn.getAttribute('data-task-id');
                 try {
-                    await taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { parked: true });
+                    await taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { parked: true, parkedOrder: Date.now() });
                 } catch (err) {
                     console.error('Failed to park task:', err);
                 }
@@ -1618,7 +1618,9 @@ export class Dashboard {
         const countEl = document.getElementById('parked-tasks-count');
         if (!tray || !list) return;
 
-        const parkedTasks = this.tasks.filter(t => t.parked === true);
+        const parkedTasks = this.tasks
+            .filter(t => t.parked === true)
+            .sort((a, b) => (a.parkedOrder || 0) - (b.parkedOrder || 0));
         const mainEl = document.querySelector('main');
 
         if (parkedTasks.length === 0) {
@@ -1636,6 +1638,15 @@ export class Dashboard {
             const chip = document.createElement('div');
             chip.className = 'parked-task-chip';
             chip.setAttribute('data-task-id', task.id);
+            chip.draggable = true;
+
+            // Bucket color from primary label
+            const primaryLabel = task.labels && task.labels.length > 0
+                ? this.labels.find(l => l.id === task.labels[0])
+                : null;
+            const bucketColor = primaryLabel ? primaryLabel.color : '#6366f1';
+            chip.style.borderLeft = `3px solid ${bucketColor}`;
+
             chip.innerHTML = `
                 <span class="parked-task-title">${this.escapeHtml(task.title)}</span>
                 <button class="btn-unpark-task" data-task-id="${task.id}" title="Return to bucket">
@@ -1663,6 +1674,99 @@ export class Dashboard {
             });
 
             list.appendChild(chip);
+        });
+
+        // ── Drag-and-drop reordering for parked task chips ──
+        let parkedDragThrottle = null;
+        let parkedLastSwapTarget = null;
+        let parkedAutoScrollRAF = null;
+
+        const chips = list.querySelectorAll('.parked-task-chip');
+        chips.forEach(chip => {
+            chip.addEventListener('dragstart', (e) => {
+                requestAnimationFrame(() => chip.classList.add('dragging'));
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('application/x-parked-task', chip.getAttribute('data-task-id'));
+                parkedLastSwapTarget = null;
+            });
+
+            chip.addEventListener('dragend', async () => {
+                chip.classList.remove('dragging');
+                parkedLastSwapTarget = null;
+                parkedDragThrottle = null;
+                if (parkedAutoScrollRAF) {
+                    cancelAnimationFrame(parkedAutoScrollRAF);
+                    parkedAutoScrollRAF = null;
+                }
+
+                // Persist new order
+                const orderedChips = Array.from(list.querySelectorAll('.parked-task-chip'));
+                const updates = orderedChips.map((c, index) => {
+                    const taskId = c.getAttribute('data-task-id');
+                    return taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { parkedOrder: index });
+                });
+                try {
+                    await Promise.all(updates);
+                } catch (err) {
+                    console.error('Failed to update parked task order:', err);
+                }
+            });
+        });
+
+        list.addEventListener('dragover', (e) => {
+            // Only handle parked-task drags
+            if (!e.dataTransfer.types.includes('application/x-parked-task')) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            // Auto-scroll near edges
+            const listRect = list.getBoundingClientRect();
+            const edgeZone = 40;
+            const scrollSpeed = 6;
+            if (parkedAutoScrollRAF) cancelAnimationFrame(parkedAutoScrollRAF);
+            if (e.clientX < listRect.left + edgeZone) {
+                (function scrollLeft() {
+                    list.scrollLeft -= scrollSpeed;
+                    parkedAutoScrollRAF = requestAnimationFrame(scrollLeft);
+                })();
+            } else if (e.clientX > listRect.right - edgeZone) {
+                (function scrollRight() {
+                    list.scrollLeft += scrollSpeed;
+                    parkedAutoScrollRAF = requestAnimationFrame(scrollRight);
+                })();
+            } else {
+                parkedAutoScrollRAF = null;
+            }
+
+            // Throttle swap logic
+            if (parkedDragThrottle) return;
+            parkedDragThrottle = setTimeout(() => { parkedDragThrottle = null; }, 50);
+
+            const dragging = list.querySelector('.parked-task-chip.dragging');
+            if (!dragging) return;
+
+            const target = e.target.closest('.parked-task-chip:not(.dragging)');
+            if (!target || target === parkedLastSwapTarget) return;
+
+            const children = Array.from(list.children);
+            const draggedIdx = children.indexOf(dragging);
+            const targetIdx = children.indexOf(target);
+            if (draggedIdx === targetIdx) return;
+
+            parkedLastSwapTarget = target;
+            if (draggedIdx < targetIdx) {
+                list.insertBefore(dragging, target.nextSibling);
+            } else {
+                list.insertBefore(dragging, target);
+            }
+        });
+
+        // Stop auto-scroll when drag leaves the list
+        list.addEventListener('dragleave', () => {
+            if (parkedAutoScrollRAF) {
+                cancelAnimationFrame(parkedAutoScrollRAF);
+                parkedAutoScrollRAF = null;
+            }
         });
     }
 

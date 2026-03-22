@@ -77,7 +77,7 @@ export const taskService = {
 
     async park(uid, wid, bid, tid) {
         const taskRef = doc(db, 'users', uid, 'workspaces', wid, 'boards', bid, 'tasks', tid);
-        await updateDoc(taskRef, { parked: true });
+        await updateDoc(taskRef, { parked: true, parkedOrder: Date.now() });
     },
 
     async unpark(uid, wid, bid, tid) {
