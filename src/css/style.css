@@ -1399,7 +1399,29 @@ textarea.input {
     gap: var(--space-md);
     overflow-x: auto;
     overflow-y: hidden;
-    padding-bottom: var(--space-lg);
+    padding-bottom: 4px;
+    scrollbar-width: auto;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* Prominent horizontal scrollbar for bucket grids */
+.bucket-grid::-webkit-scrollbar {
+    height: 12px;
+}
+
+.bucket-grid::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: var(--radius-full);
+}
+
+.bucket-grid::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: var(--radius-full);
+    border: 2px solid var(--scrollbar-track);
+}
+
+.bucket-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-hover);
 }
 
 .bucket-grid > .bucket,
