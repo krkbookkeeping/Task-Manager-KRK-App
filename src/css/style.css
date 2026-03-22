@@ -1930,7 +1930,9 @@ textarea.input {
 #note-dashboard-container.layout-container {
     padding: 0;
     height: 100%;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
 }
 
 /* ============================================================
