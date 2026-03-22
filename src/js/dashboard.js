@@ -328,12 +328,17 @@ export class Dashboard {
                     <div class="task-card ${isStarred ? 'task-starred' : ''} ${isInactive ? 'task-inactive' : ''}" data-task-id="${task.id}" draggable="${!isInactive}">
                         <div class="task-card-title-row">
                             <div class="task-card-title" style="${isInactive ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${this.escapeHtml(task.title)}${isInactive ? ` <span style="font-size: 0.7rem; font-weight: 400; color: var(--text-muted);">(${inactiveLabel})</span>` : ''}</div>
-                            <button class="btn-icon btn-star-card ${isStarred ? 'starred' : ''}" data-task-id="${task.id}" data-tooltip="${isStarred ? 'Unstar' : 'Star'}" style="padding: 0;">
-                                <span class="material-symbols-outlined" style="font-size: 18px;">star</span>
-                            </button>
-                            ${isInactive ? '' : `<button class="btn-icon btn-park-card" data-task-id="${task.id}" data-tooltip="Park Task" style="padding: 0;">
-                                <span class="material-symbols-outlined" style="font-size: 16px;">dock_to_bottom</span>
-                            </button>`}
+                            <div class="task-card-actions">
+                                <button class="btn-icon btn-star-card ${isStarred ? 'starred' : ''}" data-task-id="${task.id}" data-tooltip="${isStarred ? 'Unstar' : 'Star'}" style="padding: 0;">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">star</span>
+                                </button>
+                                ${isInactive ? '' : `<button class="btn-icon btn-park-card" data-task-id="${task.id}" data-tooltip="Park Task" style="padding: 0;">
+                                    <span class="material-symbols-outlined" style="font-size: 14px;">dock_to_bottom</span>
+                                </button>`}
+                                ${isInactive ? '' : `<button class="btn-icon btn-complete-task" data-task-id="${task.id}" data-tooltip="Complete Task" style="padding: 0;">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">check_circle</span>
+                                </button>`}
+                            </div>
                         </div>
                         <div class="task-card-meta">
                             ${task.dueDate ? `
@@ -347,16 +352,13 @@ export class Dashboard {
                                 <span>${dueDateStr}</span>
                             </div>
                             `}
-                            <div class="date-punches dashboard-punches" style="margin-left: 8px;">
+                            <div class="date-punches dashboard-punches">
                                 ${DASHBOARD_PUNCH_OFFSETS.map(offset => `
                                     <button class="btn-date-punch dashboard-punch" data-task-id="${task.id}" data-offset="${offset}" title="Add ${offset}">
                                         ${offset}
                                     </button>
                                 `).join('')}
                             </div>
-                            <button class="btn-icon btn-sm btn-complete-task" data-task-id="${task.id}" data-tooltip="Complete Task" style="margin-left: auto; padding: 2px;">
-                                <span class="material-symbols-outlined" style="font-size: 16px;">check_circle</span>
-                            </button>
                         </div>
                     </div>
                 `;
