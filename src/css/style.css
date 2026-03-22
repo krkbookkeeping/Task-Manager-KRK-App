@@ -2183,3 +2183,111 @@ textarea.input {
     color: var(--primary);
     text-decoration: underline;
 }
+
+
+/* ============================================================
+   PARKED TASKS TRAY
+   ============================================================ */
+.parked-tasks-tray {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px 8px 16px;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-primary);
+    min-height: 44px;
+    flex-shrink: 0;
+}
+
+.parked-tasks-tray-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.parked-tasks-count {
+    background: var(--primary);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: var(--radius-full);
+    min-width: 18px;
+    text-align: center;
+}
+
+.parked-tasks-list {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex: 1;
+    padding: 2px 0;
+    scrollbar-width: thin;
+}
+
+.parked-task-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px 4px 12px;
+    background: var(--bg-body);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    font-size: 0.78rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+}
+
+.parked-task-chip:hover {
+    background: var(--bg-surface);
+    border-color: var(--primary);
+}
+
+.parked-task-title {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.btn-unpark-task {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    transition: color 0.15s, background 0.15s;
+}
+
+.btn-unpark-task:hover {
+    color: var(--danger);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* Park button on task cards */
+.btn-park-card {
+    color: var(--text-muted);
+    transition: color 0.15s;
+}
+
+.btn-park-card:hover {
+    color: var(--info);
+}
+
+/* Shrink dashboard layout when tray is visible */
+main.has-parked-tray .dashboard-layout {
+    flex: 1;
+    min-height: 0;
+}

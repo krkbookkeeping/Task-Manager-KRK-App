@@ -576,6 +576,15 @@
 
                 </div> <!-- Close right-side flex container -->
             </div> <!-- Close .dashboard-layout -->
+            <!-- Parked Tasks Tray -->
+            <div id="parked-tasks-tray" class="parked-tasks-tray" style="display: none;">
+                <div class="parked-tasks-tray-header">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">dock_to_bottom</span>
+                    <span>Parked</span>
+                    <span id="parked-tasks-count" class="parked-tasks-count">0</span>
+                </div>
+                <div id="parked-tasks-list" class="parked-tasks-list"></div>
+            </div>
         </main>
     </div>
 
@@ -914,6 +923,9 @@
                     <button class="btn btn-sm btn-outline" id="btn-task-complete"
                         style="color: var(--success); border-color: var(--success); margin-right: 8px;">
                         Complete
+                    </button>
+                    <button class="btn-icon" id="btn-task-park" data-tooltip="Park Task" style="display: none;">
+                        <span class="material-symbols-outlined" style="color: var(--info);">dock_to_bottom</span>
                     </button>
                     <button class="btn-icon" id="btn-task-print" data-tooltip="Print Task">
                         <span class="material-symbols-outlined" style="color: var(--info);">print</span>

@@ -132,7 +132,7 @@ export class Dashboard {
             }
             const labelsWithMatchingTasks = new Set();
             allSearchableTasks.forEach(t => {
-                if (!t.labels) return;
+                if (!t.labels || t.parked === true) return;
                 const isPastDue = this.pastDueFilter && t.dueDate && t.dueDate.split('T')[0] < nowStr;
                 const matchesStar = !this.starFilter || t.starred === true || isPastDue;
                 const matchesSearch = !this.searchQuery || this.filterTaskByQuery(t, this.searchQuery) || isPastDue;
@@ -151,6 +151,9 @@ export class Dashboard {
 
         // Update Parked Labels header UI
         this.renderParkedLabels(parkedLabels);
+
+        // Update Parked Tasks tray
+        this.renderParkedTasksTray();
 
         // Empty state: no labels at all — show CTA
         if (visibleLabels.length === 0 && parkedLabels.length === 0) {
@@ -180,7 +183,7 @@ export class Dashboard {
 
         // Render each label as a bucket
         visibleLabels.forEach((label) => {
-            let bucketTasks = allSearchableTasks.filter(t => t.labels && t.labels.includes(label.id));
+            let bucketTasks = allSearchableTasks.filter(t => t.labels && t.labels.includes(label.id) && t.parked !== true);
 
             // Apply Date Filter if active
             if (this.currentFilterDate) {
@@ -328,6 +331,9 @@ export class Dashboard {
                             <button class="btn-icon btn-star-card ${isStarred ? 'starred' : ''}" data-task-id="${task.id}" data-tooltip="${isStarred ? 'Unstar' : 'Star'}" style="padding: 0;">
                                 <span class="material-symbols-outlined" style="font-size: 18px;">star</span>
                             </button>
+                            ${isInactive ? '' : `<button class="btn-icon btn-park-card" data-task-id="${task.id}" data-tooltip="Park Task" style="padding: 0;">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">dock_to_bottom</span>
+                            </button>`}
                         </div>
                         <div class="task-card-meta">
                             ${task.dueDate ? `
@@ -433,6 +439,20 @@ export class Dashboard {
                     });
                 } catch (err) {
                     console.error('Failed to toggle star:', err);
+                }
+            });
+        });
+
+        // Park Task on Card
+        const parkBtns = this.gridEl.querySelectorAll('.btn-park-card');
+        parkBtns.forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const taskId = btn.getAttribute('data-task-id');
+                try {
+                    await taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { parked: true });
+                } catch (err) {
+                    console.error('Failed to park task:', err);
                 }
             });
         });
@@ -1587,6 +1607,60 @@ export class Dashboard {
             };
 
             container.appendChild(chip);
+        });
+    }
+
+    renderParkedTasksTray() {
+        const tray = document.getElementById('parked-tasks-tray');
+        const list = document.getElementById('parked-tasks-list');
+        const countEl = document.getElementById('parked-tasks-count');
+        if (!tray || !list) return;
+
+        const parkedTasks = this.tasks.filter(t => t.parked === true);
+        const mainEl = document.querySelector('main');
+
+        if (parkedTasks.length === 0) {
+            tray.style.display = 'none';
+            if (mainEl) mainEl.classList.remove('has-parked-tray');
+            return;
+        }
+
+        tray.style.display = 'flex';
+        if (mainEl) mainEl.classList.add('has-parked-tray');
+        if (countEl) countEl.textContent = parkedTasks.length;
+
+        list.innerHTML = '';
+        parkedTasks.forEach(task => {
+            const chip = document.createElement('div');
+            chip.className = 'parked-task-chip';
+            chip.setAttribute('data-task-id', task.id);
+            chip.innerHTML = `
+                <span class="parked-task-title">${this.escapeHtml(task.title)}</span>
+                <button class="btn-unpark-task" data-task-id="${task.id}" title="Return to bucket">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">close</span>
+                </button>
+            `;
+
+            // Click chip -> open in task detail (auto-unparks on close)
+            chip.addEventListener('click', (e) => {
+                if (e.target.closest('.btn-unpark-task')) return;
+                if (window.currentTaskModal) {
+                    window.currentTaskModal.open(task.id);
+                }
+            });
+
+            // X button -> unpark without opening
+            const unparkBtn = chip.querySelector('.btn-unpark-task');
+            unparkBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                try {
+                    await taskService.update(this.uid, this.workspaceId, this.boardId, task.id, { parked: false });
+                } catch (err) {
+                    console.error('Failed to unpark task:', err);
+                }
+            });
+
+            list.appendChild(chip);
         });
     }
 

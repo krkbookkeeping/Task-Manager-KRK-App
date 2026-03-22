@@ -31,6 +31,7 @@ export const taskService = {
             completedAt: null,
             archived: false,
             archivedAt: null,
+            parked: false,
             createdAt: serverTimestamp()
         };
 
@@ -72,6 +73,16 @@ export const taskService = {
             archived: false,
             archivedAt: null
         });
+    },
+
+    async park(uid, wid, bid, tid) {
+        const taskRef = doc(db, 'users', uid, 'workspaces', wid, 'boards', bid, 'tasks', tid);
+        await updateDoc(taskRef, { parked: true });
+    },
+
+    async unpark(uid, wid, bid, tid) {
+        const taskRef = doc(db, 'users', uid, 'workspaces', wid, 'boards', bid, 'tasks', tid);
+        await updateDoc(taskRef, { parked: false });
     },
 
     async deleteOldArchivedTasks(uid, wid, bid, monthsOld) {

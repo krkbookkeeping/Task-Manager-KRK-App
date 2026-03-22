@@ -29,6 +29,7 @@ export class TaskModal {
         this.btnDelete = document.getElementById('btn-task-delete');
         this.btnComplete = document.getElementById('btn-task-complete');
         this.btnPrint = document.getElementById('btn-task-print');
+        this.btnPark = document.getElementById('btn-task-park');
         this.createdInfo = document.getElementById('task-modal-created-info');
 
         // Label Multi-Select Elements
@@ -49,6 +50,8 @@ export class TaskModal {
         this.comments = []; // Array of comment objects
         this.editingCommentId = null; // Track if we're editing an existing comment
         this.starred = false; // Star state
+        this.wasParked = false; // Track if task was parked when opened
+        this.parkOnClose = false; // Set true when user clicks Park button
 
         // Star Elements
         this.btnStar = document.getElementById('btn-task-star');
@@ -360,6 +363,14 @@ export class TaskModal {
             this.btnPrint.addEventListener('click', () => this.printTask());
         }
         this.btnDelete.addEventListener('click', () => this.deleteTask());
+        if (this.btnPark) {
+            this.btnPark.addEventListener('click', async () => {
+                if (this.currentTaskId) {
+                    this.parkOnClose = true;
+                    await this.saveTask();
+                }
+            });
+        }
         if (this.btnComplete) {
             this.btnComplete.addEventListener('click', async () => {
                 if (this.currentTaskId) {
@@ -563,16 +574,21 @@ export class TaskModal {
         this.labelSearch.value = '';
         this.filterLabelOptions();
 
+        this.wasParked = false;
+        this.parkOnClose = false;
+
         if (taskId) {
             // Editing existing task
             this.btnDelete.style.display = 'flex';
             if (this.btnComplete) this.btnComplete.style.display = 'block';
+            if (this.btnPark) this.btnPark.style.display = 'flex';
             this.btnSave.textContent = 'Save Changes';
             await this.populateTaskData(taskId);
         } else {
             // Creating new task
             this.btnDelete.style.display = 'none';
             if (this.btnComplete) this.btnComplete.style.display = 'none';
+            if (this.btnPark) this.btnPark.style.display = 'none';
             if (this.createdInfo) this.createdInfo.textContent = '';
             this.btnSave.textContent = 'Create Task';
             this.titleInput.value = '';
@@ -642,13 +658,30 @@ export class TaskModal {
     }
 
     close() {
+        const taskId = this.currentTaskId;
+        const shouldPark = this.parkOnClose;
+        const shouldUnpark = this.wasParked && !this.parkOnClose;
+
         this.overlay.classList.remove('active');
         this.currentTaskId = null;
+        this.wasParked = false;
+        this.parkOnClose = false;
         this.labelDropdown.style.display = 'none';
         // Reset complete button so it's not stuck on "Completing..."
         if (this.btnComplete) {
             this.btnComplete.disabled = false;
             this.btnComplete.textContent = 'Complete';
+        }
+
+        // Handle park/unpark after closing
+        if (taskId) {
+            if (shouldPark) {
+                taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { parked: true })
+                    .catch(err => console.error('Failed to park task:', err));
+            } else if (shouldUnpark) {
+                taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { parked: false })
+                    .catch(err => console.error('Failed to auto-unpark task:', err));
+            }
         }
     }
 
@@ -711,6 +744,9 @@ export class TaskModal {
 
                 // Load starred state
                 this.starred = task.starred === true;
+
+                // Track parked state for auto-unpark on close
+                this.wasParked = task.parked === true;
             }
         } catch (err) {
             console.error("Failed to load task data:", err);
