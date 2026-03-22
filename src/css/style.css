@@ -1604,6 +1604,7 @@ textarea.input {
     flex-direction: column;
     gap: var(--space-sm);
     overflow-y: auto;
+    overflow-x: hidden;
     flex: 1;
 }
 
@@ -1658,6 +1659,9 @@ textarea.input {
     padding: var(--space-md);
     cursor: pointer;
     transition: all var(--transition-fast);
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
 }
 
 .task-card:hover {
@@ -1678,6 +1682,8 @@ textarea.input {
     gap: var(--space-sm);
     font-size: var(--font-size-xs);
     color: var(--text-muted);
+    flex-wrap: wrap;
+    min-width: 0;
 }
 
 .task-card-date-badge {
@@ -1697,16 +1703,20 @@ textarea.input {
     color: var(--accent);
 }
 
-/* Task Card Title Row (title + star) */
+/* Task Card Title Row (title + star + park) */
 .task-card-title-row {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: var(--space-sm);
+    min-width: 0;
 }
 
 .task-card-title-row .task-card-title {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Star Button on Task Cards */
