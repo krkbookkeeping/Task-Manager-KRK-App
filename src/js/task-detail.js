@@ -31,6 +31,7 @@ export class TaskModal {
         this.btnPrint = document.getElementById('btn-task-print');
         this.btnPark = document.getElementById('btn-task-park');
         this.createdInfo = document.getElementById('task-modal-created-info');
+        this.statusInfo = document.getElementById('task-modal-status-info');
 
         // Label Multi-Select Elements
         this.labelTrigger = document.getElementById('task-label-trigger');
@@ -379,7 +380,8 @@ export class TaskModal {
                         this.btnComplete.textContent = 'Completing...';
                         await taskService.update(this.uid, this.workspaceId, this.boardId, this.currentTaskId, {
                             completed: true,
-                            completedAt: new Date().toISOString()
+                            completedAt: new Date().toISOString(),
+                            restoredAt: null
                         });
                         this.close();
                     } catch (err) {
@@ -590,6 +592,7 @@ export class TaskModal {
             if (this.btnComplete) this.btnComplete.style.display = 'none';
             if (this.btnPark) this.btnPark.style.display = 'none';
             if (this.createdInfo) this.createdInfo.textContent = '';
+            if (this.statusInfo) this.statusInfo.innerHTML = '';
             this.btnSave.textContent = 'Create Task';
             this.titleInput.value = '';
             this.descInput.innerHTML = '';
@@ -730,6 +733,36 @@ export class TaskModal {
                         }
                     } else {
                         this.createdInfo.textContent = '';
+                    }
+                }
+
+                // Format status timestamp (Completed or Restored)
+                if (this.statusInfo) {
+                    const statusTs = task.completed ? task.completedAt : task.restoredAt;
+                    if (statusTs) {
+                        try {
+                            const d = typeof statusTs.toDate === 'function' ? statusTs.toDate() : new Date(statusTs);
+                            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                            const mo = monthNames[d.getMonth()];
+                            const da = d.getDate();
+                            const yr = d.getFullYear();
+                            let hours = d.getHours();
+                            const mins = String(d.getMinutes()).padStart(2, '0');
+                            const ampm = hours >= 12 ? 'pm' : 'am';
+                            hours = hours % 12;
+                            hours = hours ? hours : 12;
+                            const formatted = `${mo} ${da}, ${yr} ${hours}:${mins}${ampm}`;
+
+                            if (task.completed) {
+                                this.statusInfo.innerHTML = `| <span style="color: var(--success);">&#x2705; Completed: ${formatted}</span>`;
+                            } else {
+                                this.statusInfo.innerHTML = `| <span style="color: var(--warning);">&#x21A9;&#xFE0F; Restored: ${formatted}</span>`;
+                            }
+                        } catch (e) {
+                            this.statusInfo.innerHTML = '';
+                        }
+                    } else {
+                        this.statusInfo.innerHTML = '';
                     }
                 }
 

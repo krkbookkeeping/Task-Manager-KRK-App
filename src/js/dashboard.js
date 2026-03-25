@@ -1547,7 +1547,8 @@ export class Dashboard {
                     // Stripping completed flag and completedAt restores it naturally to the Main Board queries
                     await taskService.update(this.uid, this.workspaceId, this.boardId, taskId, {
                         completed: false,
-                        completedAt: null
+                        completedAt: null,
+                        restoredAt: new Date().toISOString()
                     });
                 } catch (err) {
                     console.error('Failed to restore task:', err);
