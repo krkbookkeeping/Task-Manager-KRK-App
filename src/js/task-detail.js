@@ -28,6 +28,7 @@ export class TaskModal {
         this.btnClose = document.getElementById('btn-task-close');
         this.btnDelete = document.getElementById('btn-task-delete');
         this.btnComplete = document.getElementById('btn-task-complete');
+        this.btnRestore = document.getElementById('btn-task-restore');
         this.btnPrint = document.getElementById('btn-task-print');
         this.btnPark = document.getElementById('btn-task-park');
         this.createdInfo = document.getElementById('task-modal-created-info');
@@ -393,6 +394,24 @@ export class TaskModal {
             });
         }
 
+        // Restore (inline, for completed tasks)
+        if (this.btnRestore) {
+            this.btnRestore.addEventListener('click', async () => {
+                if (this.currentTaskId) {
+                    try {
+                        await taskService.update(this.uid, this.workspaceId, this.boardId, this.currentTaskId, {
+                            completed: false,
+                            completedAt: null,
+                            restoredAt: new Date().toISOString()
+                        });
+                        this.close();
+                    } catch (err) {
+                        console.error('Failed to restore task:', err);
+                    }
+                }
+            });
+        }
+
         // Star Toggle
         this.btnStar.addEventListener('click', () => {
             this.starred = !this.starred;
@@ -590,6 +609,7 @@ export class TaskModal {
             // Creating new task
             this.btnDelete.style.display = 'none';
             if (this.btnComplete) this.btnComplete.style.display = 'none';
+            if (this.btnRestore) this.btnRestore.style.display = 'none';
             if (this.btnPark) this.btnPark.style.display = 'none';
             if (this.createdInfo) this.createdInfo.textContent = '';
             if (this.statusInfo) this.statusInfo.innerHTML = '';
@@ -764,6 +784,14 @@ export class TaskModal {
                     } else {
                         this.statusInfo.innerHTML = '';
                     }
+                }
+
+                // Show Restore button only for completed tasks; hide Complete button when completed
+                if (this.btnRestore) {
+                    this.btnRestore.style.display = task.completed ? 'flex' : 'none';
+                }
+                if (this.btnComplete) {
+                    this.btnComplete.style.display = task.completed ? 'none' : 'block';
                 }
 
                 // Load comments
