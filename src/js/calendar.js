@@ -10,6 +10,7 @@ export class Calendar {
         this.btnToday = document.getElementById('btn-today');
         this.btnThisWeek = document.getElementById('btn-this-week');
         this.btnAllTasks = document.getElementById('btn-all-tasks');
+        this.btnThisMonth = document.getElementById('btn-this-month');
 
         this.currentDate = new Date(); // Month currently being viewed
         this.selectedDate = null;      // The specifically clicked date (single)
@@ -31,6 +32,7 @@ export class Calendar {
     updateFilterTabsState(activeId) {
         if (this.btnToday) this.btnToday.classList.remove('active');
         if (this.btnThisWeek) this.btnThisWeek.classList.remove('active');
+        if (this.btnThisMonth) this.btnThisMonth.classList.remove('active');
         if (this.btnAllTasks) this.btnAllTasks.classList.remove('active');
 
         if (activeId) {
@@ -102,6 +104,34 @@ export class Calendar {
             this.dispatchFilterEvent(null, this.rangeStart, this.rangeEnd);
         });
 
+        this.btnThisMonth?.addEventListener('click', () => {
+            const today = new Date();
+
+            // Start of current month (1st day)
+            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+            // End of current week (Saturday), same week logic as Wk filter
+            const dow = today.getDay();
+            const daysToSaturday = 6 - dow;
+            const endOfWeek = new Date(today);
+            endOfWeek.setDate(today.getDate() + daysToSaturday);
+
+            const startId = this.formatDateId(startOfMonth.getFullYear(), startOfMonth.getMonth(), startOfMonth.getDate());
+            const endId = this.formatDateId(endOfWeek.getFullYear(), endOfWeek.getMonth(), endOfWeek.getDate());
+
+            // Jump the calendar view to the current month
+            this.currentDate = new Date(today.getFullYear(), today.getMonth(), 1);
+
+            this.rangeStart = startId;
+            this.rangeEnd = endId;
+            this.selectedDate = null;
+
+            this.updateFilterTabsState('btn-this-month');
+            this.render();
+            this.updateFilterBanner();
+            this.dispatchFilterEvent(null, this.rangeStart, this.rangeEnd);
+        });
+
         // Listen for keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -125,6 +155,9 @@ export class Calendar {
             } else if (e.key.toLowerCase() === 'w') {
                 e.preventDefault();
                 this.btnThisWeek?.click();
+            } else if (e.key.toLowerCase() === 'm') {
+                e.preventDefault();
+                this.btnThisMonth?.click();
             }
         });
 
