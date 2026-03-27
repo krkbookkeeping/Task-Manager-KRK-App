@@ -1183,6 +1183,77 @@ export class Dashboard {
             }, { signal });
         }
 
+        // ── Quick Search Shortcuts (ExpC / ExpR / kkflw) ──
+        const searchShortcuts = [
+            { btnId: 'btn-search-expc', query: 'ExpC' },
+            { btnId: 'btn-search-expr', query: 'ExpR' },
+            { btnId: 'btn-search-kkflw', query: 'kkflw' },
+        ];
+        const allShortcutBtns = searchShortcuts.map(s => document.getElementById(s.btnId)).filter(Boolean);
+
+        const activateSearchShortcut = (query, btn) => {
+            const searchInput = document.getElementById('global-search');
+            const searchClearBtn = document.getElementById('btn-clear-search');
+            const searchIndicator = document.getElementById('search-indicator');
+            const searchIndicatorText = document.getElementById('search-indicator-text');
+
+            // Toggle off if already active
+            if (this.searchQuery.toLowerCase() === query.toLowerCase() && btn && btn.classList.contains('active')) {
+                this.searchQuery = '';
+                allShortcutBtns.forEach(b => b.classList.remove('active'));
+                if (searchInput) searchInput.value = '';
+                if (searchClearBtn) searchClearBtn.style.display = 'none';
+                if (searchIndicator) searchIndicator.style.display = 'none';
+                this.render();
+                return;
+            }
+
+            // Activate
+            this.searchQuery = query;
+            allShortcutBtns.forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            if (searchInput) searchInput.value = query;
+            if (searchClearBtn) searchClearBtn.style.display = 'flex';
+            if (searchIndicator) {
+                searchIndicator.style.display = 'flex';
+                if (searchIndicatorText) searchIndicatorText.textContent = `Filtered by search: '${query}'`;
+            }
+            this.render();
+        };
+
+        searchShortcuts.forEach(({ btnId, query }) => {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.addEventListener('click', () => activateSearchShortcut(query, btn), { signal });
+            }
+        });
+
+        // Keyboard shortcuts: C → ExpC, R → ExpR, K → kkflw
+        document.addEventListener('keydown', (e) => {
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
+            if (e.altKey || e.ctrlKey || e.metaKey) return;
+            const activeModal = document.querySelector('.modal-overlay.active, .task-modal-overlay.active');
+            if (activeModal) return;
+
+            const key = e.key.toLowerCase();
+            const shortcutMap = { 'c': 'btn-search-expc', 'r': 'btn-search-expr', 'k': 'btn-search-kkflw' };
+            const queryMap = { 'c': 'ExpC', 'r': 'ExpR', 'k': 'kkflw' };
+            if (shortcutMap[key]) {
+                e.preventDefault();
+                const btn = document.getElementById(shortcutMap[key]);
+                activateSearchShortcut(queryMap[key], btn);
+            }
+        }, { signal });
+
+        // Clear shortcut active state when search input changes manually
+        const searchInputEl = document.getElementById('global-search');
+        if (searchInputEl) {
+            searchInputEl.addEventListener('input', () => {
+                allShortcutBtns.forEach(b => b.classList.remove('active'));
+            }, { signal });
+        }
+
         // ── Sort All By Date ──
         const btnSortAllDate = document.getElementById('btn-sort-all-date');
         const sortAllDateLabel = document.getElementById('sort-all-date-label');
@@ -1379,6 +1450,8 @@ export class Dashboard {
             if (searchInput) searchInput.value = '';
             if (searchClearBtn) searchClearBtn.style.display = 'none';
             if (searchIndicator) searchIndicator.style.display = 'none';
+            // Clear search shortcut active states
+            document.querySelectorAll('.btn-search-shortcut.active').forEach(b => b.classList.remove('active'));
             cleared = true;
         }
 
