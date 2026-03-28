@@ -1107,12 +1107,12 @@ export class Dashboard {
                     btnStarFilter.classList.add('active');
                     starFilterIcon.style.color = '#f59e0b';
                     starFilterIcon.style.fontVariationSettings = "'FILL' 1";
-                    starFilterLabel.textContent = 'Showing Starred';
+                    starFilterLabel.textContent = 'Starred';
                 } else {
                     btnStarFilter.classList.remove('active');
                     starFilterIcon.style.color = '';
                     starFilterIcon.style.fontVariationSettings = '';
-                    starFilterLabel.textContent = 'Show Starred Only';
+                    starFilterLabel.textContent = 'Starred';
                 }
 
                 this.render();
@@ -1265,10 +1265,10 @@ export class Dashboard {
                     this.labels.every(l => this.bucketSortMode[l.id] === 'date');
                 if (allByDate) {
                     btnSortAllDate.classList.add('active');
-                    sortAllDateLabel.textContent = 'Sorted by Date';
+                    sortAllDateLabel.textContent = 'Sort Date';
                 } else {
                     btnSortAllDate.classList.remove('active');
-                    sortAllDateLabel.textContent = 'Sort All by Date';
+                    sortAllDateLabel.textContent = 'Sort Date';
                 }
             };
             updateSortAllUI();
@@ -1281,12 +1281,12 @@ export class Dashboard {
                     // Toggle off — reset all buckets to manual
                     this.labels.forEach(l => { this.bucketSortMode[l.id] = 'manual'; });
                     btnSortAllDate.classList.remove('active');
-                    sortAllDateLabel.textContent = 'Sort All by Date';
+                    sortAllDateLabel.textContent = 'Sort Date';
                 } else {
                     // Apply date sort to every bucket
                     this.labels.forEach(l => { this.bucketSortMode[l.id] = 'date'; });
                     btnSortAllDate.classList.add('active');
-                    sortAllDateLabel.textContent = 'Sorted by Date';
+                    sortAllDateLabel.textContent = 'Sort Date';
                 }
 
                 localStorage.setItem(`bucketSortMode_${this.boardId}`, JSON.stringify(this.bucketSortMode));
@@ -1466,7 +1466,7 @@ export class Dashboard {
                 starFilterIcon.style.color = '';
                 starFilterIcon.style.fontVariationSettings = '';
             }
-            if (starFilterLabel) starFilterLabel.textContent = 'Show Starred Only';
+            if (starFilterLabel) starFilterLabel.textContent = 'Starred';
             cleared = true;
         }
 
