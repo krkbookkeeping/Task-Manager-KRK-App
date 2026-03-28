@@ -99,6 +99,10 @@ export class Dashboard {
 
     render() {
         if (!this.gridEl) return;
+        // Reset zoom on mobile so cards render at full size
+        if (window.matchMedia('(max-width: 768px)').matches) {
+            this.gridEl.style.zoom = '';
+        }
         this.gridEl.innerHTML = '';
 
         let visibleLabels, parkedLabels;
