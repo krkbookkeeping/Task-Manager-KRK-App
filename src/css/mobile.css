@@ -184,8 +184,9 @@
         padding: 0 !important;
     }
 
-    /* ---- BUCKET GRID: scroll-snap carousel ---- */
+    /* ---- BUCKET GRID: reset zoom, scroll-snap carousel ---- */
     #main-board.bucket-grid {
+        zoom: 1 !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         overflow-x: auto !important;
@@ -250,54 +251,79 @@
         min-height: 36px;
     }
 
-    /* ---- TASK CARDS: much bigger for mobile ---- */
+    /* ---- BUCKET CARDS CONTAINER: more spacing ---- */
+    .bucket-cards {
+        padding: 8px 12px !important;
+        gap: 10px !important;
+    }
+
+    /* ---- TASK CARDS: large, mobile-readable ---- */
     .task-card {
-        padding: 14px 12px !important;
+        padding: 16px 14px !important;
         cursor: pointer !important;
         overflow: hidden !important;
+        border-radius: 10px !important;
     }
 
     .task-card-title-row {
-        gap: 8px !important;
+        gap: 10px !important;
         align-items: flex-start !important;
     }
 
-    .task-card-title {
-        font-size: 1rem !important;
-        font-weight: 500 !important;
-        line-height: 1.45 !important;
-        word-break: break-word;
+    .task-card-title,
+    .task-card-title-row .task-card-title {
+        font-size: 1.05rem !important;
+        font-weight: 600 !important;
+        line-height: 1.5 !important;
+        word-break: break-word !important;
+        overflow: visible !important;
+        white-space: normal !important;
+        text-overflow: unset !important;
     }
 
-    /* Keep action icons visible and compact */
+    /* Keep action icons visible and compact — never off-screen */
     .task-card-actions {
         flex-shrink: 0 !important;
-        gap: 0 !important;
+        gap: 2px !important;
     }
 
-    .task-card-actions .btn-icon {
-        min-width: 32px !important;
-        min-height: 32px !important;
+    .task-card-actions .btn-icon,
+    .task-card-actions .btn-star-card,
+    .task-card-actions .btn-park-card,
+    .task-card-actions .btn-complete-task {
+        min-width: 34px !important;
+        min-height: 34px !important;
+        width: 34px !important;
+        height: 34px !important;
         padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
 
-    .task-card-actions .btn-icon .material-symbols-outlined {
-        font-size: 18px !important;
+    .task-card-actions .material-symbols-outlined {
+        font-size: 20px !important;
     }
 
     .task-card-meta {
-        font-size: 0.82rem !important;
-        margin-top: 8px !important;
+        font-size: 0.88rem !important;
+        margin-top: 10px !important;
         flex-wrap: wrap !important;
+        gap: 6px !important;
     }
 
     .task-card-date-badge {
-        padding: 3px 8px !important;
-        font-size: 0.8rem !important;
+        padding: 4px 10px !important;
+        font-size: 0.85rem !important;
+    }
+
+    .task-card-date-badge .task-meta-icon {
+        font-size: 16px !important;
     }
 
     /* Date punch buttons: hide on mobile to save space */
-    .task-card .date-punches {
+    .task-card .date-punches,
+    .dashboard-punches {
         display: none !important;
     }
 

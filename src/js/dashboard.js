@@ -1296,11 +1296,16 @@ export class Dashboard {
 
 
         const zoomSlider = document.getElementById('zoom-slider');
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
         if (zoomSlider && this.gridEl) {
-            // Load saved zoom preference
+            // Load saved zoom preference — skip on mobile
             const savedZoom = localStorage.getItem('bucketGridZoom') || '1';
             zoomSlider.value = savedZoom;
-            this.gridEl.style.zoom = savedZoom;
+            if (!isMobile) {
+                this.gridEl.style.zoom = savedZoom;
+            } else {
+                this.gridEl.style.zoom = '';
+            }
 
             zoomSlider.addEventListener('input', (e) => {
                 const zoomVal = e.target.value;
