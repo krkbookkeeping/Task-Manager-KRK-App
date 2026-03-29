@@ -113,6 +113,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+// ── Mobile: Move parked-tasks-tray to body so overflow:hidden ancestors don't clip it ──
+(function () {
+    if (!window.matchMedia('(max-width: 768px)').matches) return;
+    document.addEventListener('DOMContentLoaded', function () {
+        var tray = document.getElementById('parked-tasks-tray');
+        if (tray) document.body.appendChild(tray);
+    });
+})();
+
 // ── Mobile: Escape closes calendar overlay ──
 document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {

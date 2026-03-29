@@ -326,10 +326,12 @@
         padding: 10px !important;
         gap: 10px !important;
         flex: 1 !important;
+        min-height: 0 !important;
         overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
     }
 
-    /* ---- TASK CARDS: large, mobile-readable ---- */
+    /* ---- TASK CARDS: large, mobile-readable, NEVER compress ---- */
     .task-card {
         padding: 16px 14px !important;
         cursor: pointer !important;
@@ -338,6 +340,8 @@
         border-width: 1.5px !important;
         width: 100% !important;
         max-width: 100% !important;
+        flex-shrink: 0 !important;
+        min-height: auto !important;
     }
 
     .task-card-title-row {
