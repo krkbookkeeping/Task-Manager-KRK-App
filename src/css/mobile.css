@@ -410,10 +410,32 @@
         font-size: 17px !important;
     }
 
-    /* Date punch buttons: hide on mobile */
+    /* ---- DATE PUNCH BUTTONS: mobile-friendly ---- */
     .date-punches,
     .dashboard-punches {
-        display: none !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+    }
+
+    .btn-date-punch {
+        min-height: 32px !important;
+        min-width: 36px !important;
+        padding: 4px 10px !important;
+        font-size: 0.8rem !important;
+        border-radius: 6px !important;
+    }
+
+    /* Dashboard card punches: compact row below date */
+    .dashboard-punches {
+        margin-top: 6px !important;
+    }
+
+    .dashboard-punches .btn-date-punch {
+        min-height: 28px !important;
+        min-width: 32px !important;
+        padding: 3px 8px !important;
+        font-size: 0.75rem !important;
     }
 
     /* Disable hover effects on mobile */
