@@ -354,9 +354,9 @@ export class TaskModal {
 
         // Modal toggles
         this.btnCancel.addEventListener('click', () => this.close());
-        this.btnClose.addEventListener('click', () => this.close());
+        this.btnClose.addEventListener('click', () => this.autoSaveAndClose());
         this.overlay.addEventListener('click', (e) => {
-            if (e.target === this.overlay) this.close();
+            if (e.target === this.overlay) this.autoSaveAndClose();
         });
 
         // Save, Print, Delete, Complete
@@ -681,6 +681,17 @@ export class TaskModal {
                 this.saveTask();
             });
         });
+    }
+
+    async autoSaveAndClose() {
+        const title = this.titleInput.value.trim();
+        if (title) {
+            // There's a title — save changes (existing task) or create (new task)
+            await this.saveTask();
+        } else {
+            // No title — just close without saving
+            this.close();
+        }
     }
 
     close() {
