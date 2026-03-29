@@ -58,13 +58,18 @@ function closeMobileCalendar() {
     if (col) col.classList.remove('mobile-visible');
 }
 
-// ── Mobile: FAB → trigger the topbar Create Task button ──
+// ── Mobile: FAB → open TaskModal directly (topbar button is hidden on mobile) ──
 document.addEventListener('DOMContentLoaded', function () {
     var fab = document.getElementById('mobile-fab');
     if (fab) {
         fab.addEventListener('click', function () {
-            var create = document.getElementById('btn-topbar-create-task');
-            if (create) create.click();
+            if (window.currentTaskModal) {
+                window.currentTaskModal.open();
+            } else {
+                // Fallback: trigger hidden topbar button
+                var create = document.getElementById('btn-topbar-create-task');
+                if (create) create.click();
+            }
         });
     }
 

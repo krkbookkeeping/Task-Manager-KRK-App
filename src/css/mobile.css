@@ -643,8 +643,29 @@
     .task-modal-main {
         min-width: unset !important;
         padding: var(--space-lg) var(--space-md);
+        padding-bottom: 80px !important;
         overflow: visible !important;
         flex-shrink: 0;
+    }
+
+    /* Footer: sticky at bottom of modal, always visible */
+    .task-modal-footer {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 12;
+        background: var(--bg-surface) !important;
+        border-top: 1px solid var(--border-primary) !important;
+        padding: 10px var(--space-md) !important;
+        padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+        gap: 10px !important;
+    }
+
+    .task-modal-footer .btn {
+        flex: 1 !important;
+        min-height: 44px !important;
+        font-size: 1rem !important;
     }
 
     .task-modal-sidebar {
