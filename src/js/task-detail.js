@@ -613,6 +613,9 @@ export class TaskModal {
             if (this.btnPark) this.btnPark.style.display = 'none';
             if (this.createdInfo) this.createdInfo.textContent = '';
             if (this.statusInfo) this.statusInfo.innerHTML = '';
+            this.relatedTaskIds = [];
+            this.relatedNoteIds = [];
+            this.comments = [];
             this.btnSave.textContent = 'Create Task';
             this.titleInput.value = '';
             this.descInput.innerHTML = '';
@@ -677,8 +680,10 @@ export class TaskModal {
                 punchBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
 
-                // Save all changes (title, description, date, etc.) and close
-                this.saveTask();
+                // For existing tasks: save immediately. For new tasks: just set the date (user clicks Save manually).
+                if (this.currentTaskId) {
+                    this.saveTask();
+                }
             });
         });
     }
@@ -855,6 +860,10 @@ export class TaskModal {
             if (this.currentTaskId) {
                 await taskService.update(this.uid, this.workspaceId, this.boardId, this.currentTaskId, data);
             } else {
+                // If no labels selected, auto-assign the first available label so the task appears in a bucket
+                if (data.labels.length === 0 && this.allLabels && this.allLabels.length > 0) {
+                    data.labels = [this.allLabels[0].id];
+                }
                 // Determine a primary label id if one exists, just for default ordering logic
                 const primaryLabelId = data.labels.length > 0 ? data.labels[0] : null;
                 const newTask = await taskService.create(this.uid, this.workspaceId, this.boardId, title, primaryLabelId);
