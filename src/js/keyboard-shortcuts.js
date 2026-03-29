@@ -11,19 +11,20 @@
  *   Alt+G  → GC workspace (main dashboard)
  *   Alt+Q  → Bar workspace (main dashboard)  [B is taken by Bookmarks]
  *   Alt+T  → Teg workspace (main dashboard)
- *   Alt+K  → KRK workspace (main dashboard)
+ *   Alt+K  → Cycle through workspaces starting with "K" (KRK, KK, etc.)
  *   Alt+F  → FCA workspace (main dashboard)
  *
  * Escape → Clears the starred-task filter if active (when not focused on an input)
  */
 
 // Maps Alt key letters to workspace name prefixes (lowercase, partial match).
+// Multiple workspaces can share the same first letter — Alt+key will cycle through them.
 const WORKSPACE_SHORTCUTS = {
     'd': 'dex',
     'g': 'gc',
     'q': 'bar',
     't': 'teg',
-    'k': 'krk',
+    'k': 'k',       // matches KRK, KK, and any workspace starting with "k"
     'f': 'fca',
 };
 
@@ -79,30 +80,50 @@ function goToMainDashboard() {
 }
 
 /**
- * Switch to a workspace whose name starts with the given prefix (case-insensitive),
- * then land on its main dashboard.
+ * Switch to a workspace whose name starts with the given prefix (case-insensitive).
+ * If multiple workspaces match, repeated presses cycle through them in order.
  */
 async function goToWorkspaceByPrefix(uid, prefix) {
     const workspaces = window.__workspaces || [];
-    const target = workspaces.find(ws =>
+    const matches = workspaces.filter(ws =>
         ws.name && ws.name.toLowerCase().startsWith(prefix)
     );
 
-    if (!target) {
+    if (matches.length === 0) {
         console.warn(`[Keyboard Shortcut] No workspace found with name starting with "${prefix}"`);
         return;
     }
 
     const currentWsId = window.__currentWorkspace?.workspaceId;
 
-    if (currentWsId === target.id) {
-        // Already on this workspace — just make sure we show the main dashboard
-        goToMainDashboard();
-    } else {
-        // switchWorkspace already resets to the boards tab at the end
-        if (typeof window.switchWorkspace === 'function') {
-            await window.switchWorkspace(uid, target.id);
+    if (matches.length === 1) {
+        // Only one match — switch to it or show main dashboard if already there
+        if (currentWsId === matches[0].id) {
+            goToMainDashboard();
+        } else if (typeof window.switchWorkspace === 'function') {
+            await window.switchWorkspace(uid, matches[0].id);
         }
+        return;
+    }
+
+    // Multiple matches — find current position and cycle to next
+    const currentIndex = matches.findIndex(ws => ws.id === currentWsId);
+    let nextIndex;
+
+    if (currentIndex === -1) {
+        // Not currently on any matching workspace — go to first
+        nextIndex = 0;
+    } else {
+        // Cycle to the next match (wrap around)
+        nextIndex = (currentIndex + 1) % matches.length;
+    }
+
+    const target = matches[nextIndex];
+    if (currentWsId === target.id) {
+        // Already here (shouldn't happen with length > 1, but just in case)
+        goToMainDashboard();
+    } else if (typeof window.switchWorkspace === 'function') {
+        await window.switchWorkspace(uid, target.id);
     }
 }
 
