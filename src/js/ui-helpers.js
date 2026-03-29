@@ -73,12 +73,28 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ── Mobile: Bucket dot navigation ──
-    var bucketGrid = document.getElementById('main-board');
+    // ── Mobile: Bucket dot navigation (tracks active view: tasks, bookmarks, or notes) ──
     var dotNav = document.getElementById('mobile-bucket-nav');
-    if (bucketGrid && dotNav) {
+    if (dotNav) {
+        var grids = {
+            tasks: document.getElementById('main-board'),
+            bookmarks: document.getElementById('bookmark-board'),
+            notes: document.getElementById('note-board')
+        };
+
+        function getActiveGrid() {
+            // Check which board container is active
+            var bmContainer = document.getElementById('bookmark-board-container');
+            if (bmContainer && bmContainer.classList.contains('active')) return grids.bookmarks;
+            var noteContainer = document.getElementById('note-board-container');
+            if (noteContainer && noteContainer.classList.contains('active')) return grids.notes;
+            return grids.tasks;
+        }
+
         function buildDots() {
-            var buckets = bucketGrid.querySelectorAll(':scope > .bucket, :scope > .bucket-empty');
+            var activeGrid = getActiveGrid();
+            if (!activeGrid) return;
+            var buckets = activeGrid.querySelectorAll(':scope > .bucket, :scope > .bucket-empty');
             dotNav.innerHTML = '';
             buckets.forEach(function (bucket, i) {
                 var dot = document.createElement('button');
@@ -93,26 +109,41 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         function updateActiveDot() {
+            var activeGrid = getActiveGrid();
+            if (!activeGrid) return;
             var dots = dotNav.querySelectorAll('.mobile-bucket-dot');
             if (!dots.length) return;
-            var scrollLeft = bucketGrid.scrollLeft;
-            var width = bucketGrid.offsetWidth;
+            var scrollLeft = activeGrid.scrollLeft;
+            var width = activeGrid.offsetWidth;
             var index = Math.round(scrollLeft / width);
             dots.forEach(function (d, i) {
                 d.classList.toggle('active', i === index);
             });
         }
 
-        // Rebuild dots when buckets change
-        var observer = new MutationObserver(buildDots);
-        observer.observe(bucketGrid, { childList: true });
+        // Observe all grids for bucket changes
+        Object.values(grids).forEach(function (grid) {
+            if (!grid) return;
+            var observer = new MutationObserver(buildDots);
+            observer.observe(grid, { childList: true });
 
-        // Update active dot on scroll
-        var scrollTimer;
-        bucketGrid.addEventListener('scroll', function () {
-            clearTimeout(scrollTimer);
-            scrollTimer = setTimeout(updateActiveDot, 50);
-        }, { passive: true });
+            var scrollTimer;
+            grid.addEventListener('scroll', function () {
+                clearTimeout(scrollTimer);
+                scrollTimer = setTimeout(updateActiveDot, 50);
+            }, { passive: true });
+        });
+
+        // Also rebuild dots when the active view changes (observe board containers for class changes)
+        ['main-board-container', 'bookmark-board-container', 'note-board-container'].forEach(function (id) {
+            var container = document.getElementById(id);
+            if (container) {
+                var viewObserver = new MutationObserver(function () {
+                    setTimeout(buildDots, 100);
+                });
+                viewObserver.observe(container, { attributes: true, attributeFilter: ['class'] });
+            }
+        });
 
         buildDots();
     }

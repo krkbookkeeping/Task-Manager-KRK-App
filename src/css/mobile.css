@@ -225,8 +225,8 @@
         flex-shrink: 0;
     }
 
-    /* ---- BOARD CONTAINER: flex column for grid + dots ---- */
-    #main-board-container {
+    /* ---- BOARD CONTAINERS: only style when active (JS toggles .active) ---- */
+    .board-container.active {
         flex: 1 !important;
         display: flex !important;
         flex-direction: column !important;
@@ -236,7 +236,14 @@
         max-width: 100vw !important;
     }
 
-    #dashboard-container {
+    /* Hide inactive board containers (never force display on by ID) */
+    .board-container:not(.active) {
+        display: none !important;
+    }
+
+    #dashboard-container,
+    #bookmark-dashboard-container,
+    #note-dashboard-container {
         flex: 1 !important;
         display: flex !important;
         flex-direction: column !important;
@@ -247,8 +254,21 @@
         max-width: 100vw !important;
     }
 
-    /* ---- BUCKET GRID: scroll-snap carousel ---- */
-    #main-board.bucket-grid {
+    /* Bookmark & Note page headers: compact on mobile */
+    #bookmark-board-container > div:first-child,
+    #note-board-container > div:first-child {
+        padding: 8px var(--space-md) !important;
+    }
+
+    #bookmark-board-container > div:first-child h2,
+    #note-board-container > div:first-child h2 {
+        font-size: 1.1rem !important;
+    }
+
+    /* ---- BUCKET GRID: scroll-snap carousel (tasks, bookmarks, notes) ---- */
+    #main-board.bucket-grid,
+    #bookmark-board.bucket-grid,
+    #note-board.bucket-grid {
         zoom: 1 !important;
         display: flex !important;
         flex-direction: row !important;
@@ -266,13 +286,15 @@
         max-width: 100vw !important;
     }
 
-    #main-board.bucket-grid::-webkit-scrollbar {
+    #main-board.bucket-grid::-webkit-scrollbar,
+    #bookmark-board.bucket-grid::-webkit-scrollbar,
+    #note-board.bucket-grid::-webkit-scrollbar {
         display: none;
     }
 
-    /* Each bucket = full width, scrolls vertically */
-    #main-board.bucket-grid > .bucket,
-    #main-board.bucket-grid > .bucket-empty {
+    /* Each bucket = full width, scrolls vertically (tasks, bookmarks, notes) */
+    .bucket-grid > .bucket,
+    .bucket-grid > .bucket-empty {
         flex: 0 0 100% !important;
         min-width: 100% !important;
         max-width: 100% !important;
@@ -729,10 +751,50 @@
         min-height: 44px !important;
     }
 
-    /* ---- MODALS: near full-width ---- */
-    #move-add-modal .modal,
+    /* ---- BOOKMARK & NOTE MODALS: full-screen on mobile ---- */
     #bookmark-modal-overlay .modal,
-    #note-modal-overlay .modal,
+    #note-modal-overlay .modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 100vh !important;
+        height: 100vh;
+        border-radius: 0 !important;
+        border: none !important;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    #bookmark-modal-overlay .modal-body,
+    #note-modal-overlay .modal-body {
+        flex: 1;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 80px !important;
+    }
+
+    #bookmark-modal-overlay .modal-footer,
+    #note-modal-overlay .modal-footer {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 12;
+        background: var(--bg-surface) !important;
+        border-top: 1px solid var(--border-primary) !important;
+        padding: 10px var(--space-md) !important;
+        padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    }
+
+    #bookmark-modal-overlay .modal-footer .btn,
+    #note-modal-overlay .modal-footer .btn {
+        flex: 1 !important;
+        min-height: 44px !important;
+        font-size: 1rem !important;
+    }
+
+    /* ---- OTHER MODALS: near full-width ---- */
+    #move-add-modal .modal,
     #bookmark-move-modal .modal,
     #note-move-modal .modal,
     #settings-modal .modal {
