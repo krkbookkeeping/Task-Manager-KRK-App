@@ -595,6 +595,7 @@
         padding: 8px var(--space-md);
         min-height: 48px;
         flex-shrink: 0;
+        flex-wrap: wrap !important;
     }
 
     /* Hide breadcrumb text, keep icon */
@@ -602,9 +603,19 @@
         display: none;
     }
 
-    /* Hide created/status info to save header space */
+    /* Show created/status info as a wrapped row below breadcrumbs */
     .task-modal-header > div:nth-child(2) {
-        display: none !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 4px 8px !important;
+        width: 100% !important;
+        order: 10;
+    }
+
+    #task-modal-created-info,
+    #task-modal-status-info {
+        font-size: 0.72rem !important;
+        white-space: nowrap;
     }
 
     /* Touch-sized action buttons */
