@@ -113,12 +113,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-// ── Mobile: Move parked-tasks-tray to body so overflow:hidden ancestors don't clip it ──
+// ── Mobile: Move parked-tasks-tray and bucket-nav to body so overflow:hidden ancestors don't clip them ──
 (function () {
     if (!window.matchMedia('(max-width: 768px)').matches) return;
     document.addEventListener('DOMContentLoaded', function () {
         var tray = document.getElementById('parked-tasks-tray');
         if (tray) document.body.appendChild(tray);
+        var dotNav = document.getElementById('mobile-bucket-nav');
+        if (dotNav) document.body.appendChild(dotNav);
     });
 })();
 

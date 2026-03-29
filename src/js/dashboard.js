@@ -1709,11 +1709,13 @@ export class Dashboard {
         if (parkedTasks.length === 0) {
             tray.style.display = 'none';
             if (mainEl) mainEl.classList.remove('has-parked-tray');
+            document.body.classList.remove('has-parked-tray');
             return;
         }
 
         tray.style.display = 'flex';
         if (mainEl) mainEl.classList.add('has-parked-tray');
+        document.body.classList.add('has-parked-tray');
         if (countEl) countEl.textContent = parkedTasks.length;
 
         list.innerHTML = '';

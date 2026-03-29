@@ -428,9 +428,14 @@
         box-shadow: none !important;
     }
 
-    /* ---- BUCKET NAV DOTS (centered, visible) ---- */
+    /* ---- BUCKET NAV DOTS (fixed at bottom) ---- */
     #mobile-bucket-nav {
         display: flex;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 56;
         background: var(--bg-surface);
         border-top: 1px solid var(--border-primary);
         padding: 10px var(--space-md);
@@ -440,7 +445,11 @@
         overflow-x: auto;
         scrollbar-width: none;
         min-height: 40px;
-        flex-shrink: 0;
+    }
+
+    /* When parked tray is visible, shift dots above it */
+    body.has-parked-tray #mobile-bucket-nav {
+        bottom: 52px !important;
     }
 
     #mobile-bucket-nav::-webkit-scrollbar {
@@ -470,7 +479,7 @@
     #mobile-fab {
         display: flex !important;
         position: fixed;
-        bottom: 24px;
+        bottom: 50px;
         right: 16px;
         width: 56px;
         height: 56px;
@@ -486,8 +495,8 @@
     }
 
     /* Shift FAB up when parked tray is visible */
-    main.has-parked-tray #mobile-fab {
-        bottom: 76px;
+    body.has-parked-tray #mobile-fab {
+        bottom: 100px;
     }
 
     /* ---- PARKED TASKS TRAY (fixed bottom bar) ---- */
@@ -611,6 +620,7 @@
         min-height: unset !important;
         border-left: none !important;
         border-top: 1px solid var(--border-light);
+        padding-bottom: 120px !important;
     }
 
     .comments-list-scroll {
@@ -620,6 +630,25 @@
 
     .task-title-input {
         font-size: 1.3rem;
+    }
+
+    /* ---- COMMENT INLINE EDIT: touch-friendly save/cancel ---- */
+    .comment-inline-actions {
+        display: flex !important;
+        gap: 10px !important;
+        padding: 10px 0 !important;
+    }
+
+    .comment-inline-actions .btn {
+        min-height: 44px !important;
+        min-width: 80px !important;
+        font-size: 1rem !important;
+    }
+
+    .comment-inline-editor {
+        min-height: 100px !important;
+        font-size: 1rem !important;
+        padding: 10px !important;
     }
 
     /* ---- SIDEBAR ---- */

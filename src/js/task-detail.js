@@ -633,7 +633,10 @@ export class TaskModal {
 
         this.renderSelectedLabels();
         this.overlay.classList.add('active');
-        this.titleInput.focus();
+        // Only auto-focus title on desktop; on mobile it opens the keyboard
+        if (!window.matchMedia('(max-width: 768px)').matches) {
+            this.titleInput.focus();
+        }
 
         // Clear comment editor and render existing comments
         this.commentEditor.innerHTML = '';
@@ -1156,6 +1159,14 @@ export class TaskModal {
 
         const inlineEditor = contentDiv.querySelector('.comment-inline-editor');
         inlineEditor.focus();
+
+        // Scroll save button into view (helps on mobile where keyboard covers it)
+        const saveBtn = contentDiv.querySelector('.inline-save-btn');
+        if (saveBtn) {
+            setTimeout(function () {
+                saveBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 300);
+        }
 
         // Inline Bold
         contentDiv.querySelector('.inline-bold-btn').addEventListener('mousedown', (e) => {
