@@ -264,6 +264,10 @@ function updateWorkspaceTrigger() {
         const pageTitleEl = document.getElementById('workspace-page-title');
         if (pageTitleEl) pageTitleEl.textContent = activeWs.name;
 
+        // Update mobile workspace name bar
+        const mobileWsName = document.getElementById('mobile-workspace-name');
+        if (mobileWsName) mobileWsName.textContent = activeWs.name;
+
         const nameTargets = ['workspace-name-bookmarks', 'workspace-name-notes'];
         nameTargets.forEach(id => {
             const el = document.getElementById(id);
