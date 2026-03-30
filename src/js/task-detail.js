@@ -379,7 +379,15 @@ export class TaskModal {
                     try {
                         this.btnComplete.disabled = true;
                         this.btnComplete.textContent = 'Completing...';
+                        // Save all unsaved form changes alongside the completion flags
                         await taskService.update(this.uid, this.workspaceId, this.boardId, this.currentTaskId, {
+                            title: this.titleInput.value.trim(),
+                            description: this.descInput.innerHTML.trim(),
+                            dueDate: this.dateInput.value ? new Date(this.dateInput.value).toISOString() : null,
+                            labels: Array.from(this.selectedLabelIds),
+                            relatedTasks: this.relatedTaskIds,
+                            relatedNotes: this.relatedNoteIds,
+                            starred: this.starred,
                             completed: true,
                             completedAt: new Date().toISOString(),
                             restoredAt: null
