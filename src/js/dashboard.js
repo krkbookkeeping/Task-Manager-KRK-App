@@ -549,7 +549,7 @@ export class Dashboard {
                 colorInput.style.pointerEvents = 'auto';
                 colorInput.click();
 
-                colorInput.addEventListener('input', async (ev) => {
+                colorInput.addEventListener('change', async (ev) => {
                     const newColor = ev.target.value;
                     try {
                         await labelService.update(this.uid, this.workspaceId, labelId, { color: newColor });

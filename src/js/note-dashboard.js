@@ -345,7 +345,7 @@ export class NoteDashboard {
                 colorInput.style.pointerEvents = 'auto';
                 colorInput.click();
 
-                colorInput.addEventListener('input', async (ev) => {
+                colorInput.addEventListener('change', async (ev) => {
                     try {
                         await noteLabelService.update(this.uid, this.workspaceId, labelId, { color: ev.target.value });
                     } catch (err) {
