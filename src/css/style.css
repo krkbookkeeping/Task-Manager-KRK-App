@@ -1291,13 +1291,27 @@ textarea.input {
     transition: all var(--transition-fast);
 }
 
-#btn-clear-search {
+#btn-clear-search,
+#btn-clear-bookmark-search,
+#btn-clear-note-search {
     position: absolute;
     right: 8px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-muted);
     padding: 4px;
+}
+
+#bookmark-search,
+#note-search {
+    width: 100%;
+    padding: var(--space-sm) 36px var(--space-sm) 44px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-full);
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+    transition: all var(--transition-fast);
 }
 
 #btn-clear-search:hover {
