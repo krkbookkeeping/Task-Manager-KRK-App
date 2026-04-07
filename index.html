@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="./src/css/modal.css?v=2">
     <link rel="stylesheet" href="./src/css/task-detail.css?v=2">
     <link rel="stylesheet" href="./src/css/calendar.css?v=4">
-    <link rel="stylesheet" href="./src/css/mobile.css?v=12">
+    <link rel="stylesheet" href="./src/css/mobile.css?v=13">
 
     <!-- Import Map: lets the browser resolve bare Firebase specifiers without a bundler -->
     <script type="importmap">
@@ -215,10 +215,18 @@
                     style="display: none; gap: var(--space-md); align-items: center; flex: 1; justify-content: flex-end; min-width: 0;">
 
                     <!-- Bookmark search -->
-                    <div class="search-container" style="max-width: 220px; flex-shrink: 0;">
+                    <div class="search-container" style="flex: 0 1 300px; min-width: 180px;">
                         <span class="material-symbols-outlined search-icon">search</span>
-                        <input type="text" id="bookmark-search" placeholder="Search bookmarks..." autocomplete="off"
-                            class="form-input form-input-sm" style="padding-left: 32px; width: 100%;">
+                        <input type="text" id="bookmark-search" placeholder="Search bookmarks..." autocomplete="off">
+                        <button class="btn-icon" id="btn-clear-bookmark-search" style="display: none;" title="Clear Search (Esc)">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
+                        </button>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+                        <label style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; user-select: none;">
+                            <input type="checkbox" id="bookmark-search-include-archived" style="accent-color: var(--text-muted); cursor: pointer;">
+                            Archived
+                        </label>
                     </div>
 
                     <!-- Parked bookmark label chips -->
@@ -288,10 +296,18 @@
                     style="display: none; gap: var(--space-md); align-items: center; flex: 1; justify-content: flex-end; min-width: 0;">
 
                     <!-- Note search -->
-                    <div class="search-container" style="max-width: 220px; flex-shrink: 0;">
+                    <div class="search-container" style="flex: 0 1 300px; min-width: 180px;">
                         <span class="material-symbols-outlined search-icon">search</span>
-                        <input type="text" id="note-search" placeholder="Search notes..." autocomplete="off"
-                            class="form-input form-input-sm" style="padding-left: 32px; width: 100%;">
+                        <input type="text" id="note-search" placeholder="Search notes..." autocomplete="off">
+                        <button class="btn-icon" id="btn-clear-note-search" style="display: none;" title="Clear Search (Esc)">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
+                        </button>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+                        <label style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; user-select: none;">
+                            <input type="checkbox" id="note-search-include-archived" style="accent-color: var(--text-muted); cursor: pointer;">
+                            Archived
+                        </label>
                     </div>
 
                     <!-- Parked note label chips -->
@@ -539,6 +555,11 @@
                     <!-- BOOKMARKS DASHBOARD -->
                     <div id="bookmark-board-container" class="board-container"
                         style="flex: 1; display: none; flex-direction: column; min-height: 0;">
+                        <!-- Bookmark Search Indicator -->
+                        <div id="bookmark-search-indicator" style="display: none; align-items: center; justify-content: center; background: var(--warning-subtle); color: var(--warning); padding: 8px 16px; font-weight: 500; font-size: 0.85rem; border-bottom: 1px solid var(--border-light);">
+                            <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 6px;">search</span>
+                            <span id="bookmark-search-indicator-text">Filtered by search: ''</span>
+                        </div>
                         <!-- Bookmark Page Header -->
                         <div style="padding: 0 var(--space-3xl) 0 var(--space-3xl);">
                             <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
@@ -569,6 +590,11 @@
                     <!-- NOTES DASHBOARD -->
                     <div id="note-board-container" class="board-container"
                         style="flex: 1; display: none; flex-direction: column; min-height: 0;">
+                        <!-- Note Search Indicator -->
+                        <div id="note-search-indicator" style="display: none; align-items: center; justify-content: center; background: var(--warning-subtle); color: var(--warning); padding: 8px 16px; font-weight: 500; font-size: 0.85rem; border-bottom: 1px solid var(--border-light);">
+                            <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 6px;">search</span>
+                            <span id="note-search-indicator-text">Filtered by search: ''</span>
+                        </div>
                         <!-- Note Page Header -->
                         <div style="padding: 0 var(--space-3xl) 0 var(--space-3xl);">
                             <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
@@ -644,6 +670,9 @@
             <div class="modal-header">
                 <h2 class="modal-title" id="bookmark-modal-title-text">Edit Bookmark</h2>
                 <div style="display: flex; gap: 4px;">
+                    <button class="btn-icon" id="btn-bookmark-archive" data-tooltip="Archive" style="display: none;">
+                        <span class="material-symbols-outlined" style="color: var(--text-muted);">inventory_2</span>
+                    </button>
                     <button class="btn-icon" id="btn-bookmark-delete" data-tooltip="Delete">
                         <span class="material-symbols-outlined" style="color: var(--danger);">delete</span>
                     </button>
@@ -740,6 +769,9 @@
                 <div style="display: flex; gap: 4px; align-items: center;">
                     <span id="note-modal-created-info"
                         style="font-size: 0.75rem; color: var(--text-muted); margin-right: 8px;"></span>
+                    <button class="btn-icon" id="btn-note-archive" data-tooltip="Archive" style="display: none;">
+                        <span class="material-symbols-outlined" style="color: var(--text-muted);">inventory_2</span>
+                    </button>
                     <button class="btn-icon" id="btn-note-delete" data-tooltip="Delete" style="display: none;">
                         <span class="material-symbols-outlined" style="color: var(--danger);">delete</span>
                     </button>

@@ -18,8 +18,11 @@ export class BookmarkDashboard {
             this.bucketSortMode = {};
         }
 
+        this.searchIncludeArchived = false;
+        this.searchArchivedBookmarks = [];
         this.unsubLabels = null;
         this.unsubBookmarks = null;
+        this.unsubSearchArchived = null;
 
         this.gridEl = document.getElementById('bookmark-board');
 
@@ -50,13 +53,23 @@ export class BookmarkDashboard {
     destroy() {
         if (this.unsubLabels) this.unsubLabels();
         if (this.unsubBookmarks) this.unsubBookmarks();
-        // Clean up all event listeners
+        if (this.unsubSearchArchived) this.unsubSearchArchived();
         if (this._abortController) this._abortController.abort();
     }
 
     render() {
         if (!this.gridEl) return;
         this.gridEl.innerHTML = '';
+
+        // Update search indicator
+        const indicator = document.getElementById('bookmark-search-indicator');
+        const indicatorText = document.getElementById('bookmark-search-indicator-text');
+        if (indicator) {
+            indicator.style.display = this.searchQuery ? 'flex' : 'none';
+            if (indicatorText && this.searchQuery) {
+                indicatorText.textContent = `Filtered by search: '${this.searchQuery}'`;
+            }
+        }
 
         const visibleLabels = this.labels.filter(l => !l.isParked);
         const parkedLabels = this.labels.filter(l => l.isParked)
@@ -94,7 +107,8 @@ export class BookmarkDashboard {
         }
 
         visibleLabels.forEach((label) => {
-            let bucketBookmarks = this.bookmarks.filter(b => b.labels && b.labels.includes(label.id));
+            const allSearchable = [...this.bookmarks, ...(this.searchQuery && this.searchIncludeArchived ? this.searchArchivedBookmarks : [])];
+            let bucketBookmarks = allSearchable.filter(b => b.labels && b.labels.includes(label.id));
 
             // Apply search filter
             if (this.searchQuery) {
@@ -225,7 +239,7 @@ export class BookmarkDashboard {
         // Click bookmark card body → open URL
         const cardBodies = this.gridEl.querySelectorAll('.bookmark-card-body');
         cardBodies.forEach(body => {
-            body.addEventListener('click', (e) => {
+            body.addEventListener('click', () => {
                 const url = body.getAttribute('data-url');
                 if (url) {
                     window.open(url, '_blank');
@@ -626,13 +640,20 @@ export class BookmarkDashboard {
 
         // Search
         const searchInput = document.getElementById('bookmark-search');
+        const searchClearBtn = document.getElementById('btn-clear-bookmark-search');
         let searchDebounce = null;
+
+        const updateBookmarkSearchUI = () => {
+            if (searchClearBtn) searchClearBtn.style.display = this.searchQuery ? 'block' : 'none';
+            this.render();
+        };
+
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 clearTimeout(searchDebounce);
                 searchDebounce = setTimeout(() => {
                     this.searchQuery = e.target.value.trim();
-                    this.render();
+                    updateBookmarkSearchUI();
                 }, 300);
             }, { signal });
 
@@ -640,7 +661,36 @@ export class BookmarkDashboard {
                 if (e.key === 'Escape') {
                     this.searchQuery = '';
                     searchInput.value = '';
-                    this.render();
+                    updateBookmarkSearchUI();
+                }
+            }, { signal });
+        }
+
+        if (searchClearBtn) {
+            searchClearBtn.addEventListener('click', () => {
+                this.searchQuery = '';
+                if (searchInput) searchInput.value = '';
+                updateBookmarkSearchUI();
+            }, { signal });
+        }
+
+        // Archive search checkbox
+        const chkArchived = document.getElementById('bookmark-search-include-archived');
+        if (chkArchived) {
+            chkArchived.checked = this.searchIncludeArchived;
+            chkArchived.addEventListener('change', () => {
+                this.searchIncludeArchived = chkArchived.checked;
+                if (this.searchIncludeArchived) {
+                    if (this.unsubSearchArchived) this.unsubSearchArchived();
+                    this.unsubSearchArchived = bookmarkService.subscribeArchived(this.uid, this.workspaceId, (bookmarks) => {
+                        this.searchArchivedBookmarks = bookmarks;
+                        if (this.searchQuery) this.render();
+                    });
+                } else {
+                    if (this.unsubSearchArchived) this.unsubSearchArchived();
+                    this.unsubSearchArchived = null;
+                    this.searchArchivedBookmarks = [];
+                    if (this.searchQuery) this.render();
                 }
             }, { signal });
         }

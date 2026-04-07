@@ -20,6 +20,7 @@ export class NoteModal {
         this.btnCancel = document.getElementById('btn-note-cancel');
         this.btnClose = document.getElementById('btn-note-close');
         this.btnDelete = document.getElementById('btn-note-delete');
+        this.btnArchive = document.getElementById('btn-note-archive');
 
         // Label Multi-Select Elements
         this.labelTrigger = document.getElementById('note-label-trigger');
@@ -103,6 +104,7 @@ export class NoteModal {
         this.btnClose.addEventListener('click', () => this.close());
         this.btnSave.addEventListener('click', () => this.save());
         this.btnDelete.addEventListener('click', () => this.deleteNote());
+        if (this.btnArchive) this.btnArchive.addEventListener('click', () => this.archiveNote());
 
         // Sync name input to title
         this.nameInput.addEventListener('input', () => {
@@ -245,6 +247,7 @@ export class NoteModal {
 
         if (noteId) {
             this.btnDelete.style.display = 'flex';
+            if (this.btnArchive) this.btnArchive.style.display = 'flex';
             this.btnSave.textContent = 'Save Changes';
             await this.populateNoteData(noteId);
             // Title shows the note name
@@ -252,6 +255,7 @@ export class NoteModal {
         } else {
             this.titleText.textContent = 'New Note';
             this.btnDelete.style.display = 'none';
+            if (this.btnArchive) this.btnArchive.style.display = 'none';
             this.btnSave.textContent = 'Create Note';
             this.nameInput.value = '';
             this.createdInfo.textContent = '';
@@ -302,6 +306,16 @@ export class NoteModal {
                     )}`;
                 }
                 this.renderSelectedLabels();
+                // If archived, swap archive button to "Restore"
+                if (this.btnArchive) {
+                    if (note.isArchived) {
+                        this.btnArchive.setAttribute('data-tooltip', 'Restore from Archive');
+                        this.btnArchive.querySelector('.material-symbols-outlined').textContent = 'unarchive';
+                    } else {
+                        this.btnArchive.setAttribute('data-tooltip', 'Archive');
+                        this.btnArchive.querySelector('.material-symbols-outlined').textContent = 'inventory_2';
+                    }
+                }
             }
         } catch (err) {
             console.error("Failed to load note data:", err);
@@ -366,6 +380,18 @@ export class NoteModal {
         } catch (err) {
             console.error("Failed to delete note:", err);
             alert("Failed to delete note.");
+        }
+    }
+
+    async archiveNote() {
+        if (!this.currentNoteId) return;
+        const isRestoring = this.btnArchive && this.btnArchive.querySelector('.material-symbols-outlined').textContent === 'unarchive';
+        try {
+            await noteService.update(this.uid, this.workspaceId, this.currentNoteId, { isArchived: !isRestoring });
+            this.close();
+        } catch (err) {
+            console.error("Failed to archive/restore note:", err);
+            alert("Failed to archive/restore note.");
         }
     }
 

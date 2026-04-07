@@ -18,8 +18,11 @@ export class NoteDashboard {
             this.bucketSortMode = {};
         }
 
+        this.searchIncludeArchived = false;
+        this.searchArchivedNotes = [];
         this.unsubLabels = null;
         this.unsubNotes = null;
+        this.unsubSearchArchived = null;
 
         this.gridEl = document.getElementById('note-board');
 
@@ -50,12 +53,23 @@ export class NoteDashboard {
     destroy() {
         if (this.unsubLabels) this.unsubLabels();
         if (this.unsubNotes) this.unsubNotes();
+        if (this.unsubSearchArchived) this.unsubSearchArchived();
         if (this._abortController) this._abortController.abort();
     }
 
     render() {
         if (!this.gridEl) return;
         this.gridEl.innerHTML = '';
+
+        // Update search indicator
+        const indicator = document.getElementById('note-search-indicator');
+        const indicatorText = document.getElementById('note-search-indicator-text');
+        if (indicator) {
+            indicator.style.display = this.searchQuery ? 'flex' : 'none';
+            if (indicatorText && this.searchQuery) {
+                indicatorText.textContent = `Filtered by search: '${this.searchQuery}'`;
+            }
+        }
 
         const visibleLabels = this.labels.filter(l => !l.isParked);
         const parkedLabels = this.labels.filter(l => l.isParked)
@@ -98,14 +112,14 @@ export class NoteDashboard {
         }
 
         visibleLabels.forEach((label) => {
-            let bucketNotes = this.notes.filter(n => n.labels && n.labels.includes(label.id));
+            const allSearchable = [...this.notes, ...(this.searchQuery && this.searchIncludeArchived ? this.searchArchivedNotes : [])];
+            let bucketNotes = allSearchable.filter(n => n.labels && n.labels.includes(label.id));
 
             // Apply search filter
             if (this.searchQuery) {
                 const q = this.searchQuery.toLowerCase();
                 bucketNotes = bucketNotes.filter(n => {
                     if (n.name && n.name.toLowerCase().includes(q)) return true;
-                    // Search in comments
                     if (n.comments && n.comments.length > 0) {
                         return n.comments.some(c => c.content && c.content.toLowerCase().includes(q));
                     }
@@ -656,13 +670,20 @@ export class NoteDashboard {
 
         // Search
         const searchInput = document.getElementById('note-search');
+        const searchClearBtn = document.getElementById('btn-clear-note-search');
         let searchDebounce = null;
+
+        const updateNoteSearchUI = () => {
+            if (searchClearBtn) searchClearBtn.style.display = this.searchQuery ? 'block' : 'none';
+            this.render();
+        };
+
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 clearTimeout(searchDebounce);
                 searchDebounce = setTimeout(() => {
                     this.searchQuery = e.target.value.trim();
-                    this.render();
+                    updateNoteSearchUI();
                 }, 300);
             }, { signal });
 
@@ -670,7 +691,36 @@ export class NoteDashboard {
                 if (e.key === 'Escape') {
                     this.searchQuery = '';
                     searchInput.value = '';
-                    this.render();
+                    updateNoteSearchUI();
+                }
+            }, { signal });
+        }
+
+        if (searchClearBtn) {
+            searchClearBtn.addEventListener('click', () => {
+                this.searchQuery = '';
+                if (searchInput) searchInput.value = '';
+                updateNoteSearchUI();
+            }, { signal });
+        }
+
+        // Archive search checkbox
+        const chkArchived = document.getElementById('note-search-include-archived');
+        if (chkArchived) {
+            chkArchived.checked = this.searchIncludeArchived;
+            chkArchived.addEventListener('change', () => {
+                this.searchIncludeArchived = chkArchived.checked;
+                if (this.searchIncludeArchived) {
+                    if (this.unsubSearchArchived) this.unsubSearchArchived();
+                    this.unsubSearchArchived = noteService.subscribeArchived(this.uid, this.workspaceId, (notes) => {
+                        this.searchArchivedNotes = notes;
+                        if (this.searchQuery) this.render();
+                    });
+                } else {
+                    if (this.unsubSearchArchived) this.unsubSearchArchived();
+                    this.unsubSearchArchived = null;
+                    this.searchArchivedNotes = [];
+                    if (this.searchQuery) this.render();
                 }
             }, { signal });
         }

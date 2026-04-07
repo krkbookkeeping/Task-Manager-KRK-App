@@ -26,6 +26,7 @@ export const bookmarkService = {
             notes: '',
             labels: labelId ? [labelId] : [],
             order: {},
+            isArchived: false,
             createdAt: serverTimestamp()
         };
 
@@ -70,8 +71,16 @@ export const bookmarkService = {
     subscribe(uid, wid, callback) {
         const q = query(this.getCollectionRef(uid, wid));
         return onSnapshot(q, (snapshot) => {
-            const bookmarks = snapshot.docs.map(doc => doc.data());
+            const bookmarks = snapshot.docs.map(doc => doc.data()).filter(b => !b.isArchived);
             callback(bookmarks);
+        });
+    },
+
+    subscribeArchived(uid, wid, callback) {
+        const q = query(this.getCollectionRef(uid, wid));
+        return onSnapshot(q, (snapshot) => {
+            const archived = snapshot.docs.map(doc => doc.data()).filter(b => b.isArchived === true);
+            callback(archived);
         });
     }
 };

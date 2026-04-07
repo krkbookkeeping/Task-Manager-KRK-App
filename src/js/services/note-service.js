@@ -30,6 +30,7 @@ export const noteService = {
             labels: labelId ? [labelId] : [],
             order: {},
             comments: [],
+            isArchived: false,
             createdAt: serverTimestamp()
         };
 
@@ -74,8 +75,16 @@ export const noteService = {
     subscribe(uid, wid, callback) {
         const q = query(this.getCollectionRef(uid, wid));
         return onSnapshot(q, (snapshot) => {
-            const notes = snapshot.docs.map(doc => doc.data());
+            const notes = snapshot.docs.map(doc => doc.data()).filter(n => !n.isArchived);
             callback(notes);
+        });
+    },
+
+    subscribeArchived(uid, wid, callback) {
+        const q = query(this.getCollectionRef(uid, wid));
+        return onSnapshot(q, (snapshot) => {
+            const archived = snapshot.docs.map(doc => doc.data()).filter(n => n.isArchived === true);
+            callback(archived);
         });
     }
 };

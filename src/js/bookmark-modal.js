@@ -18,6 +18,7 @@ export class BookmarkModal {
         this.btnCancel = document.getElementById('btn-bookmark-cancel');
         this.btnClose = document.getElementById('btn-bookmark-close');
         this.btnDelete = document.getElementById('btn-bookmark-delete');
+        this.btnArchive = document.getElementById('btn-bookmark-archive');
 
         // Label Multi-Select Elements
         this.labelTrigger = document.getElementById('bookmark-label-trigger');
@@ -70,6 +71,7 @@ export class BookmarkModal {
 
         this.btnSave.addEventListener('click', () => this.save());
         this.btnDelete.addEventListener('click', () => this.deleteBookmark());
+        if (this.btnArchive) this.btnArchive.addEventListener('click', () => this.archiveBookmark());
 
         // Sync name input to title
         this.nameInput.addEventListener('input', () => {
@@ -128,11 +130,13 @@ export class BookmarkModal {
         if (bookmarkId) {
             this.titleText.textContent = 'Loading...';
             this.btnDelete.style.display = 'flex';
+            if (this.btnArchive) this.btnArchive.style.display = 'flex';
             this.btnSave.textContent = 'Save Changes';
             this.populateBookmarkData(bookmarkId);
         } else {
             this.titleText.textContent = 'New Bookmark';
             this.btnDelete.style.display = 'none';
+            if (this.btnArchive) this.btnArchive.style.display = 'none';
             this.btnSave.textContent = 'Create Bookmark';
             this.nameInput.value = '';
             this.urlInput.value = '';
@@ -167,6 +171,16 @@ export class BookmarkModal {
                     bm.labels.forEach(id => this.selectedLabelIds.add(id));
                 }
                 this.renderSelectedLabels();
+                // If archived, swap archive button to "Restore"
+                if (this.btnArchive) {
+                    if (bm.isArchived) {
+                        this.btnArchive.setAttribute('data-tooltip', 'Restore from Archive');
+                        this.btnArchive.querySelector('.material-symbols-outlined').textContent = 'unarchive';
+                    } else {
+                        this.btnArchive.setAttribute('data-tooltip', 'Archive');
+                        this.btnArchive.querySelector('.material-symbols-outlined').textContent = 'inventory_2';
+                    }
+                }
             }
         } catch (err) {
             console.error("Failed to load bookmark data:", err);
@@ -232,6 +246,18 @@ export class BookmarkModal {
         } catch (err) {
             console.error("Failed to delete bookmark:", err);
             alert("Failed to delete bookmark.");
+        }
+    }
+
+    async archiveBookmark() {
+        if (!this.currentBookmarkId) return;
+        const isRestoring = this.btnArchive && this.btnArchive.querySelector('.material-symbols-outlined').textContent === 'unarchive';
+        try {
+            await bookmarkService.update(this.uid, this.workspaceId, this.currentBookmarkId, { isArchived: !isRestoring });
+            this.close();
+        } catch (err) {
+            console.error("Failed to archive/restore bookmark:", err);
+            alert("Failed to archive/restore bookmark.");
         }
     }
 
