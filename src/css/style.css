@@ -1466,7 +1466,7 @@ textarea.input {
     transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
     cursor: grab;
     user-select: none;
-    overflow: hidden;
+    overflow: visible;
     position: relative;
 }
 
@@ -1501,6 +1501,9 @@ textarea.input {
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid var(--border-primary);
+    overflow: visible;
+    position: relative;
+    z-index: 1;
 }
 
 .bucket-empty .bucket-header {
