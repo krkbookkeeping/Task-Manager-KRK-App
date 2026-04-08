@@ -58,17 +58,42 @@ function closeMobileCalendar() {
     if (col) col.classList.remove('mobile-visible');
 }
 
-// ── Mobile: FAB → open TaskModal directly (topbar button is hidden on mobile) ──
+// ── Mobile: FAB → open correct modal based on active view ──
 document.addEventListener('DOMContentLoaded', function () {
     var fab = document.getElementById('mobile-fab');
     if (fab) {
         fab.addEventListener('click', function () {
-            if (window.currentTaskModal) {
-                window.currentTaskModal.open();
+            // Determine which view is active
+            var bmContainer = document.getElementById('bookmark-board-container');
+            var noteContainer = document.getElementById('note-board-container');
+            var isBookmarks = bmContainer && bmContainer.classList.contains('active');
+            var isNotes = noteContainer && noteContainer.classList.contains('active');
+
+            // Helper: get the label id of the currently-visible bucket in a grid
+            function getVisibleLabelId(gridId) {
+                var grid = document.getElementById(gridId);
+                if (!grid) return null;
+                var buckets = grid.querySelectorAll(':scope > .bucket, :scope > .bucket-empty');
+                if (!buckets.length) return null;
+                var index = Math.round(grid.scrollLeft / grid.offsetWidth);
+                var bucket = buckets[Math.min(index, buckets.length - 1)];
+                return bucket ? bucket.getAttribute('data-label-id') : null;
+            }
+
+            if (isNotes) {
+                var labelId = getVisibleLabelId('note-board');
+                if (window.currentNoteModal) window.currentNoteModal.open(null, labelId);
+            } else if (isBookmarks) {
+                var labelId = getVisibleLabelId('bookmark-board');
+                if (window.currentBookmarkModal) window.currentBookmarkModal.open(null, labelId);
             } else {
-                // Fallback: trigger hidden topbar button
-                var create = document.getElementById('btn-topbar-create-task');
-                if (create) create.click();
+                var labelId = getVisibleLabelId('main-board');
+                if (window.currentTaskModal) {
+                    window.currentTaskModal.open(null, labelId);
+                } else {
+                    var create = document.getElementById('btn-topbar-create-task');
+                    if (create) create.click();
+                }
             }
         });
     }

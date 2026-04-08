@@ -472,6 +472,14 @@
         box-shadow: none !important;
     }
 
+    /* Note and bookmark cards: prevent compression so bucket scrolls */
+    .note-card,
+    .bookmark-card {
+        flex-shrink: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
     /* ---- BUCKET NAV DOTS (fixed at bottom) ---- */
     #mobile-bucket-nav {
         display: flex;
