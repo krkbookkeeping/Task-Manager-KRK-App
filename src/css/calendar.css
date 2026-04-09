@@ -107,6 +107,23 @@
     background-color: var(--secondary);
 }
 
+/* Drag-to-calendar drop target highlight */
+.calendar-day.calendar-drop-target {
+    background-color: rgba(99, 102, 241, 0.25) !important;
+    box-shadow: inset 0 0 0 2px #6366f1;
+    color: #6366f1 !important;
+    font-weight: 700 !important;
+    border-radius: 4px;
+    transition: background-color 0.1s, box-shadow 0.1s;
+}
+
+/* Calendar section active drop zone indicator */
+.nav-calendar.calendar-drag-active {
+    outline: 2px dashed rgba(99, 102, 241, 0.4);
+    outline-offset: -4px;
+    border-radius: 8px;
+}
+
 /* Stat Holidays (Blue Circle Indicator) */
 .calendar-day.is-stat-holiday {
     color: var(--accent);

@@ -422,6 +422,7 @@ export class Calendar {
         const el = document.createElement('div');
         el.className = `calendar-day ${className}`;
         el.textContent = dayNumber;
+        if (dateId) el.setAttribute('data-date-id', dateId);
 
         if (dateId) {
             el.addEventListener('click', (e) => {

@@ -627,6 +627,12 @@ export class Dashboard {
                 e.stopPropagation();
                 card.classList.remove('dragging-task');
                 taskDragThrottle = null;
+                // Clean up any calendar drop-target highlight that wasn't cleared by a drop
+                document.querySelectorAll('.calendar-drop-target').forEach(el => el.classList.remove('calendar-drop-target'));
+                const calSec = document.querySelector('.nav-calendar');
+                if (calSec) calSec.classList.remove('calendar-drag-active');
+                const tip = document.getElementById('calendar-drag-tooltip');
+                if (tip) tip.style.display = 'none';
 
                 // After drop, find the bucket we are in and save the new order
                 const bucketEl = card.closest('.bucket');
@@ -1420,6 +1426,130 @@ export class Dashboard {
                 closeMoveAddModal();
             }, { signal });
         }
+
+        this.setupCalendarDropZone(signal);
+    }
+
+    /**
+     * Drag a task card onto a calendar date to reassign its due date.
+     */
+    setupCalendarDropZone(signal) {
+        const calendarSection = document.querySelector('.nav-calendar');
+        if (!calendarSection) return;
+
+        // Create shared tooltip element (reused across drags)
+        let tooltip = document.getElementById('calendar-drag-tooltip');
+        if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.id = 'calendar-drag-tooltip';
+            tooltip.className = 'calendar-drag-tooltip';
+            tooltip.style.display = 'none';
+            document.body.appendChild(tooltip);
+        }
+
+        let currentDropTarget = null;
+
+        const clearDropTarget = () => {
+            if (currentDropTarget) {
+                currentDropTarget.classList.remove('calendar-drop-target');
+                currentDropTarget = null;
+            }
+            calendarSection.classList.remove('calendar-drag-active');
+            tooltip.style.display = 'none';
+        };
+
+        calendarSection.addEventListener('dragenter', (e) => {
+            if (!e.dataTransfer.types.includes('application/x-task-card')) return;
+            calendarSection.classList.add('calendar-drag-active');
+        }, { signal });
+
+        calendarSection.addEventListener('dragover', (e) => {
+            if (!e.dataTransfer.types.includes('application/x-task-card')) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            const dayEl = e.target.closest('.calendar-day[data-date-id]');
+            if (dayEl !== currentDropTarget) {
+                if (currentDropTarget) currentDropTarget.classList.remove('calendar-drop-target');
+                currentDropTarget = dayEl;
+                if (currentDropTarget) currentDropTarget.classList.add('calendar-drop-target');
+            }
+
+            if (dayEl) {
+                const dateId = dayEl.getAttribute('data-date-id');
+                const [y, m, d] = dateId.split('-').map(Number);
+                const label = new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                tooltip.textContent = `Move to: ${label}`;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (e.clientX + 14) + 'px';
+                tooltip.style.top = (e.clientY - 36) + 'px';
+            } else {
+                tooltip.style.display = 'none';
+            }
+        }, { signal });
+
+        calendarSection.addEventListener('dragleave', (e) => {
+            if (!calendarSection.contains(e.relatedTarget)) {
+                clearDropTarget();
+            }
+        }, { signal });
+
+        calendarSection.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            const taskId = e.dataTransfer.getData('application/x-task-card');
+            const dropEl = currentDropTarget;
+            clearDropTarget();
+
+            if (!taskId || !dropEl) return;
+
+            const dateId = dropEl.getAttribute('data-date-id');
+            if (!dateId) return;
+
+            // Get old date for undo
+            const task = this.tasks.find(t => t.id === taskId);
+            const oldDueDate = task ? task.dueDate : null;
+
+            const [y, m, d] = dateId.split('-').map(Number);
+            const newDueDate = new Date(y, m - 1, d).toISOString();
+
+            try {
+                await taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { dueDate: newDueDate });
+                this.showDateDropToast(taskId, dateId, oldDueDate);
+            } catch (err) {
+                console.error('Failed to update due date via calendar drop:', err);
+            }
+        }, { signal });
+    }
+
+    showDateDropToast(taskId, newDateId, oldDueDate) {
+        // Remove any existing toast
+        const existing = document.getElementById('date-drop-toast');
+        if (existing) existing.remove();
+
+        const [y, m, d] = newDateId.split('-').map(Number);
+        const label = new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+        const toast = document.createElement('div');
+        toast.id = 'date-drop-toast';
+        toast.className = 'date-drop-toast';
+        toast.innerHTML = `<span>Due date set to ${label}</span>`;
+
+        if (oldDueDate !== undefined) {
+            const undoBtn = document.createElement('button');
+            undoBtn.textContent = 'Undo';
+            undoBtn.addEventListener('click', async () => {
+                toast.remove();
+                try {
+                    await taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { dueDate: oldDueDate });
+                } catch (err) {
+                    console.error('Failed to undo date change:', err);
+                }
+            });
+            toast.appendChild(undoBtn);
+        }
+
+        document.body.appendChild(toast);
+        setTimeout(() => { if (toast.parentNode) toast.remove(); }, 5000);
     }
 
     /**
