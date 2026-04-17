@@ -27,6 +27,8 @@ export const bookmarkService = {
             labels: labelId ? [labelId] : [],
             order: {},
             isArchived: false,
+            parked: false,
+            parkedOrder: 0,
             createdAt: serverTimestamp()
         };
 

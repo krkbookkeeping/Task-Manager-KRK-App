@@ -176,14 +176,34 @@ export function initKeyboardShortcuts(uid) {
         const activeModal = document.querySelector('.modal-overlay.active');
         if (activeModal) return;
 
-        // Clear all dashboard filters (search, star, date) in one shot
-        if (window.currentDashboard && typeof window.currentDashboard.clearAllFilters === 'function') {
-            const cleared = window.currentDashboard.clearAllFilters();
-            if (cleared) {
-                // Blur the search input if focused so the cursor exits
-                const searchInput = document.getElementById('global-search');
-                if (searchInput && document.activeElement === searchInput) {
-                    searchInput.blur();
+        const bmContainer = document.getElementById('bookmark-board-container');
+        const noteContainer = document.getElementById('note-board-container');
+
+        if (bmContainer && bmContainer.classList.contains('active')) {
+            // Bookmark view — clear bookmark search
+            if (window.currentBookmarkDashboard && typeof window.currentBookmarkDashboard.clearAllFilters === 'function') {
+                const cleared = window.currentBookmarkDashboard.clearAllFilters();
+                if (cleared) {
+                    const si = document.getElementById('bookmark-search');
+                    if (si && document.activeElement === si) si.blur();
+                }
+            }
+        } else if (noteContainer && noteContainer.classList.contains('active')) {
+            // Notes view — clear note search
+            if (window.currentNoteDashboard && typeof window.currentNoteDashboard.clearAllFilters === 'function') {
+                const cleared = window.currentNoteDashboard.clearAllFilters();
+                if (cleared) {
+                    const si = document.getElementById('note-search');
+                    if (si && document.activeElement === si) si.blur();
+                }
+            }
+        } else {
+            // Tasks view — clear task filters
+            if (window.currentDashboard && typeof window.currentDashboard.clearAllFilters === 'function') {
+                const cleared = window.currentDashboard.clearAllFilters();
+                if (cleared) {
+                    const searchInput = document.getElementById('global-search');
+                    if (searchInput && document.activeElement === searchInput) searchInput.blur();
                 }
             }
         }

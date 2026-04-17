@@ -31,6 +31,8 @@ export const noteService = {
             order: {},
             comments: [],
             isArchived: false,
+            parked: false,
+            parkedOrder: 0,
             createdAt: serverTimestamp()
         };
 

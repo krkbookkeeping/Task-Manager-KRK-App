@@ -1386,7 +1386,7 @@ export class Dashboard {
         if (btnMoveAddAdd) {
             btnMoveAddAdd.addEventListener('click', async () => {
                 if (!this.pendingMoveAdd) return;
-                const { taskId, sourceLabelId, targetLabelId, targetCardElements } = this.pendingMoveAdd;
+                const { taskId, targetLabelId, targetCardElements } = this.pendingMoveAdd;
                 const task = this.tasks.find(t => t.id === taskId);
 
                 if (task) {
@@ -1830,6 +1830,13 @@ export class Dashboard {
         const list = document.getElementById('parked-tasks-list');
         const countEl = document.getElementById('parked-tasks-count');
         if (!tray || !list) return;
+
+        // Only show task tray when in the tasks view
+        const mainContainer = document.getElementById('main-board-container');
+        if (!mainContainer || !mainContainer.classList.contains('active')) {
+            tray.style.display = 'none';
+            return;
+        }
 
         const parkedTasks = this.tasks
             .filter(t => t.parked === true)

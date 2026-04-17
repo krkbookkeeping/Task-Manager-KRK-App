@@ -192,7 +192,7 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
-// Global Keyboard Shortcut: Press 'F' or 'f' to focus search
+// Global Keyboard Shortcut: Press 'F' or 'f' to focus the active view's search bar
 document.addEventListener('keydown', function (e) {
     var tagName = e.target.tagName;
     var isContentEditable = e.target.isContentEditable;
@@ -202,9 +202,16 @@ document.addEventListener('keydown', function (e) {
 
     if (e.key === 'f' || e.key === 'F') {
         e.preventDefault();
-        var searchInput = document.getElementById('global-search');
-        if (searchInput) {
-            searchInput.focus();
+        var bmContainer = document.getElementById('bookmark-board-container');
+        var noteContainer = document.getElementById('note-board-container');
+        var searchInput;
+        if (bmContainer && bmContainer.classList.contains('active')) {
+            searchInput = document.getElementById('bookmark-search');
+        } else if (noteContainer && noteContainer.classList.contains('active')) {
+            searchInput = document.getElementById('note-search');
+        } else {
+            searchInput = document.getElementById('global-search');
         }
+        if (searchInput) searchInput.focus();
     }
 });

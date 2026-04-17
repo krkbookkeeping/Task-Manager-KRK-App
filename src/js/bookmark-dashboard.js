@@ -71,15 +71,33 @@ export class BookmarkDashboard {
             }
         }
 
-        const visibleLabels = this.labels.filter(l => !l.isParked);
-        const parkedLabels = this.labels.filter(l => l.isParked)
-            .sort((a, b) => {
-                if (a.name === 'No Label') return 1;
-                if (b.name === 'No Label') return -1;
-                return a.name.localeCompare(b.name);
+        // Build label lists - search collapses non-matching labels to parked chips
+        let visibleLabels, parkedLabels;
+        const sortParked = arr => arr.sort((a, b) => {
+            if (a.name === 'No Label') return 1;
+            if (b.name === 'No Label') return -1;
+            return a.name.localeCompare(b.name);
+        });
+
+        if (this.searchQuery) {
+            const allSearchable = [...this.bookmarks, ...(this.searchIncludeArchived ? this.searchArchivedBookmarks : [])];
+            const q = this.searchQuery.toLowerCase();
+            const labelsWithMatches = new Set();
+            allSearchable.filter(b => b.parked !== true).forEach(b => {
+                const matches = (b.name && b.name.toLowerCase().includes(q)) ||
+                    (b.url && b.url.toLowerCase().includes(q)) ||
+                    (b.notes && b.notes.toLowerCase().includes(q));
+                if (matches && b.labels) b.labels.forEach(lid => labelsWithMatches.add(lid));
             });
+            visibleLabels = this.labels.filter(l => !l.isParked && labelsWithMatches.has(l.id));
+            parkedLabels = sortParked(this.labels.filter(l => l.isParked || !labelsWithMatches.has(l.id)));
+        } else {
+            visibleLabels = this.labels.filter(l => !l.isParked);
+            parkedLabels = sortParked(this.labels.filter(l => l.isParked));
+        }
 
         this.renderParkedLabels(parkedLabels);
+        this.renderParkedBookmarksTray();
 
         // Empty state: no labels at all — show CTA
         if (visibleLabels.length === 0 && parkedLabels.length === 0) {
@@ -108,7 +126,7 @@ export class BookmarkDashboard {
 
         visibleLabels.forEach((label) => {
             const allSearchable = [...this.bookmarks, ...(this.searchQuery && this.searchIncludeArchived ? this.searchArchivedBookmarks : [])];
-            let bucketBookmarks = allSearchable.filter(b => b.labels && b.labels.includes(label.id));
+            let bucketBookmarks = allSearchable.filter(b => b.labels && b.labels.includes(label.id) && b.parked !== true);
 
             // Apply search filter
             if (this.searchQuery) {
@@ -188,6 +206,9 @@ export class BookmarkDashboard {
                         <div class="bookmark-card-body" data-url="${this.escapeHtml(bm.url || '')}">
                             <span class="bookmark-card-name">${this.escapeHtml(bm.name)}</span>
                         </div>
+                        <button class="btn-icon btn-park-bookmark" data-bookmark-id="${bm.id}" data-tooltip="Park Bookmark">
+                            <span class="material-symbols-outlined" style="font-size: 14px;">dock_to_bottom</span>
+                        </button>
                         <button class="btn-icon btn-bookmark-settings" data-bookmark-id="${bm.id}" data-tooltip="Edit Bookmark">
                             <span class="material-symbols-outlined" style="font-size: 16px;">settings</span>
                         </button>
@@ -255,6 +276,20 @@ export class BookmarkDashboard {
                 const bmId = btn.getAttribute('data-bookmark-id');
                 if (window.currentBookmarkModal) {
                     window.currentBookmarkModal.open(bmId);
+                }
+            });
+        });
+
+        // Park bookmark buttons
+        const parkBtns = this.gridEl.querySelectorAll('.btn-park-bookmark');
+        parkBtns.forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const bmId = btn.getAttribute('data-bookmark-id');
+                try {
+                    await bookmarkService.update(this.uid, this.workspaceId, bmId, { parked: true, parkedOrder: Date.now() });
+                } catch (err) {
+                    console.error('Failed to park bookmark:', err);
                 }
             });
         });
@@ -888,6 +923,14 @@ export class BookmarkDashboard {
             if (el) el.style.display = 'none';
         });
 
+        // Hide other parked trays
+        const tasksTray = document.getElementById('parked-tasks-tray');
+        if (tasksTray) tasksTray.style.display = 'none';
+        const notesTray = document.getElementById('parked-notes-tray');
+        if (notesTray) notesTray.style.display = 'none';
+        const mainEl = document.querySelector('main');
+        if (mainEl) mainEl.classList.remove('has-parked-tray');
+
         this.render();
     }
 
@@ -941,6 +984,85 @@ export class BookmarkDashboard {
 
             container.appendChild(chip);
         });
+    }
+
+    renderParkedBookmarksTray() {
+        const tray = document.getElementById('parked-bookmarks-tray');
+        const list = document.getElementById('parked-bookmarks-list');
+        const countEl = document.getElementById('parked-bookmarks-count');
+        if (!tray || !list) return;
+
+        // Only show when bookmarks view is active
+        const bmContainer = document.getElementById('bookmark-board-container');
+        if (!bmContainer || !bmContainer.classList.contains('active')) {
+            tray.style.display = 'none';
+            return;
+        }
+
+        const parkedBookmarks = this.bookmarks
+            .filter(b => b.parked === true)
+            .sort((a, b) => (a.parkedOrder || 0) - (b.parkedOrder || 0));
+        const mainEl = document.querySelector('main');
+
+        if (parkedBookmarks.length === 0) {
+            tray.style.display = 'none';
+            if (mainEl) mainEl.classList.remove('has-parked-tray');
+            return;
+        }
+
+        tray.style.display = 'flex';
+        if (mainEl) mainEl.classList.add('has-parked-tray');
+        if (countEl) countEl.textContent = parkedBookmarks.length;
+
+        list.innerHTML = '';
+        parkedBookmarks.forEach(bm => {
+            const chip = document.createElement('div');
+            chip.className = 'parked-task-chip';
+            chip.setAttribute('data-bookmark-id', bm.id);
+
+            const primaryLabel = bm.labels && bm.labels.length > 0
+                ? this.labels.find(l => l.id === bm.labels[0])
+                : null;
+            const bucketColor = primaryLabel ? primaryLabel.color : '#6366f1';
+            chip.style.borderLeft = `3px solid ${bucketColor}`;
+
+            chip.innerHTML = `
+                <span class="parked-task-title">${this.escapeHtml(bm.name)}</span>
+                <button class="btn-unpark-task" data-bookmark-id="${bm.id}" title="Return to bucket">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">close</span>
+                </button>
+            `;
+
+            chip.addEventListener('click', (e) => {
+                if (e.target.closest('.btn-unpark-task')) return;
+                if (window.currentBookmarkModal) {
+                    window.currentBookmarkModal.open(bm.id);
+                }
+            });
+
+            const unparkBtn = chip.querySelector('.btn-unpark-task');
+            unparkBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                try {
+                    await bookmarkService.update(this.uid, this.workspaceId, bm.id, { parked: false });
+                } catch (err) {
+                    console.error('Failed to unpark bookmark:', err);
+                }
+            });
+
+            list.appendChild(chip);
+        });
+    }
+
+    clearAllFilters() {
+        const hadFilters = !!this.searchQuery;
+        this.searchQuery = '';
+        const searchInput = document.getElementById('bookmark-search');
+        if (searchInput) searchInput.value = '';
+        const searchClearBtn = document.getElementById('btn-clear-bookmark-search');
+        if (searchClearBtn) searchClearBtn.style.display = 'none';
+        if (hadFilters) this.render();
+        return hadFilters;
     }
 
     escapeHtml(unsafe) {
