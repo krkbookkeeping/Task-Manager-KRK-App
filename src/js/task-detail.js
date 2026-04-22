@@ -52,8 +52,7 @@ export class TaskModal {
         this.comments = []; // Array of comment objects
         this.editingCommentId = null; // Track if we're editing an existing comment
         this.starred = false; // Star state
-        this.wasParked = false; // Track if task was parked when opened
-        this.parkOnClose = false; // Set true when user clicks Park button
+        this.isParked = false; // Current park state shown in modal
 
         // Star Elements
         this.btnStar = document.getElementById('btn-task-star');
@@ -367,9 +366,18 @@ export class TaskModal {
         this.btnDelete.addEventListener('click', () => this.deleteTask());
         if (this.btnPark) {
             this.btnPark.addEventListener('click', async () => {
-                if (this.currentTaskId) {
-                    this.parkOnClose = true;
-                    await this.saveTask();
+                if (!this.currentTaskId) return;
+                this.isParked = !this.isParked;
+                this.updateParkIcon();
+                try {
+                    await taskService.update(this.uid, this.workspaceId, this.boardId, this.currentTaskId, {
+                        parked: this.isParked,
+                        parkedOrder: this.isParked ? Date.now() : 0
+                    });
+                } catch (err) {
+                    console.error('Failed to toggle park:', err);
+                    this.isParked = !this.isParked;
+                    this.updateParkIcon();
                 }
             });
         }
@@ -603,8 +611,7 @@ export class TaskModal {
         this.labelSearch.value = '';
         this.filterLabelOptions();
 
-        this.wasParked = false;
-        this.parkOnClose = false;
+        this.isParked = false;
 
         if (taskId) {
             // Editing existing task
@@ -640,6 +647,7 @@ export class TaskModal {
         }
 
         this.updateStarIcon();
+        this.updateParkIcon();
         this.renderDatePunches();
 
         this.renderSelectedLabels();
@@ -708,14 +716,9 @@ export class TaskModal {
     }
 
     close() {
-        const taskId = this.currentTaskId;
-        const shouldPark = this.parkOnClose;
-        const shouldUnpark = this.wasParked && !this.parkOnClose;
-
         this.overlay.classList.remove('active');
         this.currentTaskId = null;
-        this.wasParked = false;
-        this.parkOnClose = false;
+        this.isParked = false;
         this.labelDropdown.style.display = 'none';
         // Reset complete button so it's not stuck on "Completing..."
         if (this.btnComplete) {
@@ -723,16 +726,6 @@ export class TaskModal {
             this.btnComplete.textContent = 'Complete';
         }
 
-        // Handle park/unpark after closing
-        if (taskId) {
-            if (shouldPark) {
-                taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { parked: true, parkedOrder: Date.now() })
-                    .catch(err => console.error('Failed to park task:', err));
-            } else if (shouldUnpark) {
-                taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { parked: false })
-                    .catch(err => console.error('Failed to auto-unpark task:', err));
-            }
-        }
     }
 
     async populateTaskData(taskId) {
@@ -833,8 +826,8 @@ export class TaskModal {
                 // Load starred state
                 this.starred = task.starred === true;
 
-                // Track parked state for auto-unpark on close
-                this.wasParked = task.parked === true;
+                // Sync park state for modal button
+                this.isParked = task.parked === true;
             }
         } catch (err) {
             console.error("Failed to load task data:", err);
@@ -1151,6 +1144,24 @@ export class TaskModal {
         } else {
             this.starIcon.style.color = 'var(--text-muted)';
             this.starIcon.style.fontVariationSettings = '';
+        }
+    }
+
+    updateParkIcon() {
+        if (!this.btnPark) return;
+        const icon = this.btnPark.querySelector('.material-symbols-outlined');
+        if (this.isParked) {
+            if (icon) {
+                icon.style.color = 'var(--info)';
+                icon.style.fontVariationSettings = "'FILL' 1";
+            }
+            this.btnPark.setAttribute('data-tooltip', 'Remove from Tray');
+        } else {
+            if (icon) {
+                icon.style.color = 'var(--text-muted)';
+                icon.style.fontVariationSettings = '';
+            }
+            this.btnPark.setAttribute('data-tooltip', 'Park Task');
         }
     }
 
