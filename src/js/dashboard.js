@@ -402,13 +402,16 @@ export class Dashboard {
                                 ? this.calendar.selectedDate
                                 : calculateOffsetDate('1d');
                             await taskService.update(this.uid, this.workspaceId, this.boardId, newTask.id, { dueDate });
+                            // Auto-open the new task so user can fill in details
+                            if (window.currentTaskModal) {
+                                window.currentTaskModal.open(newTask.id);
+                            }
                         }
                     } catch (err) {
                         console.error('Failed to create task:', err);
                         alert('Could not create task. Check console.');
                     } finally {
                         input.disabled = false;
-                        input.focus();
                     }
                 }
             });
