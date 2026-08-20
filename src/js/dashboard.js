@@ -908,6 +908,8 @@ export class Dashboard {
     }
 
     applySavedSearch(savedSearch) {
+        // Saved searches and quick shortcuts are mutually exclusive visual states.
+        document.querySelectorAll('.btn-search-shortcut').forEach(button => button.classList.remove('active'));
         this.searchQuery = savedSearch.query || '';
         this.searchIncludeCompleted = !!savedSearch.includeCompleted;
         this.searchIncludeArchived = !!savedSearch.includeArchived;
@@ -1358,6 +1360,7 @@ export class Dashboard {
                 if (searchClearBtn) searchClearBtn.style.display = 'none';
                 if (searchIndicator) searchIndicator.style.display = 'none';
                 this.render();
+                this.renderSavedSearches();
                 return;
             }
 
@@ -1372,6 +1375,7 @@ export class Dashboard {
                 if (searchIndicatorText) searchIndicatorText.textContent = `Filtered by search: '${query}'`;
             }
             this.render();
+            this.renderSavedSearches();
         };
 
         searchShortcuts.forEach(({ btnId, query }) => {
