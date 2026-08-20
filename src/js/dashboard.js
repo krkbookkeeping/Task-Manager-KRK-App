@@ -1175,6 +1175,9 @@ export class Dashboard {
                 if (saveSearchBtn) saveSearchBtn.style.display = 'none';
                 searchIndicator.style.display = 'none';
                 searchInput.value = '';
+                document.querySelectorAll('.btn-search-shortcut, .saved-search-chip').forEach(element => {
+                    element.classList.remove('active');
+                });
             }
             this.renderSavedSearches();
             // Trigger render for the active view
