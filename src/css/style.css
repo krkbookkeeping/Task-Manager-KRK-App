@@ -2422,3 +2422,55 @@ main.has-parked-tray .dashboard-layout {
     flex: 1;
     min-height: 0;
 }
+
+.saved-searches-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.saved-search-chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: transparent;
+}
+
+.saved-search-chip.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    border-color: transparent;
+    box-shadow: var(--shadow-sm);
+}
+
+.saved-search-apply,
+.saved-search-delete {
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    font: inherit;
+}
+
+.saved-search-apply {
+    padding: 2px 4px 2px 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.saved-search-delete {
+    padding: 2px 5px 2px 3px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.saved-search-chip.active .saved-search-apply,
+.saved-search-chip.active .saved-search-delete {
+    color: white;
+}
+
+.saved-search-delete:hover {
+    color: var(--danger);
+}

@@ -915,6 +915,8 @@ export class BookmarkDashboard {
         // Hide global search (bookmarks has its own in the bookmark-topbar-group)
         const globalSearch = document.querySelector('.top-bar .search-container:not(#bookmark-topbar-group .search-container)');
         if (globalSearch) globalSearch.style.display = 'none';
+        const saveSearch = document.getElementById('btn-save-search');
+        if (saveSearch) saveSearch.style.display = 'none';
 
         // Hide task-specific sub-bar elements
         const taskSubBarElements = ['search-indicator', 'date-filter-banner', 'star-filter-bar'];

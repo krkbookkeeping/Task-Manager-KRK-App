@@ -1,5 +1,6 @@
 import { labelService } from './services/label-service.js';
 import { taskService } from './services/task-service.js';
+import { savedSearchService } from './services/saved-search-service.js';
 import { DASHBOARD_PUNCH_OFFSETS, calculateOffsetDate } from './utils/date-utils.js';
 
 export class Dashboard {
@@ -22,6 +23,7 @@ export class Dashboard {
         this.searchIncludeArchived = false; // Search scope checkbox
         this.searchCompletedTasks = []; // Completed tasks loaded for search
         this.searchArchivedTasks = []; // Archived tasks loaded for search
+        this.savedSearches = []; // Saved per-workspace search states
         this.thisWeekFilter = false; // Persistent "This Week" filter
         this.pastDueFilter = false; // Persistent "Past Due" filter
 
@@ -36,6 +38,7 @@ export class Dashboard {
         this.unsubTasks = null;
         this.unsubSearchCompleted = null;
         this.unsubSearchArchived = null;
+        this.unsubSavedSearches = null;
 
         this.gridEl = document.querySelector('.bucket-grid');
 
@@ -65,6 +68,12 @@ export class Dashboard {
             this.render();
         });
 
+        // Saved searches belong to the workspace, so they are available on every board in it.
+        this.unsubSavedSearches = savedSearchService.subscribe(this.uid, this.workspaceId, (searches) => {
+            this.savedSearches = searches;
+            this.renderSavedSearches();
+        });
+
         // Listen for Calendar Filter Events
         document.addEventListener('filterTasksByDate', (e) => {
             if (e.detail.rangeStart && e.detail.rangeEnd) {
@@ -77,6 +86,7 @@ export class Dashboard {
                 this.currentFilterDateEnd = null;
             }
             this.render();
+            this.renderSavedSearches();
         });
 
         // Abort any previous event listeners (in case of re-init)
@@ -93,6 +103,7 @@ export class Dashboard {
         if (this.unsubArchivedTasks) this.unsubArchivedTasks();
         if (this.unsubSearchCompleted) this.unsubSearchCompleted();
         if (this.unsubSearchArchived) this.unsubSearchArchived();
+        if (this.unsubSavedSearches) this.unsubSavedSearches();
         // Clean up all event listeners
         if (this._abortController) this._abortController.abort();
     }
@@ -855,6 +866,115 @@ export class Dashboard {
         }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
+    isSavedSearchActive(savedSearch) {
+        return this.searchQuery.toLowerCase() === (savedSearch.query || '').toLowerCase()
+            && this.searchIncludeCompleted === !!savedSearch.includeCompleted
+            && this.searchIncludeArchived === !!savedSearch.includeArchived
+            && this.currentFilterDate === (savedSearch.date || null)
+            && this.currentFilterDateEnd === (savedSearch.dateEnd || null);
+    }
+
+    renderSavedSearches() {
+        const container = document.getElementById('saved-searches-container');
+        if (!container) return;
+
+        container.replaceChildren();
+        this.savedSearches.forEach((savedSearch) => {
+            const chip = document.createElement('span');
+            chip.className = 'saved-search-chip';
+            if (this.isSavedSearchActive(savedSearch)) chip.classList.add('active');
+
+            const applyBtn = document.createElement('button');
+            applyBtn.type = 'button';
+            applyBtn.className = 'saved-search-apply';
+            applyBtn.textContent = savedSearch.name;
+            applyBtn.title = `Apply saved search: ${savedSearch.name}`;
+            applyBtn.addEventListener('click', () => this.applySavedSearch(savedSearch));
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'saved-search-delete';
+            deleteBtn.title = `Delete saved search: ${savedSearch.name}`;
+            deleteBtn.setAttribute('aria-label', deleteBtn.title);
+            deleteBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 14px;">close</span>';
+            deleteBtn.addEventListener('click', async () => {
+                if (!window.confirm(`Delete the saved search “${savedSearch.name}”?`)) return;
+                await savedSearchService.delete(this.uid, this.workspaceId, savedSearch.id);
+            });
+
+            chip.append(applyBtn, deleteBtn);
+            container.appendChild(chip);
+        });
+    }
+
+    applySavedSearch(savedSearch) {
+        this.searchQuery = savedSearch.query || '';
+        this.searchIncludeCompleted = !!savedSearch.includeCompleted;
+        this.searchIncludeArchived = !!savedSearch.includeArchived;
+
+        const searchInput = document.getElementById('global-search');
+        const searchClearBtn = document.getElementById('btn-clear-search');
+        const searchIndicator = document.getElementById('search-indicator');
+        const searchIndicatorText = document.getElementById('search-indicator-text');
+        const saveBtn = document.getElementById('btn-save-search');
+        const chkCompleted = document.getElementById('search-include-completed');
+        const chkArchived = document.getElementById('search-include-archived');
+
+        if (searchInput) searchInput.value = this.searchQuery;
+        if (searchClearBtn) searchClearBtn.style.display = this.searchQuery ? 'block' : 'none';
+        if (searchIndicator) searchIndicator.style.display = this.searchQuery ? 'flex' : 'none';
+        if (searchIndicatorText && this.searchQuery) searchIndicatorText.textContent = `Filtered by search: '${this.searchQuery}'`;
+        if (saveBtn) saveBtn.style.display = this.searchQuery ? 'inline-flex' : 'none';
+
+        // Dispatching change keeps the completed/archived Firestore subscriptions in sync.
+        [[chkCompleted, this.searchIncludeCompleted], [chkArchived, this.searchIncludeArchived]].forEach(([checkbox, checked]) => {
+            if (checkbox && checkbox.checked !== checked) {
+                checkbox.checked = checked;
+                checkbox.dispatchEvent(new Event('change'));
+            }
+        });
+
+        if (this.calendar) {
+            const isRange = !!savedSearch.dateEnd;
+            this.calendar.setSelection(isRange ? null : (savedSearch.date || null), isRange ? savedSearch.date : null, savedSearch.dateEnd || null);
+        } else {
+            this.currentFilterDate = savedSearch.date || null;
+            this.currentFilterDateEnd = savedSearch.dateEnd || null;
+        }
+
+        this.render();
+        this.renderSavedSearches();
+    }
+
+    async saveCurrentSearch() {
+        if (!this.searchQuery) return;
+
+        const name = window.prompt('Name this saved search:');
+        if (name === null) return;
+        const trimmedName = name.trim();
+        if (!trimmedName) {
+            window.alert('Please enter a name for the saved search.');
+            return;
+        }
+        if (trimmedName.length > 60) {
+            window.alert('Saved search names can be up to 60 characters.');
+            return;
+        }
+        if (this.savedSearches.some(search => search.name.toLowerCase() === trimmedName.toLowerCase())) {
+            window.alert('A saved search with that name already exists in this workspace.');
+            return;
+        }
+
+        await savedSearchService.create(this.uid, this.workspaceId, {
+            name: trimmedName,
+            query: this.searchQuery,
+            includeCompleted: this.searchIncludeCompleted,
+            includeArchived: this.searchIncludeArchived,
+            date: this.currentFilterDate || null,
+            dateEnd: this.currentFilterDateEnd || null
+        });
+    }
+
     setupEventListeners() {
         const signal = this._abortController.signal;
         // Add Label logic moving to top bar
@@ -984,6 +1104,8 @@ export class Dashboard {
                 // Restore global search
                 const globalSearch = document.querySelector('.top-bar .search-container');
                 if (globalSearch) globalSearch.style.display = 'flex';
+                const saveSearch = document.getElementById('btn-save-search');
+                if (saveSearch) saveSearch.style.display = this.searchQuery ? 'inline-flex' : 'none';
 
                 // Restore star filter bar
                 const starFilterBar = document.getElementById('star-filter-bar');
@@ -1037,18 +1159,22 @@ export class Dashboard {
         const searchClearBtn = document.getElementById('btn-clear-search');
         const searchIndicator = document.getElementById('search-indicator');
         const searchIndicatorText = document.getElementById('search-indicator-text');
+        const saveSearchBtn = document.getElementById('btn-save-search');
         let searchDebounce = null;
 
         const updateSearchUI = () => {
             if (this.searchQuery) {
                 searchClearBtn.style.display = 'block';
+                if (saveSearchBtn) saveSearchBtn.style.display = 'inline-flex';
                 searchIndicator.style.display = 'flex';
                 searchIndicatorText.textContent = `Filtered by search: '${this.searchQuery}'`;
             } else {
                 searchClearBtn.style.display = 'none';
+                if (saveSearchBtn) saveSearchBtn.style.display = 'none';
                 searchIndicator.style.display = 'none';
                 searchInput.value = '';
             }
+            this.renderSavedSearches();
             // Trigger render for the active view
             if (this.currentView === 'completed') {
                 this.renderCompletedTasks(this.completedTasks);
@@ -1084,8 +1210,7 @@ export class Dashboard {
                         clearTimeout(searchDebounce);
                         this.searchQuery = '';
                         searchInput.value = '';
-                        searchClearBtn.style.display = 'none';
-                        searchIndicator.style.display = 'none';
+                        updateSearchUI();
                         return;
                     }
 
@@ -1112,6 +1237,10 @@ export class Dashboard {
                 this.searchQuery = '';
                 updateSearchUI();
             }, { signal });
+        }
+
+        if (saveSearchBtn) {
+            saveSearchBtn.addEventListener('click', () => this.saveCurrentSearch(), { signal });
         }
 
         // Star Filter Toggle
@@ -1153,12 +1282,14 @@ export class Dashboard {
                     this.unsubSearchCompleted = taskService.subscribeCompleted(this.uid, this.workspaceId, this.boardId, (tasks) => {
                         this.searchCompletedTasks = tasks;
                         if (this.searchQuery) this.render();
+                        this.renderSavedSearches();
                     });
                 } else {
                     if (this.unsubSearchCompleted) this.unsubSearchCompleted();
                     this.unsubSearchCompleted = null;
                     this.searchCompletedTasks = [];
                     if (this.searchQuery) this.render();
+                    this.renderSavedSearches();
                 }
             }, { signal });
         }
@@ -1173,12 +1304,14 @@ export class Dashboard {
                     this.unsubSearchArchived = taskService.subscribeArchived(this.uid, this.workspaceId, this.boardId, (tasks) => {
                         this.searchArchivedTasks = tasks;
                         if (this.searchQuery) this.render();
+                        this.renderSavedSearches();
                     });
                 } else {
                     if (this.unsubSearchArchived) this.unsubSearchArchived();
                     this.unsubSearchArchived = null;
                     this.searchArchivedTasks = [];
                     if (this.searchQuery) this.render();
+                    this.renderSavedSearches();
                 }
             }, { signal });
         }

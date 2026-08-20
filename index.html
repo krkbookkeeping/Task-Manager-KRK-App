@@ -143,6 +143,10 @@
                         <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
                     </button>
                 </div>
+                <button class="btn btn-sm btn-outline" id="btn-save-search" type="button" title="Save current search" style="display: none; flex-shrink: 0;">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">bookmark_add</span>
+                    Save search
+                </button>
                 <div id="search-scope-toggles" style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
                     <label style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; user-select: none;">
                         <input type="checkbox" id="search-include-completed" style="accent-color: var(--success); cursor: pointer;">
@@ -488,6 +492,7 @@
                                 <button class="btn btn-sm btn-search-shortcut" id="btn-search-expc" type="button">ExpC</button>
                                 <button class="btn btn-sm btn-search-shortcut" id="btn-search-expr" type="button">ExpR</button>
                                 <button class="btn btn-sm btn-search-shortcut" id="btn-search-kkflw" type="button">kkflw</button>
+                                <div id="saved-searches-container" class="saved-searches-container" aria-label="Saved searches"></div>
                             </div>
                             <div class="zoom-controls" style="display: flex; align-items: center; gap: 8px;">
                                 <span class="material-symbols-outlined"

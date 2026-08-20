@@ -8,7 +8,7 @@
     <title>Task Manager KRK</title>
     <!-- Google Material Symbols (Outlined) -->
     <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
 
     <!-- Import Map: lets the browser resolve bare Firebase specifiers without a bundler -->
 
@@ -18,12 +18,13 @@
             "firebase/app":       "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js",
             "firebase/auth":      "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js",
             "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js",
-            "firebase/analytics": "https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics.js"
+            "firebase/analytics": "https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics.js",
+            "firebase/storage":   "https://www.gstatic.com/firebasejs/11.6.0/firebase-storage.js"
         }
     }
     </script>
-  <script type="module" crossorigin src="/assets/index-DqiEjKr8.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-CcPoyytv.css">
+  <script type="module" crossorigin src="/assets/index-_wtlhmHV.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-i2w2uG7K.css">
 </head>
 
 <body>
@@ -48,18 +49,10 @@
             <!-- Sidebar Navigation -->
             <nav class="sidebar-nav">
                 <div class="nav-content">
-                    <a href="#" class="nav-item active" id="btn-nav-boards" data-tooltip="Boards">
-                        <span class="material-symbols-outlined nav-icon">dashboard</span>
-                        <span class="nav-text">Boards</span>
-                    </a>
-                    <a href="#" class="nav-item" id="btn-nav-completed" data-tooltip="Completed">
-                        <span class="material-symbols-outlined nav-icon">check_circle</span>
-                        <span class="nav-text">Completed</span>
-                    </a>
                     <!-- Workspace Switcher -->
                     <div class="workspace-switcher-section" style="padding: 0; margin: 4px 0;">
                         <button id="workspace-switcher-trigger" class="nav-item workspace-trigger"
-                            data-tooltip="Workspaces">
+                            data-tooltip="My Workspaces">
                             <span class="material-symbols-outlined nav-icon">business</span>
                             <span class="nav-text"
                                 style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
@@ -86,6 +79,14 @@
                             </div>
                         </div>
                     </div>
+                    <a href="#" class="nav-item active" id="btn-nav-boards" data-tooltip="Main Dashboard">
+                        <span class="material-symbols-outlined nav-icon">dashboard</span>
+                        <span class="nav-text">Main Dashboard</span>
+                    </a>
+                    <a href="#" class="nav-item" id="btn-nav-completed" data-tooltip="Completed">
+                        <span class="material-symbols-outlined nav-icon">check_circle</span>
+                        <span class="nav-text">Completed</span>
+                    </a>
                     <a href="#" class="nav-item" id="btn-nav-archive" data-tooltip="Archive">
                         <span class="material-symbols-outlined nav-icon">inventory_2</span>
                         <span class="nav-text">Archive</span>
@@ -93,6 +94,10 @@
                     <a href="#" class="nav-item" id="btn-nav-bookmarks" data-tooltip="Bookmarks">
                         <span class="material-symbols-outlined nav-icon">bookmarks</span>
                         <span class="nav-text">Bookmarks</span>
+                    </a>
+                    <a href="#" class="nav-item" id="btn-nav-notes" data-tooltip="Notes">
+                        <span class="material-symbols-outlined nav-icon">sticky_note_2</span>
+                        <span class="nav-text">Notes</span>
                     </a>
 
                     <div style="flex: 1;"></div>
@@ -121,14 +126,34 @@
                     <span class="material-symbols-outlined">menu</span>
                 </button>
 
+                <!-- Mobile: Calendar toggle -->
+                <button class="btn-icon" id="mobile-calendar-toggle" data-tooltip="Calendar"
+                    onclick="toggleMobileCalendar()">
+                    <span class="material-symbols-outlined">calendar_month</span>
+                </button>
+
                 <!-- Search -->
-                <div class="search-container">
+                <div class="search-container" style="flex: 0 1 420px; min-width: 240px; max-width: 460px;">
                     <span class="material-symbols-outlined search-icon">search</span>
                     <input type="text" id="global-search" placeholder="Search tasks, descriptions, comments..."
                         autocomplete="off">
                     <button class="btn-icon" id="btn-clear-search" style="display: none;" title="Clear Search (Esc)">
                         <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
                     </button>
+                </div>
+                <button class="btn btn-sm btn-outline" id="btn-save-search" type="button" title="Save current search" style="display: none; flex-shrink: 0;">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">bookmark_add</span>
+                    Save search
+                </button>
+                <div id="search-scope-toggles" style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+                    <label style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="search-include-completed" style="accent-color: var(--success); cursor: pointer;">
+                        Completed
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="search-include-archived" style="accent-color: var(--text-muted); cursor: pointer;">
+                        Archived
+                    </label>
                 </div>
 
                 <!-- Header Actions: Task view controls (hidden when bookmarks active) -->
@@ -137,7 +162,7 @@
 
                     <!-- JS injects parked label chips here -->
                     <div id="parked-labels-container"
-                        style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex: 1;">
+                        style="display: flex; gap: 8px; flex-wrap: nowrap; justify-content: flex-end; flex: 1; overflow-x: auto; overflow-y: hidden;">
                     </div>
 
                     <div style="position: relative; display: flex; flex-shrink: 0;">
@@ -192,10 +217,18 @@
                     style="display: none; gap: var(--space-md); align-items: center; flex: 1; justify-content: flex-end; min-width: 0;">
 
                     <!-- Bookmark search -->
-                    <div class="search-container" style="max-width: 220px; flex-shrink: 0;">
+                    <div class="search-container" style="flex: 0 1 300px; min-width: 180px;">
                         <span class="material-symbols-outlined search-icon">search</span>
-                        <input type="text" id="bookmark-search" placeholder="Search bookmarks..." autocomplete="off"
-                            class="form-input form-input-sm" style="padding-left: 32px; width: 100%;">
+                        <input type="text" id="bookmark-search" placeholder="Search bookmarks..." autocomplete="off">
+                        <button class="btn-icon" id="btn-clear-bookmark-search" style="display: none;" title="Clear Search (Esc)">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
+                        </button>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+                        <label style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; user-select: none;">
+                            <input type="checkbox" id="bookmark-search-include-archived" style="accent-color: var(--text-muted); cursor: pointer;">
+                            Archived
+                        </label>
                     </div>
 
                     <!-- Parked bookmark label chips -->
@@ -259,15 +292,106 @@
                         Add Bookmark
                     </button>
                 </div>
+
+                <!-- Header Actions: Notes view controls (hidden by default, shown when notes active) -->
+                <div id="note-topbar-group"
+                    style="display: none; gap: var(--space-md); align-items: center; flex: 1; justify-content: flex-end; min-width: 0;">
+
+                    <!-- Note search -->
+                    <div class="search-container" style="flex: 0 1 300px; min-width: 180px;">
+                        <span class="material-symbols-outlined search-icon">search</span>
+                        <input type="text" id="note-search" placeholder="Search notes..." autocomplete="off">
+                        <button class="btn-icon" id="btn-clear-note-search" style="display: none;" title="Clear Search (Esc)">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
+                        </button>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+                        <label style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; user-select: none;">
+                            <input type="checkbox" id="note-search-include-archived" style="accent-color: var(--text-muted); cursor: pointer;">
+                            Archived
+                        </label>
+                    </div>
+
+                    <!-- Parked note label chips -->
+                    <div id="note-parked-labels-container"
+                        style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex: 1;">
+                    </div>
+
+                    <!-- Labels visibility toggle -->
+                    <button id="btn-toggle-note-labels" title="Show / Hide Labels"
+                        style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; background-color: var(--bg-surface); border: 1px solid var(--border-light); border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 500; color: var(--text-muted); cursor: pointer; box-shadow: var(--shadow-sm); transition: transform var(--transition-fast), box-shadow var(--transition-fast); flex-shrink: 0;"
+                        onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='var(--shadow-md)';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
+                        <span class="material-symbols-outlined" id="note-labels-toggle-icon"
+                            style="font-size: 14px; pointer-events: none;">label</span>
+                        <span style="pointer-events: none;">Labels</span>
+                    </button>
+
+                    <!-- New Note Label popover -->
+                    <div style="position: relative; display: flex;">
+                        <button id="btn-show-add-note-label"
+                            style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; background-color: var(--bg-surface); border: 1px dashed var(--border-light); border-left: 3px solid var(--text-muted); border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 500; color: var(--text-muted); cursor: pointer; box-shadow: var(--shadow-sm); transition: transform var(--transition-fast), box-shadow var(--transition-fast); flex-shrink: 0;"
+                            title="Create New Note Label"
+                            onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='var(--shadow-md)';"
+                            onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
+                            <span class="material-symbols-outlined"
+                                style="font-size: 14px; pointer-events: none;">add</span>
+                            <span style="pointer-events: none;">New Label</span>
+                        </button>
+                        <div id="add-note-label-popover"
+                            style="display: none; position: absolute; top: 120%; right: 0; width: 250px; flex-direction: column; gap: 12px; padding: 16px; background: var(--bg-surface); border-radius: var(--radius-xl); border: 1px solid var(--border-primary); box-shadow: var(--shadow-lg); z-index: 100;">
+                            <div
+                                style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary); text-align: center;">
+                                Create New Label</div>
+                            <input type="text" id="new-note-label-name" class="form-input form-input-sm"
+                                placeholder="Label name..." style="background: var(--bg-body);" autocomplete="off" />
+                            <div
+                                style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-body); padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="material-symbols-outlined"
+                                        style="color: var(--text-muted); font-size: 18px;">palette</span>
+                                    <span style="font-size: 0.85rem; color: var(--text-secondary);">Color</span>
+                                </div>
+                                <div class="color-picker-wrapper"
+                                    style="position: relative; width: 24px; height: 24px; border-radius: 50%; overflow: hidden; border: 2px solid var(--border-primary); cursor: pointer;">
+                                    <input type="color" id="new-note-label-color" value="#6366f1"
+                                        style="position: absolute; top: -10px; left: -10px; width: 44px; height: 44px; cursor: pointer; border: none; padding: 0;" />
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:8px; margin-top: 4px;">
+                                <button class="btn btn-primary btn-sm" id="btn-save-note-label"
+                                    style="flex: 1;">Create</button>
+                                <button class="btn btn-outline btn-sm" id="btn-cancel-note-label"
+                                    style="flex: 1;">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Note button -->
+                    <button class="btn btn-primary" id="btn-topbar-create-note" style="gap: 8px; flex-shrink: 0;">
+                        <span class="material-symbols-outlined">note_add</span>
+                        Add Note
+                    </button>
+                </div>
             </header>
 
+            <!-- Mobile: Workspace name bar -->
+            <div id="mobile-workspace-name" style="display: none;"></div>
+
             <!-- Dashboard Layout -->
-            <div class="dashboard-layout">
+            <div class="dashboard-layout" style="padding: 16px; gap: 16px;">
                 <!-- Left Column (Header + Calendar) -->
                 <div class="left-column" style="display: flex; flex-direction: column; gap: var(--space-md);">
+                    <!-- Mobile: Calendar close button -->
+                    <button id="mobile-calendar-close" onclick="closeMobileCalendar()">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
                     <div class="board-header" style="padding: 0;">
-                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">Main
-                            Board</h2>
+                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
+                            <span id="workspace-page-title">Workspace</span>
+                            <span id="workspace-page-label" style="font-weight: 400; color: var(--text-muted);"> —
+                                Tasks</span>
+                        </h2>
                     </div>
 
                     <!-- Calendar Column (left) -->
@@ -279,7 +403,10 @@
                                     Today
                                 </button>
                                 <button class="btn btn-sm btn-filter-tab" id="btn-this-week">
-                                    This Week
+                                    Wk
+                                </button>
+                                <button class="btn btn-sm btn-filter-tab" id="btn-this-month">
+                                    Mth
                                 </button>
                                 <button class="btn btn-sm btn-filter-tab active" id="btn-all-tasks">
                                     All
@@ -314,7 +441,7 @@
                 </div> <!-- Close Left Column -->
 
                 <!-- Right Side Container containing the buckets -->
-                <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                <div id="right-column" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
                     <!-- Global Search Indicator (Injected dynamically) -->
                     <div id="search-indicator" class="search-indicator"
                         style="display: none; align-items: center; justify-content: center; background: var(--warning-subtle); color: var(--warning); padding: 8px 16px; font-weight: 500; font-size: 0.85rem; border-bottom: 1px solid var(--border-light);">
@@ -339,11 +466,32 @@
                         <!-- Star Filter Toggle & Zoom Control -->
                         <div id="star-filter-bar" class="star-filter-bar"
                             style="margin: 0 var(--spacing-6) var(--spacing-4) 0; display: flex; align-items: center; justify-content: space-between;">
-                            <button class="btn btn-sm btn-outline btn-star-filter" id="btn-star-filter" type="button">
-                                <span class="material-symbols-outlined" id="star-filter-icon"
-                                    style="font-size: 18px;">star</span>
-                                <span id="star-filter-label">Show Starred Only</span>
-                            </button>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button class="btn btn-sm btn-outline btn-star-filter" id="btn-star-filter"
+                                    type="button">
+                                    <span class="material-symbols-outlined" id="star-filter-icon"
+                                        style="font-size: 18px;">star</span>
+                                    <span id="star-filter-label">Starred</span>
+                                </button>
+                                <button class="btn btn-sm btn-outline" id="btn-sort-all-date" type="button">
+                                    <span class="material-symbols-outlined"
+                                        style="font-size: 18px;">calendar_month</span>
+                                    <span id="sort-all-date-label">Sort Date</span>
+                                </button>
+                                <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--text-secondary); cursor: pointer; user-select: none; white-space: nowrap;">
+                                    <input type="checkbox" id="filter-this-week" style="accent-color: var(--primary); cursor: pointer;">
+                                    1 Wk
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--text-secondary); cursor: pointer; user-select: none; white-space: nowrap;">
+                                    <input type="checkbox" id="filter-past-due" style="accent-color: var(--danger); cursor: pointer;">
+                                    Past Due
+                                </label>
+                                <div style="width: 1px; height: 18px; background: var(--border-light); margin: 0 4px;"></div>
+                                <button class="btn btn-sm btn-search-shortcut" id="btn-search-expc" type="button">ExpC</button>
+                                <button class="btn btn-sm btn-search-shortcut" id="btn-search-expr" type="button">ExpR</button>
+                                <button class="btn btn-sm btn-search-shortcut" id="btn-search-kkflw" type="button">kkflw</button>
+                                <div id="saved-searches-container" class="saved-searches-container" aria-label="Saved searches"></div>
+                            </div>
                             <div class="zoom-controls" style="display: flex; align-items: center; gap: 8px;">
                                 <span class="material-symbols-outlined"
                                     style="font-size: 16px; color: var(--text-muted);">zoom_out</span>
@@ -354,10 +502,12 @@
                             </div>
                         </div>
                         <div id="dashboard-container" class="layout-container"
-                            style="flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0 var(--spacing-6) 0 0;">
+                            style="flex: 1; min-height: 0; padding: 0 16px 0 0;">
                             <section class="bucket-grid stagger-children" id="main-board">
                                 <!-- JS auto injects bucket columns here -->
                             </section>
+                            <!-- Mobile: Bucket navigation dots -->
+                            <div id="mobile-bucket-nav"></div>
                         </div>
                     </div>
 
@@ -369,8 +519,9 @@
                                 style="width: 100%; max-width: 800px; margin: 0 auto; min-height: unset; height: auto;">
                                 <div class="bucket-header"
                                     style="justify-content: center; border-bottom: 1px solid var(--border-light); margin-bottom: 24px; padding-bottom: 12px;">
-                                    <h3 class="bucket-title" style="font-size: 1.5rem; text-align: center;">Completed
-                                        Tasks</h3>
+                                    <h3 class="bucket-title"
+                                        style="font-size: 1.5rem; text-align: center; color: var(--success);">Completed
+                                    </h3>
                                 </div>
                                 <div class="task-list" id="completed-tasks-list">
                                     <div class="empty-state">Loading completed tasks...</div>
@@ -387,8 +538,10 @@
                                 style="width: 100%; max-width: 800px; margin: 0 auto; min-height: unset; height: auto;">
                                 <div class="bucket-header"
                                     style="align-items: center; border-bottom: 1px solid var(--border-light); margin-bottom: 24px; padding-bottom: 12px; display: flex; position: relative;">
-                                    <h3 class="bucket-title" style="font-size: 1.5rem; text-align: center; flex: 1;">
-                                        Archived Tasks</h3>
+                                    <div style="flex: 1; text-align: center;">
+                                        <h3 class="bucket-title" style="font-size: 1.5rem; color: var(--danger);">
+                                            Archived</h3>
+                                    </div>
                                     <button class="btn btn-sm btn-outline btn-danger" id="btn-delete-old-archive"
                                         style="position: absolute; right: 0; border-color: var(--danger); color: var(--danger);">
                                         <span class="material-symbols-outlined"
@@ -405,6 +558,18 @@
                     <!-- BOOKMARKS DASHBOARD -->
                     <div id="bookmark-board-container" class="board-container"
                         style="flex: 1; display: none; flex-direction: column; min-height: 0;">
+                        <!-- Bookmark Search Indicator -->
+                        <div id="bookmark-search-indicator" style="display: none; align-items: center; justify-content: center; background: var(--warning-subtle); color: var(--warning); padding: 8px 16px; font-weight: 500; font-size: 0.85rem; border-bottom: 1px solid var(--border-light);">
+                            <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 6px;">search</span>
+                            <span id="bookmark-search-indicator-text">Filtered by search: ''</span>
+                        </div>
+                        <!-- Bookmark Page Header -->
+                        <div style="padding: 0 var(--space-3xl) 0 var(--space-3xl);">
+                            <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
+                                <span id="workspace-name-bookmarks"></span>
+                                <span style="font-weight: 400; color: var(--text-muted);"> — Bookmarks</span>
+                            </h2>
+                        </div>
                         <!-- Bookmark Zoom Controls -->
                         <div
                             style="display: flex; align-items: center; justify-content: flex-end; padding: 0 var(--space-3xl) var(--space-lg) var(--space-3xl);">
@@ -419,15 +584,82 @@
                         </div>
                         <!-- Bookmark Bucket Grid -->
                         <div id="bookmark-dashboard-container" class="layout-container"
-                            style="flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0 var(--space-3xl) 0 var(--space-3xl);">
+                            style="flex: 1; min-height: 0; padding: 0 var(--space-3xl) 0 var(--space-3xl);">
                             <section class="bucket-grid stagger-children" id="bookmark-board">
                                 <!-- JS auto injects bookmark buckets here -->
+                            </section>
+                        </div>
+                    </div>
+                    <!-- NOTES DASHBOARD -->
+                    <div id="note-board-container" class="board-container"
+                        style="flex: 1; display: none; flex-direction: column; min-height: 0;">
+                        <!-- Note Search Indicator -->
+                        <div id="note-search-indicator" style="display: none; align-items: center; justify-content: center; background: var(--warning-subtle); color: var(--warning); padding: 8px 16px; font-weight: 500; font-size: 0.85rem; border-bottom: 1px solid var(--border-light);">
+                            <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 6px;">search</span>
+                            <span id="note-search-indicator-text">Filtered by search: ''</span>
+                        </div>
+                        <!-- Note Page Header -->
+                        <div style="padding: 0 var(--space-3xl) 0 var(--space-3xl);">
+                            <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
+                                <span id="workspace-name-notes"></span>
+                                <span style="font-weight: 400; color: var(--text-muted);"> — Notes</span>
+                            </h2>
+                        </div>
+                        <!-- Note Zoom Controls -->
+                        <div
+                            style="display: flex; align-items: center; justify-content: flex-end; padding: 0 var(--space-3xl) var(--space-lg) var(--space-3xl);">
+                            <div class="zoom-controls" style="display: flex; align-items: center; gap: 8px;">
+                                <span class="material-symbols-outlined"
+                                    style="font-size: 16px; color: var(--text-muted);">zoom_out</span>
+                                <input type="range" id="note-zoom-slider" min="0.5" max="1.5" step="0.1" value="1.0"
+                                    style="width: 100px;">
+                                <span class="material-symbols-outlined"
+                                    style="font-size: 16px; color: var(--text-muted);">zoom_in</span>
+                            </div>
+                        </div>
+                        <!-- Note Bucket Grid -->
+                        <div id="note-dashboard-container" class="layout-container"
+                            style="flex: 1; min-height: 0; padding: 0 var(--space-3xl) 0 var(--space-3xl);">
+                            <section class="bucket-grid stagger-children" id="note-board">
+                                <!-- JS auto injects note buckets here -->
                             </section>
                         </div>
                     </div>
 
                 </div> <!-- Close right-side flex container -->
             </div> <!-- Close .dashboard-layout -->
+            <!-- Parked Tasks Tray -->
+            <div id="parked-tasks-tray" class="parked-tasks-tray" style="display: none;">
+                <div class="parked-tasks-tray-header">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">dock_to_bottom</span>
+                    <span>Parked</span>
+                    <span id="parked-tasks-count" class="parked-tasks-count">0</span>
+                </div>
+                <div id="parked-tasks-list" class="parked-tasks-list"></div>
+            </div>
+            <!-- Parked Bookmarks Tray -->
+            <div id="parked-bookmarks-tray" class="parked-tasks-tray" style="display: none;">
+                <div class="parked-tasks-tray-header">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">dock_to_bottom</span>
+                    <span>Parked</span>
+                    <span id="parked-bookmarks-count" class="parked-tasks-count">0</span>
+                </div>
+                <div id="parked-bookmarks-list" class="parked-tasks-list"></div>
+            </div>
+            <!-- Parked Notes Tray -->
+            <div id="parked-notes-tray" class="parked-tasks-tray" style="display: none;">
+                <div class="parked-tasks-tray-header">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">dock_to_bottom</span>
+                    <span>Parked</span>
+                    <span id="parked-notes-count" class="parked-tasks-count">0</span>
+                </div>
+                <div id="parked-notes-list" class="parked-tasks-list"></div>
+            </div>
+
+            <!-- Mobile: Floating Action Button (Create Task) -->
+            <button id="mobile-fab" aria-label="Create Task">
+                <span class="material-symbols-outlined" style="font-size: 28px;">add</span>
+            </button>
         </main>
     </div>
 
@@ -459,6 +691,9 @@
             <div class="modal-header">
                 <h2 class="modal-title" id="bookmark-modal-title-text">Edit Bookmark</h2>
                 <div style="display: flex; gap: 4px;">
+                    <button class="btn-icon" id="btn-bookmark-archive" data-tooltip="Archive" style="display: none;">
+                        <span class="material-symbols-outlined" style="color: var(--text-muted);">inventory_2</span>
+                    </button>
                     <button class="btn-icon" id="btn-bookmark-delete" data-tooltip="Delete">
                         <span class="material-symbols-outlined" style="color: var(--danger);">delete</span>
                     </button>
@@ -546,6 +781,163 @@
         </div>
     </div>
 
+    <!-- ===== NOTE DETAIL MODAL ===== -->
+    <div class="modal-overlay" id="note-modal-overlay"
+        onclick="if(event.target===this) document.getElementById('note-modal-overlay').classList.remove('active')">
+        <div class="modal" style="max-width: 700px; width: 95%;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="note-modal-title-text">New Note</h2>
+                <div style="display: flex; gap: 4px; align-items: center;">
+                    <span id="note-modal-created-info"
+                        style="font-size: 0.75rem; color: var(--text-muted); margin-right: 8px;"></span>
+                    <button class="btn-icon" id="btn-note-archive" data-tooltip="Archive" style="display: none;">
+                        <span class="material-symbols-outlined" style="color: var(--text-muted);">inventory_2</span>
+                    </button>
+                    <button class="btn-icon" id="btn-note-delete" data-tooltip="Delete" style="display: none;">
+                        <span class="material-symbols-outlined" style="color: var(--danger);">delete</span>
+                    </button>
+                    <button class="btn-icon" id="btn-note-close" data-tooltip="Close">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body"
+                style="display: flex; flex-direction: column; gap: 16px; max-height: 75vh; overflow-y: auto;">
+                <!-- Note Name -->
+                <div>
+                    <label
+                        style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px;">Name</label>
+                    <input type="text" id="note-modal-name" class="form-input" placeholder="Note name..."
+                        autocomplete="off">
+                </div>
+                <!-- Labels Multi-Select -->
+                <div>
+                    <label
+                        style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px;">Labels</label>
+                    <div class="custom-select-wrapper" id="note-label-select-wrapper">
+                        <div class="custom-select-trigger" id="note-label-trigger">
+                            <span id="note-label-display" style="color: var(--text-muted);">Select
+                                labels...</span>
+                            <span class="material-symbols-outlined">expand_more</span>
+                        </div>
+                        <div class="custom-select-dropdown" id="note-label-dropdown" style="display: none;">
+                            <div class="custom-select-search">
+                                <input type="text" id="note-label-search" placeholder="Search or create..."
+                                    autocomplete="off">
+                            </div>
+                            <div class="custom-select-options" id="note-label-options">
+                                <!-- Labels injected here by JS -->
+                            </div>
+                            <div class="custom-select-create" id="note-label-create-section" style="display: none;">
+                                <button class="btn btn-sm btn-outline" id="btn-create-new-note-label-modal"
+                                    style="width: 100%;">+ Create "<span id="new-note-label-text"></span>"</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="selected-labels-container" id="note-selected-labels"></div>
+                </div>
+                <!-- Divider -->
+                <hr style="border: none; border-top: 1px solid var(--border-light); margin: 4px 0;">
+                <!-- Comments Section (Main Body) -->
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
+                    <label
+                        style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary);">Comments</label>
+                    <!-- Comment Editor -->
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <div class="comment-toolbar" style="display: flex; gap: 4px;">
+                            <button class="comment-toolbar-btn" id="btn-note-comment-bold" type="button" title="Bold">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">format_bold</span>
+                            </button>
+                            <button class="comment-toolbar-btn" id="btn-note-comment-highlight" type="button"
+                                title="Highlight">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">ink_highlighter</span>
+                            </button>
+                            <button class="comment-toolbar-btn" id="btn-note-comment-link" type="button"
+                                title="Insert Link">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">link</span>
+                            </button>
+                        </div>
+                        <div id="note-comment-editor" contenteditable="true" class="form-input note-comment-editor"
+                            style="min-height: 80px; max-height: none; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word; width: 100%;"
+                            data-placeholder="Write a comment..."></div>
+                        <div style="display: flex; justify-content: flex-end;">
+                            <button class="btn btn-primary btn-sm" id="btn-note-add-comment">Add Comment</button>
+                        </div>
+                    </div>
+                    <!-- Comments List -->
+                    <div id="note-comments-list" style="display: flex; flex-direction: column; gap: 12px;">
+                        <!-- JS renders comments here -->
+                    </div>
+                </div>
+                <!-- Related Tasks in Note -->
+                <div class="related-tasks-section"
+                    style="border-top: 1px solid var(--border-light); padding-top: 12px;">
+                    <div class="related-tasks-header">
+                        <span class="meta-label">
+                            <span class="material-symbols-outlined"
+                                style="font-size: 16px; vertical-align: middle;">link</span>
+                            Related Tasks
+                        </span>
+                        <button class="btn btn-sm btn-outline" id="btn-note-link-task" type="button">+ Link
+                            Task</button>
+                    </div>
+                    <div class="related-tasks-search" id="note-related-tasks-search" style="display: none;">
+                        <input type="text" id="note-related-tasks-search-input" class="form-input form-input-sm"
+                            placeholder="Search tasks to link..." autocomplete="off">
+                        <div class="related-tasks-search-results" id="note-related-tasks-search-results"></div>
+                    </div>
+                    <div class="related-tasks-list" id="note-related-tasks-list">
+                    </div>
+                </div>
+                <!-- Related Notes in Note -->
+                <div class="related-tasks-section" style="padding-top: 8px;">
+                    <div class="related-tasks-header">
+                        <span class="meta-label">
+                            <span class="material-symbols-outlined"
+                                style="font-size: 16px; vertical-align: middle;">sticky_note_2</span>
+                            Related Notes
+                        </span>
+                        <button class="btn btn-sm btn-outline" id="btn-note-link-note" type="button">+ Link
+                            Note</button>
+                    </div>
+                    <div class="related-tasks-search" id="note-related-notes-search" style="display: none;">
+                        <input type="text" id="note-related-notes-search-input" class="form-input form-input-sm"
+                            placeholder="Search notes to link..." autocomplete="off">
+                        <div class="related-tasks-search-results" id="note-related-notes-search-results"></div>
+                    </div>
+                    <div class="related-tasks-list" id="note-related-notes-list">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer"
+                style="display: flex; justify-content: flex-end; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--border-primary);">
+                <button class="btn btn-primary" id="btn-note-save">Save</button>
+                <button class="btn btn-outline" id="btn-note-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== NOTE MOVE MODAL ===== -->
+    <div class="modal-overlay" id="note-move-modal">
+        <div class="modal" style="width: 400px; max-width: 90%;">
+            <div class="modal-header">
+                <h2 class="modal-title">Move or Add Note</h2>
+                <button class="btn-icon" id="btn-note-move-close" data-tooltip="Close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding-bottom: 24px;">
+                <p style="margin-bottom: 24px; color: var(--text-secondary);">Do you want to move this note to the
+                    new bucket, or add it to both?</p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button class="btn btn-primary" id="btn-note-move-move">Move Note</button>
+                    <button class="btn btn-outline" id="btn-note-move-add"
+                        style="color: var(--primary); border-color: var(--primary);">Add to Both</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== SETTINGS MODAL ===== -->
     <div class="modal-overlay" id="settings-modal" onclick="if(event.target === this) closeSettingsModal()">
         <div class="modal">
@@ -607,11 +999,20 @@
                     </button>
                     <span id="task-modal-created-info"
                         style="font-size: 0.75rem; color: var(--text-muted); margin-left: 8px;"></span>
+                    <span id="task-modal-status-info"
+                        style="font-size: 0.75rem; margin-left: 4px;"></span>
                 </div>
                 <div class="task-modal-actions" style="display: flex; align-items: center; gap: 4px;">
+                    <button class="btn-icon" id="btn-task-restore" data-tooltip="Restore Task"
+                        style="display: none; color: var(--warning);">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">settings_backup_restore</span>
+                    </button>
                     <button class="btn btn-sm btn-outline" id="btn-task-complete"
                         style="color: var(--success); border-color: var(--success); margin-right: 8px;">
                         Complete
+                    </button>
+                    <button class="btn-icon" id="btn-task-park" data-tooltip="Park Task" style="display: none;">
+                        <span class="material-symbols-outlined" style="color: var(--text-muted);">dock_to_bottom</span>
                     </button>
                     <button class="btn-icon" id="btn-task-print" data-tooltip="Print Task">
                         <span class="material-symbols-outlined" style="color: var(--info);">print</span>
@@ -725,6 +1126,25 @@
                         </div>
                     </div>
 
+                    <!-- Related Notes -->
+                    <div class="related-tasks-section">
+                        <div class="related-tasks-header">
+                            <span class="meta-label">
+                                <span class="material-symbols-outlined"
+                                    style="font-size: 16px; vertical-align: middle;">sticky_note_2</span>
+                                Related Notes
+                            </span>
+                            <button class="btn btn-sm btn-outline" id="btn-link-note" type="button">+ Link Note</button>
+                        </div>
+                        <div class="related-tasks-search" id="related-notes-search" style="display: none;">
+                            <input type="text" id="related-notes-search-input" class="form-input form-input-sm"
+                                placeholder="Search notes to link..." autocomplete="off">
+                            <div class="related-tasks-search-results" id="related-notes-search-results"></div>
+                        </div>
+                        <div class="related-tasks-list" id="related-notes-list">
+                        </div>
+                    </div>
+
                     <!-- Footer Actions -->
                     <div class="task-modal-footer">
                         <button class="btn btn-primary" id="btn-task-save">Save Task</button>
@@ -806,64 +1226,8 @@
         </button>
     </div>
 
-    <!-- Inline UI script — works regardless of module loading -->
-    <script>
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('sidebar-overlay').classList.toggle('active');
-        }
-        function closeSidebar() {
-            document.getElementById('sidebar').classList.remove('open');
-            document.getElementById('sidebar-overlay').classList.remove('active');
-        }
-        function openSettingsModal() {
-            document.getElementById('settings-modal').classList.add('active');
-        }
-        function closeSettingsModal() {
-            document.getElementById('settings-modal').classList.remove('active');
-        }
-        function toggleTheme() {
-            var html = document.documentElement;
-            var current = html.getAttribute('data-theme');
-            var next = current === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-theme', next);
-            var toggle = document.getElementById('modal-theme-toggle');
-            if (toggle) toggle.checked = (next === 'dark');
-            try { localStorage.setItem('taskmanager-theme', next); } catch (e) { }
-        }
-        // Restore saved theme on load
-        (function () {
-            try {
-                var saved = localStorage.getItem('taskmanager-theme');
-                if (saved === 'dark' || saved === 'light') {
-                    document.documentElement.setAttribute('data-theme', saved);
-                    // Defer setting the checkbox state until DOM is parsed
-                    window.addEventListener('DOMContentLoaded', () => {
-                        var toggle = document.getElementById('modal-theme-toggle');
-                        if (toggle) toggle.checked = (saved === 'dark');
-                    });
-                }
-            } catch (e) { }
-        })();
-
-        // Global Keyboard Shortcut: Press 'F' or 'f' to focus search
-        document.addEventListener('keydown', function (e) {
-            // Ignore if the user is already typing in an input, textarea, or contenteditable
-            const tagName = e.target.tagName;
-            const isContentEditable = e.target.isContentEditable;
-            if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || isContentEditable) {
-                return;
-            }
-
-            if (e.key === 'f' || e.key === 'F') {
-                e.preventDefault();
-                const searchInput = document.getElementById('global-search');
-                if (searchInput) {
-                    searchInput.focus();
-                }
-            }
-        });
-    </script>
+    <!-- UI helpers: sidebar, settings modal, theme toggle, keyboard shortcuts -->
+    <script src="./src/js/ui-helpers.js"></script>
 
     <!-- App module (Firebase, future features) -->
 </body>

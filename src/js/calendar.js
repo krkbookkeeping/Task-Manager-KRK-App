@@ -205,6 +205,23 @@ export class Calendar {
         this.dispatchFilterEvent(null);
     }
 
+    setSelection(dateId = null, rangeStart = null, rangeEnd = null) {
+        this.selectedDate = dateId;
+        this.rangeStart = rangeStart;
+        this.rangeEnd = rangeEnd;
+
+        const focusDate = dateId || rangeStart;
+        if (focusDate) {
+            const [year, month] = focusDate.split('-').map(Number);
+            this.currentDate = new Date(year, month - 1, 1);
+        }
+
+        this.updateFilterTabsState(null);
+        this.render();
+        this.updateFilterBanner();
+        this.dispatchFilterEvent(dateId, rangeStart, rangeEnd);
+    }
+
     formatDateId(year, month, day) {
         const m = String(month + 1).padStart(2, '0');
         const d = String(day).padStart(2, '0');
