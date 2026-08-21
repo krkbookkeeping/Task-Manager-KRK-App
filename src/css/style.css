@@ -2571,3 +2571,16 @@ main.has-parked-tray .dashboard-layout {
 .task-table-muted { color: var(--text-muted); }
 .task-table-label { display: inline-flex; align-items: center; gap: 5px; }
 .task-table-label-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* Keep the calendar compact without visible scrollbars. It remains scrollable by wheel/touch. */
+.left-column,
+.calendar-column {
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.left-column::-webkit-scrollbar,
+.calendar-column::-webkit-scrollbar {
+    display: none;
+}
