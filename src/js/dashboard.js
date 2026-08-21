@@ -1,6 +1,7 @@
 import { labelService } from './services/label-service.js';
 import { taskService } from './services/task-service.js';
 import { savedSearchService } from './services/saved-search-service.js';
+import { workspaceService } from './services/workspace-service.js';
 import { DASHBOARD_PUNCH_OFFSETS, calculateOffsetDate } from './utils/date-utils.js';
 
 export class Dashboard {
@@ -24,6 +25,12 @@ export class Dashboard {
         this.searchCompletedTasks = []; // Completed tasks loaded for search
         this.searchArchivedTasks = []; // Archived tasks loaded for search
         this.savedSearches = []; // Saved per-workspace search states
+        this.viewMode = 'buckets';
+        this.tableGrouping = 'none';
+        this.tableSort = 'dueDate';
+        this.tableSortDirection = 'asc';
+        this.tableSortScope = 'within';
+        this.crossBucketDefault = 'move';
         this.thisWeekFilter = false; // Persistent "This Week" filter
         this.pastDueFilter = false; // Persistent "Past Due" filter
 
@@ -74,6 +81,19 @@ export class Dashboard {
             this.renderSavedSearches();
         });
 
+        workspaceService.get(this.uid, this.workspaceId).then((workspace) => {
+            const tableView = workspace?.settings?.tableView;
+            this.crossBucketDefault = workspace?.settings?.crossBucketDefault || this.crossBucketDefault;
+            if (!tableView) return;
+            this.viewMode = tableView.viewMode || this.viewMode;
+            this.tableGrouping = tableView.grouping || this.tableGrouping;
+            this.tableSort = tableView.sort || this.tableSort;
+            this.tableSortDirection = tableView.direction || this.tableSortDirection;
+            this.tableSortScope = tableView.sortScope || this.tableSortScope;
+            this.syncTableControls();
+            this.render();
+        }).catch(err => console.warn('Unable to load table view preferences:', err));
+
         // Listen for Calendar Filter Events
         document.addEventListener('filterTasksByDate', (e) => {
             if (e.detail.rangeStart && e.detail.rangeEnd) {
@@ -108,8 +128,234 @@ export class Dashboard {
         if (this._abortController) this._abortController.abort();
     }
 
+    async persistTablePreferences() {
+        try {
+            await workspaceService.update(this.uid, this.workspaceId, {
+                'settings.tableView': {
+                    viewMode: this.viewMode,
+                    grouping: this.tableGrouping,
+                    sort: this.tableSort,
+                    direction: this.tableSortDirection,
+                    sortScope: this.tableSortScope
+                }
+            });
+        } catch (err) {
+            console.warn('Unable to save table view preferences:', err);
+        }
+    }
+
+    syncTableControls() {
+        const bucketsBtn = document.getElementById('btn-view-buckets');
+        const tableBtn = document.getElementById('btn-view-table');
+        const grouping = document.getElementById('table-grouping');
+        const sort = document.getElementById('table-sort');
+        const sortScope = document.getElementById('table-sort-scope');
+        const direction = document.getElementById('btn-table-sort-direction');
+        bucketsBtn?.classList.toggle('active', this.viewMode === 'buckets');
+        tableBtn?.classList.toggle('active', this.viewMode === 'table');
+        if (grouping) { grouping.value = this.tableGrouping; grouping.disabled = this.viewMode !== 'table'; }
+        if (sort) { sort.value = this.tableSort; sort.disabled = this.viewMode !== 'table'; }
+        if (sortScope) { sortScope.value = this.tableSortScope; sortScope.disabled = this.viewMode !== 'table'; }
+        if (direction) {
+            direction.disabled = this.viewMode !== 'table';
+            direction.querySelector('span').textContent = this.tableSortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward';
+        }
+    }
+
+    getTableTasks() {
+        let tasks = [...this.tasks];
+        if (this.searchQuery && this.searchIncludeCompleted) tasks.push(...this.searchCompletedTasks);
+        if (this.searchQuery && this.searchIncludeArchived) tasks.push(...this.searchArchivedTasks);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayStr = today.toISOString().split('T')[0];
+        const weekOut = new Date(today);
+        weekOut.setDate(weekOut.getDate() + 7);
+        const weekOutStr = weekOut.toISOString().split('T')[0];
+
+        return tasks.filter(task => {
+            const date = task.dueDate?.split('T')[0];
+            if (this.currentFilterDate && (!date || date < this.currentFilterDate || (this.currentFilterDateEnd ? date > this.currentFilterDateEnd : date !== this.currentFilterDate))) return false;
+            if (this.thisWeekFilter && date && date > weekOutStr) return false;
+            if (this.pastDueFilter && (!date || date >= todayStr)) return false;
+            if (this.starFilter && !task.starred) return false;
+            if (this.searchQuery && !this.filterTaskByQuery(task, this.searchQuery)) return false;
+            return true;
+        });
+    }
+
+    getTaskBucket(task) {
+        const label = (task.labels || []).map(id => this.labels.find(item => item.id === id)).find(Boolean);
+        return label || { id: '', name: 'No Label', color: 'var(--text-muted)' };
+    }
+
+    getDateGroup(task) {
+        const date = task.dueDate?.split('T')[0];
+        if (!date) return { key: 'no-date', name: 'No due date', dropDate: null };
+        const now = new Date(); now.setHours(0, 0, 0, 0);
+        const today = now.toISOString().split('T')[0];
+        const tomorrowDate = new Date(now); tomorrowDate.setDate(now.getDate() + 1);
+        const tomorrow = tomorrowDate.toISOString().split('T')[0];
+        if (date < today) return { key: 'overdue', name: 'Overdue', dropDate: null };
+        if (date === today) return { key: 'today', name: 'Today', dropDate: today };
+        if (date === tomorrow) return { key: 'tomorrow', name: 'Tomorrow', dropDate: tomorrow };
+        const endOfWeek = new Date(now); endOfWeek.setDate(now.getDate() + (6 - now.getDay()));
+        const nextWeekEnd = new Date(endOfWeek); nextWeekEnd.setDate(endOfWeek.getDate() + 7);
+        const endMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const endNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+        if (date <= endOfWeek.toISOString().split('T')[0]) return { key: 'this-week', name: 'This Week', dropDate: 'choice' };
+        if (date <= nextWeekEnd.toISOString().split('T')[0]) return { key: 'next-week', name: 'Next Week', dropDate: this.getNextMonday() };
+        if (date <= endMonth.toISOString().split('T')[0]) return { key: 'this-month', name: 'This Month', dropDate: 'choice' };
+        if (date <= endNextMonth.toISOString().split('T')[0]) return { key: 'next-month', name: 'Next Month', dropDate: `${endMonth.getFullYear()}-${String(endMonth.getMonth() + 2).padStart(2, '0')}-01` };
+        return { key: 'later', name: 'Later', dropDate: null };
+    }
+
+    getNextMonday() {
+        const date = new Date(); date.setHours(0, 0, 0, 0);
+        const days = ((8 - date.getDay()) % 7) || 7;
+        date.setDate(date.getDate() + days);
+        return date.toISOString().split('T')[0];
+    }
+
+    sortTableTasks(tasks) {
+        const direction = this.tableSortDirection === 'asc' ? 1 : -1;
+        return [...tasks].sort((a, b) => {
+            let aValue, bValue;
+            if (this.tableSort === 'title') { aValue = a.title || ''; bValue = b.title || ''; }
+            else if (this.tableSort === 'bucket') { aValue = this.getTaskBucket(a).name; bValue = this.getTaskBucket(b).name; }
+            else if (this.tableSort === 'createdAt') { aValue = a.createdAt?.seconds || 0; bValue = b.createdAt?.seconds || 0; }
+            else { aValue = a.dueDate?.split('T')[0] || '9999-12-31'; bValue = b.dueDate?.split('T')[0] || '9999-12-31'; }
+            return String(aValue).localeCompare(String(bValue), undefined, { numeric: true }) * direction;
+        });
+    }
+
+    renderTableView() {
+        this.gridEl.innerHTML = '';
+        this.gridEl.classList.add('table-view');
+        this.renderParkedTasksTray();
+        this.renderParkedLabels([]);
+        this.syncTableControls();
+
+        const tasks = this.tableSortScope === 'overall' ? this.sortTableTasks(this.getTableTasks()) : this.getTableTasks();
+        const groups = new Map();
+        tasks.forEach(task => {
+            let group = { key: 'all', name: 'All tasks', dropDate: null };
+            if (this.tableGrouping === 'bucket') {
+                const bucket = this.getTaskBucket(task);
+                group = { key: `bucket:${bucket.id}`, name: bucket.name, bucket };
+            } else if (this.tableGrouping === 'date') group = this.getDateGroup(task);
+            if (!groups.has(group.key)) groups.set(group.key, { ...group, tasks: [] });
+            groups.get(group.key).tasks.push(task);
+        });
+        if (groups.size === 0) groups.set('empty', { key: 'empty', name: 'No matching tasks', tasks: [] });
+
+        const view = document.createElement('div');
+        view.className = 'table-view';
+        let groupList = [...groups.values()];
+        if (this.tableGrouping === 'date') {
+            const dateOrder = ['overdue', 'today', 'tomorrow', 'this-week', 'next-week', 'this-month', 'next-month', 'later', 'no-date'];
+            groupList.sort((a, b) => dateOrder.indexOf(a.key) - dateOrder.indexOf(b.key));
+        } else if (this.tableGrouping === 'bucket' && this.tableSortScope === 'within') {
+            groupList.sort((a, b) => a.name.localeCompare(b.name));
+        }
+        groupList.forEach(group => {
+            if (this.tableSortScope === 'within') group.tasks = this.sortTableTasks(group.tasks);
+            const section = document.createElement('section');
+            section.className = 'table-group';
+            section.dataset.groupKey = group.key;
+            section.dataset.dropDate = group.dropDate ?? '';
+            section.dataset.bucketId = group.bucket?.id || '';
+            section.innerHTML = `<div class="table-group-header"><span>${this.escapeHtml(group.name)}</span><span class="task-count">${group.tasks.length}</span></div><table class="task-table"><thead><tr><th></th><th>Task</th><th>Bucket</th><th>Due</th><th>Star</th><th>Files</th></tr></thead><tbody></tbody></table>`;
+            const body = section.querySelector('tbody');
+            group.tasks.forEach(task => {
+                const bucket = this.getTaskBucket(task);
+                const row = document.createElement('tr');
+                row.className = 'task-table-row';
+                row.draggable = !task.completed && !task.archived;
+                row.dataset.taskId = task.id;
+                row.innerHTML = `<td><button class="btn-icon btn-complete-task" data-task-id="${task.id}" title="Complete task"><span class="material-symbols-outlined" style="font-size:18px;">check_circle</span></button></td><td class="task-table-title">${this.escapeHtml(task.title)}</td><td><span class="task-table-label"><span class="task-table-label-dot" style="background:${bucket.color};"></span>${this.escapeHtml(bucket.name)}</span></td><td class="${task.dueDate ? '' : 'task-table-muted'}">${task.dueDate ? this.formatDate(task.dueDate) : 'No date'}</td><td>${task.starred ? '★' : ''}</td><td>${task.attachments?.length ? '📎' : ''}</td>`;
+                row.addEventListener('click', (event) => { if (!event.target.closest('button') && window.currentTaskModal) window.currentTaskModal.open(task.id); });
+                body.appendChild(row);
+            });
+            view.appendChild(section);
+        });
+        this.gridEl.appendChild(view);
+        this.bindTableEvents();
+    }
+
+    bindTableEvents() {
+        this.gridEl.querySelectorAll('.btn-complete-task').forEach(button => {
+            button.addEventListener('click', async (event) => {
+                event.stopPropagation();
+                await taskService.update(this.uid, this.workspaceId, this.boardId, button.dataset.taskId, {
+                    completed: true,
+                    completedAt: new Date().toISOString()
+                });
+            });
+        });
+
+        this.gridEl.querySelectorAll('.task-table-row').forEach(row => {
+            row.addEventListener('dragstart', event => {
+                row.classList.add('dragging-task');
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('application/x-task-card', row.dataset.taskId);
+            });
+            row.addEventListener('dragend', () => row.classList.remove('dragging-task'));
+        });
+
+        this.gridEl.querySelectorAll('.table-group').forEach(group => {
+            group.addEventListener('dragover', event => {
+                if (!event.dataTransfer.types.includes('application/x-task-card')) return;
+                event.preventDefault();
+                group.classList.add('drag-over');
+            });
+            group.addEventListener('dragleave', () => group.classList.remove('drag-over'));
+            group.addEventListener('drop', async event => {
+                const taskId = event.dataTransfer.getData('application/x-task-card');
+                group.classList.remove('drag-over');
+                if (!taskId) return;
+                event.preventDefault();
+                const groupKey = group.dataset.groupKey;
+                if (this.tableGrouping === 'bucket') {
+                    const targetLabelId = group.dataset.bucketId;
+                    const task = this.tasks.find(item => item.id === taskId);
+                    if (!targetLabelId || !task || task.labels?.includes(targetLabelId)) return;
+                    const defaultMode = this.crossBucketDefault === 'add' ? 'add' : 'move';
+                    const mode = event.shiftKey ? (defaultMode === 'add' ? 'move' : 'add') : defaultMode;
+                    const labels = mode === 'add' ? [...new Set([...(task.labels || []), targetLabelId])] : [targetLabelId];
+                    await taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { labels });
+                    return;
+                }
+                if (this.tableGrouping !== 'date') return;
+
+                let dueDate = group.dataset.dropDate || null;
+                if (dueDate === 'choice') {
+                    const response = window.prompt('Set due date: enter “next” for the next available working day, or enter a date as YYYY-MM-DD.');
+                    if (!response) return;
+                    if (response.trim().toLowerCase() === 'next') dueDate = this.getNextWorkingDay();
+                    else if (/^\d{4}-\d{2}-\d{2}$/.test(response.trim())) dueDate = response.trim();
+                    else { window.alert('Please enter “next” or a date in YYYY-MM-DD format.'); return; }
+                }
+                if (groupKey === 'overdue' || groupKey === 'later' || groupKey === 'empty') return;
+                await taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { dueDate });
+            });
+        });
+    }
+
+    getNextWorkingDay() {
+        const date = new Date(); date.setHours(0, 0, 0, 0);
+        do { date.setDate(date.getDate() + 1); } while (date.getDay() === 0 || date.getDay() === 6);
+        return date.toISOString().split('T')[0];
+    }
+
     render() {
         if (!this.gridEl) return;
+        if (this.viewMode === 'table') {
+            this.renderTableView();
+            return;
+        }
+        this.gridEl.classList.remove('table-view');
         // Reset zoom on mobile so cards render at full size
         if (window.matchMedia('(max-width: 768px)').matches) {
             this.gridEl.style.zoom = '';
@@ -910,6 +1156,9 @@ export class Dashboard {
     applySavedSearch(savedSearch) {
         // Saved searches and quick shortcuts are mutually exclusive visual states.
         document.querySelectorAll('.btn-search-shortcut').forEach(button => button.classList.remove('active'));
+        this.viewMode = 'table';
+        this.syncTableControls();
+        this.persistTablePreferences();
         this.searchQuery = savedSearch.query || '';
         this.searchIncludeCompleted = !!savedSearch.includeCompleted;
         this.searchIncludeArchived = !!savedSearch.includeArchived;
@@ -979,6 +1228,41 @@ export class Dashboard {
 
     setupEventListeners() {
         const signal = this._abortController.signal;
+        const bucketsViewBtn = document.getElementById('btn-view-buckets');
+        const tableViewBtn = document.getElementById('btn-view-table');
+        const tableGrouping = document.getElementById('table-grouping');
+        const tableSort = document.getElementById('table-sort');
+        const tableSortScope = document.getElementById('table-sort-scope');
+        const tableDirection = document.getElementById('btn-table-sort-direction');
+        const setTableView = async (viewMode) => {
+            this.viewMode = viewMode;
+            this.syncTableControls();
+            this.render();
+            await this.persistTablePreferences();
+        };
+        bucketsViewBtn?.addEventListener('click', () => setTableView('buckets'), { signal });
+        tableViewBtn?.addEventListener('click', () => setTableView('table'), { signal });
+        tableGrouping?.addEventListener('change', async () => {
+            this.tableGrouping = tableGrouping.value;
+            this.render();
+            await this.persistTablePreferences();
+        }, { signal });
+        tableSort?.addEventListener('change', async () => {
+            this.tableSort = tableSort.value;
+            this.render();
+            await this.persistTablePreferences();
+        }, { signal });
+        tableSortScope?.addEventListener('change', async () => {
+            this.tableSortScope = tableSortScope.value;
+            this.render();
+            await this.persistTablePreferences();
+        }, { signal });
+        tableDirection?.addEventListener('click', async () => {
+            this.tableSortDirection = this.tableSortDirection === 'asc' ? 'desc' : 'asc';
+            this.render();
+            await this.persistTablePreferences();
+        }, { signal });
+        this.syncTableControls();
         // Add Label logic moving to top bar
         const btnShowAddTop = document.getElementById('btn-show-add-label-top');
         const popoverAdd = document.getElementById('add-label-popover');
