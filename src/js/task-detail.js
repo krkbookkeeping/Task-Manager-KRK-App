@@ -696,9 +696,10 @@ export class TaskModal {
                 punchBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
 
-                // For existing tasks: save immediately. For new tasks: just set the date (user clicks Save manually).
-                if (this.currentTaskId) {
-                    this.saveTask();
+                // Save date shortcuts immediately for both new and existing tasks, while
+                // keeping the editor open so the user can continue entering details.
+                if (this.titleInput.value.trim()) {
+                    await this.saveTask({ close: false });
                 }
             });
         });
@@ -836,7 +837,7 @@ export class TaskModal {
         }
     }
 
-    async saveTask() {
+    async saveTask({ close = true } = {}) {
         const title = this.titleInput.value.trim();
         if (!title) {
             alert('A task title is required.');
@@ -855,7 +856,8 @@ export class TaskModal {
                 labels: Array.from(this.selectedLabelIds),
                 relatedTasks: this.relatedTaskIds,
                 relatedNotes: this.relatedNoteIds,
-                starred: this.starred
+                starred: this.starred,
+                comments: this.comments
             };
 
             if (this.currentTaskId) {
@@ -868,16 +870,21 @@ export class TaskModal {
                 // Determine a primary label id if one exists, just for default ordering logic
                 const primaryLabelId = data.labels.length > 0 ? data.labels[0] : null;
                 const newTask = await taskService.create(this.uid, this.workspaceId, this.boardId, title, primaryLabelId);
-                // Set the rest of the fields that the create function doesn't take directly in its signature
-                await taskService.update(this.uid, this.workspaceId, this.boardId, newTask.id, {
-                    description: data.description,
-                    dueDate: data.dueDate,
-                    labels: data.labels
-                });
+                this.currentTaskId = newTask.id;
+                // Persist every field collected in the new-task editor, including comments.
+                await taskService.update(this.uid, this.workspaceId, this.boardId, newTask.id, data);
+
+                if (!close) {
+                    this.btnSave.textContent = 'Save Changes';
+                    this.btnDelete.style.display = 'flex';
+                    if (this.btnComplete) this.btnComplete.style.display = 'block';
+                    if (this.btnPark) this.btnPark.style.display = 'flex';
+                }
             }
 
             this.btnSave.disabled = false;
-            this.close();
+            this.btnSave.textContent = this.currentTaskId ? 'Save Changes' : 'Create Task';
+            if (close) this.close();
         } catch (err) {
             console.error('Failed to save task:', err);
             alert('Failed to save task.');
@@ -1055,7 +1062,8 @@ export class TaskModal {
         this.commentEditor.innerHTML = '';
         this.renderComments();
 
-        // Save immediately if editing an existing task
+        // Save immediately. For a new titled task, this creates the task first so its
+        // first comment is never left only in the open editor.
         if (this.currentTaskId) {
             try {
                 await taskService.update(this.uid, this.workspaceId, this.boardId, this.currentTaskId, {
@@ -1064,6 +1072,8 @@ export class TaskModal {
             } catch (err) {
                 console.error('Failed to save comment:', err);
             }
+        } else if (this.titleInput.value.trim()) {
+            await this.saveTask({ close: false });
         }
     }
 
