@@ -696,10 +696,10 @@ export class TaskModal {
                 punchBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
 
-                // Save date shortcuts immediately for both new and existing tasks, while
-                // keeping the editor open so the user can continue entering details.
+                // Save the selected date and close the task window for both new and
+                // existing tasks.
                 if (this.titleInput.value.trim()) {
-                    await this.saveTask({ close: false });
+                    await this.saveTask();
                 }
             });
         });
