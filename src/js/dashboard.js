@@ -262,12 +262,36 @@ export class Dashboard {
         return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }
 
+    renderActivityComment(comment, index) {
+        return `<article class="task-activity-modal-comment" data-comment-index="${index}"><div class="task-activity-comment-meta"><time>${this.formatActivityDate(comment.createdAt)}</time><button type="button" class="btn-edit-activity-comment" title="Edit comment"><span class="material-symbols-outlined">edit</span></button></div><div class="task-activity-modal-content">${comment.content || comment.text || '<em>Attachment or formatted comment</em>'}</div></article>`;
+    }
+
+    bindRichCommentEditor(toolbar, editor) {
+        toolbar.querySelector('[data-format="bold"]').addEventListener('mousedown', event => {
+            event.preventDefault();
+            editor.focus();
+            document.execCommand('bold');
+        });
+        toolbar.querySelector('[data-format="highlight"]').addEventListener('mousedown', event => {
+            event.preventDefault();
+            editor.focus();
+            document.execCommand('hiliteColor', false, '#fef08a');
+        });
+        toolbar.querySelector('[data-format="link"]').addEventListener('mousedown', event => {
+            event.preventDefault();
+            const url = window.prompt('Enter the link URL:');
+            if (!url) return;
+            editor.focus();
+            document.execCommand('createLink', false, url);
+        });
+    }
+
     openCommentPreview(task, anchor) {
-        document.querySelector('.task-activity-modal-overlay')?.remove();
+        document.querySelector('.task-activity-modal-overlay')?._closeActivityModal?.();
         const comments = [...(task.comments || [])].reverse();
         const overlay = document.createElement('div');
         overlay.className = 'task-activity-modal-overlay';
-        overlay.innerHTML = `<section class="task-activity-modal" role="dialog" aria-modal="true" aria-label="Activity and comments"><header><div><div class="task-activity-modal-eyebrow">Activity & comments</div><h3>${this.escapeHtml(task.title)}</h3></div><button type="button" class="btn-icon" aria-label="Close comments"><span class="material-symbols-outlined">close</span></button></header><div class="task-activity-modal-list">${comments.length ? comments.map(comment => `<article class="task-activity-modal-comment"><time>${this.formatActivityDate(comment.createdAt)}</time><div class="task-activity-modal-content">${comment.content || comment.text || '<em>Attachment or formatted comment</em>'}</div></article>`).join('') : '<p class="task-table-muted">No comments yet.</p>'}</div><form class="task-activity-comment-form"><textarea placeholder="Add a comment…" aria-label="New comment"></textarea><button class="btn btn-primary btn-sm" type="submit"><span class="material-symbols-outlined">send</span> Add comment</button></form></section>`;
+        overlay.innerHTML = `<section class="task-activity-modal" role="dialog" aria-modal="true" aria-label="Activity and comments"><header><div><div class="task-activity-modal-eyebrow">Activity & comments</div><h3>${this.escapeHtml(task.title)}</h3></div><button type="button" class="btn-icon" aria-label="Close comments"><span class="material-symbols-outlined">close</span></button></header><div class="task-activity-modal-list">${comments.length ? comments.map(comment => this.renderActivityComment(comment, task.comments.indexOf(comment))).join('') : '<p class="task-table-muted">No comments yet.</p>'}</div><form class="task-activity-comment-form"><div class="task-activity-rich-toolbar"><button type="button" data-format="bold" title="Bold"><span class="material-symbols-outlined">format_bold</span></button><button type="button" data-format="highlight" title="Highlight"><span class="material-symbols-outlined">ink_highlighter</span></button><button type="button" data-format="link" title="Add link"><span class="material-symbols-outlined">link</span></button></div><div class="task-activity-rich-editor" contenteditable="true" role="textbox" aria-label="New comment" data-placeholder="Add a comment…"></div><button class="btn btn-primary btn-sm" type="submit"><span class="material-symbols-outlined">send</span> Add comment</button></form></section>`;
         const close = () => {
             document.removeEventListener('keydown', closeOnEscape, true);
             overlay.remove();
@@ -278,6 +302,7 @@ export class Dashboard {
             event.stopImmediatePropagation();
             close();
         };
+        overlay._closeActivityModal = close;
         overlay.querySelector('button').addEventListener('click', close);
         overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
         document.addEventListener('keydown', closeOnEscape, true);
@@ -292,16 +317,44 @@ export class Dashboard {
                 }
             });
         });
-        overlay.querySelector('.task-activity-comment-form').addEventListener('submit', async (event) => {
+        overlay.querySelectorAll('.btn-edit-activity-comment').forEach(button => {
+            button.addEventListener('click', () => {
+                const entry = button.closest('.task-activity-modal-comment');
+                const index = Number(entry.dataset.commentIndex);
+                const comment = task.comments?.[index];
+                if (!comment) return;
+                entry.innerHTML = `<div class="task-activity-rich-toolbar"><button type="button" data-format="bold" title="Bold"><span class="material-symbols-outlined">format_bold</span></button><button type="button" data-format="highlight" title="Highlight"><span class="material-symbols-outlined">ink_highlighter</span></button><button type="button" data-format="link" title="Add link"><span class="material-symbols-outlined">link</span></button></div><div class="task-activity-rich-editor" contenteditable="true">${comment.content || comment.text || ''}</div><div class="task-activity-edit-actions"><button class="btn btn-primary btn-sm" type="button" data-action="save">Save</button><button class="btn btn-outline btn-sm" type="button" data-action="cancel">Cancel</button></div>`;
+                const editor = entry.querySelector('.task-activity-rich-editor');
+                this.bindRichCommentEditor(entry.querySelector('.task-activity-rich-toolbar'), editor);
+                editor.focus();
+                entry.querySelector('[data-action="cancel"]').addEventListener('click', () => this.openCommentPreview(task));
+                entry.querySelector('[data-action="save"]').addEventListener('click', async () => {
+                    const content = editor.innerHTML.trim();
+                    if (!content || content === '<br>') return;
+                    try {
+                        task.comments[index] = { ...comment, content };
+                        await taskService.update(this.uid, this.workspaceId, this.boardId, task.id, { comments: task.comments });
+                        this.openCommentPreview(task);
+                    } catch (error) {
+                        console.error('Failed to edit comment from table view:', error);
+                        window.alert('Could not save the comment. Please try again.');
+                    }
+                });
+            });
+        });
+        const commentForm = overlay.querySelector('.task-activity-comment-form');
+        const newCommentEditor = commentForm.querySelector('.task-activity-rich-editor');
+        this.bindRichCommentEditor(commentForm.querySelector('.task-activity-rich-toolbar'), newCommentEditor);
+        commentForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const form = event.currentTarget;
-            const textarea = form.querySelector('textarea');
+            const editor = form.querySelector('.task-activity-rich-editor');
             const submit = form.querySelector('button[type="submit"]');
-            const text = textarea.value.trim();
-            if (!text) return;
+            const content = editor.innerHTML.trim();
+            if (!content || content === '<br>') return;
             const comment = {
                 id: globalThis.crypto?.randomUUID?.() || `comment-${Date.now()}`,
-                content: this.escapeHtml(text).replace(/\n/g, '<br>'),
+                content,
                 createdAt: new Date().toISOString()
             };
             submit.disabled = true;
@@ -311,11 +364,7 @@ export class Dashboard {
                 task.comments = updatedComments;
                 const list = overlay.querySelector('.task-activity-modal-list');
                 list.querySelector('.task-table-muted')?.remove();
-                const entry = document.createElement('article');
-                entry.className = 'task-activity-modal-comment';
-                entry.innerHTML = `<time>${this.formatActivityDate(comment.createdAt)}</time><div class="task-activity-modal-content">${comment.content}</div>`;
-                list.prepend(entry);
-                textarea.value = '';
+                this.openCommentPreview(task);
             } catch (error) {
                 console.error('Failed to add comment from table view:', error);
                 window.alert('Could not add the comment. Please try again.');

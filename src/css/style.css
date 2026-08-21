@@ -2646,11 +2646,11 @@ main.has-parked-tray .dashboard-layout {
     background: var(--bg-elevated);
 }
 
-.task-activity-comment-form textarea {
+.task-activity-rich-editor {
     flex: 1;
     min-height: 38px;
     max-height: 100px;
-    resize: vertical;
+    overflow-y: auto;
     padding: 8px;
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-md);
@@ -2659,6 +2659,36 @@ main.has-parked-tray .dashboard-layout {
     font: inherit;
     font-size: 0.84rem;
 }
+
+.task-activity-rich-editor:empty::before { content: attr(data-placeholder); color: var(--text-muted); }
+
+.task-activity-rich-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.task-activity-rich-toolbar button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.task-activity-rich-toolbar button:hover { background: var(--bg-surface); color: var(--accent); }
+.task-activity-rich-toolbar .material-symbols-outlined { font-size: 17px; }
+.task-activity-comment-meta { display: flex; align-items: center; justify-content: space-between; }
+.btn-edit-activity-comment { display: inline-flex; padding: 0; border: 0; background: transparent; color: var(--text-muted); cursor: pointer; }
+.btn-edit-activity-comment:hover { color: var(--accent); }
+.btn-edit-activity-comment .material-symbols-outlined { font-size: 16px; }
+.task-activity-edit-actions { display: flex; gap: 6px; margin-top: 8px; }
 
 .task-activity-comment-form .btn { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .task-activity-comment-form .material-symbols-outlined { font-size: 15px; }
