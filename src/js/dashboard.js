@@ -263,19 +263,26 @@ export class Dashboard {
     }
 
     openCommentPreview(task, anchor) {
-        document.querySelector('.task-activity-preview')?.remove();
+        document.querySelector('.task-activity-modal-overlay')?.remove();
         const comments = [...(task.comments || [])].reverse();
-        const preview = document.createElement('div');
-        preview.className = 'task-activity-preview';
-        preview.innerHTML = `<div class="task-activity-preview-title"><span>Activity & comments</span><button type="button" class="btn-icon" aria-label="Close comment preview"><span class="material-symbols-outlined">close</span></button></div><div class="task-activity-preview-list">${comments.length ? comments.map(comment => `<article class="task-activity-comment"><time>${this.formatActivityDate(comment.createdAt)}</time><p>${this.escapeHtml(this.getCommentText(comment) || 'Attachment or formatted comment')}</p></article>`).join('') : '<p class="task-table-muted">No comments yet.</p>'}</div>`;
-        document.body.appendChild(preview);
-        const rect = anchor.getBoundingClientRect();
-        preview.style.left = `${Math.max(12, Math.min(rect.left, window.innerWidth - 360))}px`;
-        preview.style.top = `${Math.min(rect.bottom + 6, window.innerHeight - 290)}px`;
-        preview.querySelector('button').addEventListener('click', () => preview.remove());
-        setTimeout(() => document.addEventListener('pointerdown', (event) => {
-            if (!preview.contains(event.target) && event.target !== anchor) preview.remove();
-        }, { once: true, capture: true }), 0);
+        const overlay = document.createElement('div');
+        overlay.className = 'task-activity-modal-overlay';
+        overlay.innerHTML = `<section class="task-activity-modal" role="dialog" aria-modal="true" aria-label="Activity and comments"><header><div><div class="task-activity-modal-eyebrow">Activity & comments</div><h3>${this.escapeHtml(task.title)}</h3></div><button type="button" class="btn-icon" aria-label="Close comments"><span class="material-symbols-outlined">close</span></button></header><div class="task-activity-modal-list">${comments.length ? comments.map(comment => `<article class="task-activity-modal-comment"><time>${this.formatActivityDate(comment.createdAt)}</time><div class="task-activity-modal-content">${comment.content || comment.text || '<em>Attachment or formatted comment</em>'}</div></article>`).join('') : '<p class="task-table-muted">No comments yet.</p>'}</div></section>`;
+        const close = () => overlay.remove();
+        overlay.querySelector('button').addEventListener('click', close);
+        overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+        overlay.querySelectorAll('.task-activity-modal-content img').forEach(image => {
+            image.style.cursor = 'zoom-in';
+            image.addEventListener('click', () => {
+                const lightbox = document.getElementById('image-lightbox');
+                const lightboxImage = document.getElementById('lightbox-image');
+                if (lightbox && lightboxImage) {
+                    lightboxImage.src = image.src;
+                    lightbox.style.display = 'flex';
+                }
+            });
+        });
+        document.body.appendChild(overlay);
     }
 
     renderTableView() {
