@@ -268,9 +268,19 @@ export class Dashboard {
         const overlay = document.createElement('div');
         overlay.className = 'task-activity-modal-overlay';
         overlay.innerHTML = `<section class="task-activity-modal" role="dialog" aria-modal="true" aria-label="Activity and comments"><header><div><div class="task-activity-modal-eyebrow">Activity & comments</div><h3>${this.escapeHtml(task.title)}</h3></div><button type="button" class="btn-icon" aria-label="Close comments"><span class="material-symbols-outlined">close</span></button></header><div class="task-activity-modal-list">${comments.length ? comments.map(comment => `<article class="task-activity-modal-comment"><time>${this.formatActivityDate(comment.createdAt)}</time><div class="task-activity-modal-content">${comment.content || comment.text || '<em>Attachment or formatted comment</em>'}</div></article>`).join('') : '<p class="task-table-muted">No comments yet.</p>'}</div></section>`;
-        const close = () => overlay.remove();
+        const close = () => {
+            document.removeEventListener('keydown', closeOnEscape, true);
+            overlay.remove();
+        };
+        const closeOnEscape = (event) => {
+            if (event.key !== 'Escape') return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            close();
+        };
         overlay.querySelector('button').addEventListener('click', close);
         overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+        document.addEventListener('keydown', closeOnEscape, true);
         overlay.querySelectorAll('.task-activity-modal-content img').forEach(image => {
             image.style.cursor = 'zoom-in';
             image.addEventListener('click', () => {
