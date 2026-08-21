@@ -414,7 +414,7 @@ export class Dashboard {
             section.dataset.dropDate = group.dropDate ?? '';
             section.dataset.bucketId = group.bucket?.id || '';
             section.style.setProperty('--table-group-color', this.getTableGroupColor(group));
-            section.innerHTML = `<div class="table-group-header"><span>${this.escapeHtml(group.name)}</span><div class="table-group-header-actions"><form class="table-group-add-form"><input type="text" placeholder="Add task…" aria-label="Add a task to ${this.escapeHtml(group.name)}"><button type="submit" class="btn-icon" title="Add task"><span class="material-symbols-outlined">add</span></button></form><span class="task-count">${group.tasks.length}</span></div></div><table class="task-table"><thead><tr><th><button class="table-column-sort" data-sort="dueDate">Due${this.getGroupSortIndicator(group.key, 'dueDate')}</button></th><th><button class="table-column-sort" data-sort="starred">Star${this.getGroupSortIndicator(group.key, 'starred')}</button></th><th><button class="table-column-sort" data-sort="bucket">Bucket${this.getGroupSortIndicator(group.key, 'bucket')}</button></th><th><button class="table-column-sort" data-sort="title">Task${this.getGroupSortIndicator(group.key, 'title')}</button></th><th class="table-activity-column"><button class="table-column-sort" data-sort="activity">Activity & comments${this.getGroupSortIndicator(group.key, 'activity')}</button></th><th><button class="table-column-sort" data-sort="files">Files${this.getGroupSortIndicator(group.key, 'files')}</button></th></tr></thead><tbody></tbody></table>`;
+            section.innerHTML = `<div class="table-group-header"><span>${this.escapeHtml(group.name)}</span><div class="table-group-header-actions"><button type="button" class="btn-table-group-add" title="Add a task to ${this.escapeHtml(group.name)}"><span class="material-symbols-outlined">add</span> Add task</button><span class="task-count">${group.tasks.length}</span></div></div><table class="task-table"><thead><tr><th><button class="table-column-sort" data-sort="dueDate">Due${this.getGroupSortIndicator(group.key, 'dueDate')}</button></th><th><button class="table-column-sort" data-sort="starred">Star${this.getGroupSortIndicator(group.key, 'starred')}</button></th><th><button class="table-column-sort" data-sort="bucket">Bucket${this.getGroupSortIndicator(group.key, 'bucket')}</button></th><th><button class="table-column-sort" data-sort="title">Task${this.getGroupSortIndicator(group.key, 'title')}</button></th><th class="table-activity-column"><button class="table-column-sort" data-sort="activity">Activity & comments${this.getGroupSortIndicator(group.key, 'activity')}</button></th><th><button class="table-column-sort" data-sort="files">Files${this.getGroupSortIndicator(group.key, 'files')}</button></th></tr></thead><tbody></tbody></table>`;
             const body = section.querySelector('tbody');
             group.tasks.forEach(task => {
                 const bucket = this.getTaskBucket(task);
@@ -435,31 +435,30 @@ export class Dashboard {
     }
 
     bindTableEvents() {
-        this.gridEl.querySelectorAll('.table-group-add-form').forEach(form => {
-            form.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                const input = form.querySelector('input');
-                const title = input.value.trim();
-                if (!title) return;
-                const section = form.closest('.table-group');
+        this.gridEl.querySelectorAll('.btn-table-group-add').forEach(button => {
+            button.addEventListener('click', async () => {
+                const section = button.closest('.table-group');
                 const group = {
                     key: section.dataset.groupKey,
                     dropDate: section.dataset.dropDate || null,
                     bucket: section.dataset.bucketId ? { id: section.dataset.bucketId } : null
                 };
-                input.disabled = true;
+                button.disabled = true;
                 try {
-                    const task = await taskService.create(this.uid, this.workspaceId, this.boardId, title, group.bucket?.id || null);
                     const dueDate = await this.getTableGroupDueDate(group);
-                    if (task?.id && (dueDate || this.tableGrouping === 'date')) {
-                        await taskService.update(this.uid, this.workspaceId, this.boardId, task.id, { dueDate });
+                    if (dueDate === undefined) return;
+                    if (!window.currentTaskModal) throw new Error('Task editor is not available.');
+
+                    await window.currentTaskModal.open(null, group.bucket?.id || null);
+                    if (this.tableGrouping === 'date') {
+                        window.currentTaskModal.dateInput.value = dueDate || '';
+                        window.currentTaskModal.renderDatePunches();
                     }
-                    input.value = '';
                 } catch (error) {
                     console.error('Failed to add task from table group:', error);
-                    window.alert('Could not add the task. Please try again.');
+                    window.alert('Could not open the task editor. Please try again.');
                 } finally {
-                    input.disabled = false;
+                    button.disabled = false;
                 }
             });
         });
@@ -555,13 +554,13 @@ export class Dashboard {
         }
         if (group.key === 'later') {
             const response = window.prompt('Enter a due date for this task (YYYY-MM-DD):');
-            return /^\d{4}-\d{2}-\d{2}$/.test(response?.trim()) ? response.trim() : null;
+            return /^\d{4}-\d{2}-\d{2}$/.test(response?.trim()) ? response.trim() : undefined;
         }
         if (group.dropDate === 'choice') {
             const response = window.prompt('Set due date: enter “next” for the next available working day, or enter a date as YYYY-MM-DD.');
-            if (!response) return null;
+            if (!response) return undefined;
             if (response.trim().toLowerCase() === 'next') return this.getNextWorkingDay();
-            return /^\d{4}-\d{2}-\d{2}$/.test(response.trim()) ? response.trim() : null;
+            return /^\d{4}-\d{2}-\d{2}$/.test(response.trim()) ? response.trim() : undefined;
         }
         return group.dropDate || null;
     }
