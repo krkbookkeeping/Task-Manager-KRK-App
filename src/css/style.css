@@ -2569,6 +2569,7 @@ main.has-parked-tray .dashboard-layout {
     width: 100%;
     min-width: 760px;
     border-collapse: collapse;
+    table-layout: fixed;
     font-size: 0.84rem;
 }
 
@@ -2596,6 +2597,8 @@ main.has-parked-tray .dashboard-layout {
 .task-table-label-dot { width: 8px; height: 8px; border-radius: 50%; }
 .task-table-due { width: 76px; white-space: nowrap; }
 .task-table-star { width: 46px; white-space: nowrap; }
+.task-table th:nth-child(3),
+.task-table td:nth-child(3) { width: 90px; }
 .task-table-star .btn-icon {
     width: 18px;
     height: 18px;
