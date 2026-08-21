@@ -2595,20 +2595,25 @@ main.has-parked-tray .dashboard-layout {
 .task-table-muted { color: var(--text-muted); }
 .task-table-label { display: inline-flex; align-items: center; gap: 5px; }
 .task-table-label-dot { width: 8px; height: 8px; border-radius: 50%; }
-.task-table-due { width: 76px; white-space: nowrap; }
-.task-table-star { width: 46px; white-space: nowrap; }
-.task-table th:nth-child(3),
-.task-table td:nth-child(3) { width: 90px; }
+.task-table-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.task-table-due { white-space: nowrap; }
+.task-table-star { white-space: nowrap; }
+.task-table th:nth-child(1), .task-table td:nth-child(1) { width: 68px; }
+.task-table th:nth-child(2), .task-table td:nth-child(2) { width: 46px; }
+.task-table th:nth-child(3), .task-table td:nth-child(3) { width: 86px; }
+.task-table th:nth-child(4), .task-table td:nth-child(4) { width: 31%; }
+.task-table th:nth-child(5), .task-table td:nth-child(5) { width: 25%; }
 .task-table-star .btn-icon {
     width: 18px;
     height: 18px;
     padding: 0;
 }
-.task-table-files { width: 36px; text-align: center; }
-.task-table-activity { width: 26%; }
-.table-activity-column { width: 26%; }
+.task-table-files { width: 35px; text-align: center; }
 .task-table-date-punches,
-.table-date-punch-column { width: 270px; }
+.table-date-punch-column { width: 265px; }
 .task-table-date-punches .date-punches { gap: 2px; }
 .task-table-date-punches .btn-date-punch {
     padding: 1px 4px;
