@@ -226,7 +226,7 @@ export class Dashboard {
         return [...tasks].sort((a, b) => {
             let aValue, bValue;
             if (sortBy === 'title') { aValue = a.title || ''; bValue = b.title || ''; }
-            else if (sortBy === 'description') { aValue = a.description || ''; bValue = b.description || ''; }
+            else if (sortBy === 'activity') { aValue = a.comments?.length || 0; bValue = b.comments?.length || 0; }
             else if (sortBy === 'bucket') { aValue = this.getTaskBucket(a).name; bValue = this.getTaskBucket(b).name; }
             else if (sortBy === 'createdAt') { aValue = a.createdAt?.seconds || 0; bValue = b.createdAt?.seconds || 0; }
             else if (sortBy === 'files') { aValue = a.attachments?.length || 0; bValue = b.attachments?.length || 0; }
@@ -248,6 +248,34 @@ export class Dashboard {
     getGroupSortIndicator(groupKey, sortBy) {
         const current = this.tableGroupSorts[groupKey];
         return current?.sortBy === sortBy ? (current.direction === 'asc' ? ' ↑' : ' ↓') : '';
+    }
+
+    getCommentText(comment) {
+        const holder = document.createElement('div');
+        holder.innerHTML = comment.content || comment.text || '';
+        return holder.textContent?.trim() || '';
+    }
+
+    formatActivityDate(value) {
+        if (!value) return '';
+        const date = value?.toDate ? value.toDate() : new Date(value);
+        return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+
+    openCommentPreview(task, anchor) {
+        document.querySelector('.task-activity-preview')?.remove();
+        const comments = [...(task.comments || [])].reverse();
+        const preview = document.createElement('div');
+        preview.className = 'task-activity-preview';
+        preview.innerHTML = `<div class="task-activity-preview-title"><span>Activity & comments</span><button type="button" class="btn-icon" aria-label="Close comment preview"><span class="material-symbols-outlined">close</span></button></div><div class="task-activity-preview-list">${comments.length ? comments.map(comment => `<article class="task-activity-comment"><time>${this.formatActivityDate(comment.createdAt)}</time><p>${this.escapeHtml(this.getCommentText(comment) || 'Attachment or formatted comment')}</p></article>`).join('') : '<p class="task-table-muted">No comments yet.</p>'}</div>`;
+        document.body.appendChild(preview);
+        const rect = anchor.getBoundingClientRect();
+        preview.style.left = `${Math.max(12, Math.min(rect.left, window.innerWidth - 360))}px`;
+        preview.style.top = `${Math.min(rect.bottom + 6, window.innerHeight - 290)}px`;
+        preview.querySelector('button').addEventListener('click', () => preview.remove());
+        setTimeout(() => document.addEventListener('pointerdown', (event) => {
+            if (!preview.contains(event.target) && event.target !== anchor) preview.remove();
+        }, { once: true, capture: true }), 0);
     }
 
     renderTableView() {
@@ -289,7 +317,7 @@ export class Dashboard {
             section.dataset.dropDate = group.dropDate ?? '';
             section.dataset.bucketId = group.bucket?.id || '';
             section.style.setProperty('--table-group-color', this.getTableGroupColor(group));
-            section.innerHTML = `<div class="table-group-header"><span>${this.escapeHtml(group.name)}</span><span class="task-count">${group.tasks.length}</span></div><table class="task-table"><thead><tr><th><button class="table-column-sort" data-sort="dueDate">Due${this.getGroupSortIndicator(group.key, 'dueDate')}</button></th><th><button class="table-column-sort" data-sort="starred">Star${this.getGroupSortIndicator(group.key, 'starred')}</button></th><th><button class="table-column-sort" data-sort="bucket">Bucket${this.getGroupSortIndicator(group.key, 'bucket')}</button></th><th><button class="table-column-sort" data-sort="title">Task${this.getGroupSortIndicator(group.key, 'title')}</button></th><th class="table-description-column"><button class="table-column-sort" data-sort="description">Description${this.getGroupSortIndicator(group.key, 'description')}</button></th><th><button class="table-column-sort" data-sort="files">Files${this.getGroupSortIndicator(group.key, 'files')}</button></th></tr></thead><tbody></tbody></table>`;
+            section.innerHTML = `<div class="table-group-header"><span>${this.escapeHtml(group.name)}</span><span class="task-count">${group.tasks.length}</span></div><table class="task-table"><thead><tr><th><button class="table-column-sort" data-sort="dueDate">Due${this.getGroupSortIndicator(group.key, 'dueDate')}</button></th><th><button class="table-column-sort" data-sort="starred">Star${this.getGroupSortIndicator(group.key, 'starred')}</button></th><th><button class="table-column-sort" data-sort="bucket">Bucket${this.getGroupSortIndicator(group.key, 'bucket')}</button></th><th><button class="table-column-sort" data-sort="title">Task${this.getGroupSortIndicator(group.key, 'title')}</button></th><th class="table-activity-column"><button class="table-column-sort" data-sort="activity">Activity & comments${this.getGroupSortIndicator(group.key, 'activity')}</button></th><th><button class="table-column-sort" data-sort="files">Files${this.getGroupSortIndicator(group.key, 'files')}</button></th></tr></thead><tbody></tbody></table>`;
             const body = section.querySelector('tbody');
             group.tasks.forEach(task => {
                 const bucket = this.getTaskBucket(task);
@@ -297,7 +325,9 @@ export class Dashboard {
                 row.className = 'task-table-row';
                 row.draggable = !task.completed && !task.archived;
                 row.dataset.taskId = task.id;
-                row.innerHTML = `<td class="task-table-due ${task.dueDate ? '' : 'task-table-muted'}">${task.dueDate ? this.formatDate(task.dueDate) : 'No date'}</td><td class="task-table-star"><button class="btn-icon btn-complete-task" data-task-id="${task.id}" title="Complete task"><span class="material-symbols-outlined" style="font-size:16px;">check_circle</span></button>${task.starred ? '★' : ''}</td><td><span class="task-table-label"><span class="task-table-label-dot" style="background:${bucket.color};"></span>${this.escapeHtml(bucket.name)}</span></td><td class="task-table-title">${this.escapeHtml(task.title)}</td><td class="task-table-description">${this.escapeHtml(task.description || '')}</td><td class="task-table-files">${task.attachments?.length ? '📎' : ''}</td>`;
+                const commentCount = task.comments?.length || 0;
+                const latestComment = commentCount ? this.getCommentText(task.comments[commentCount - 1]) : '';
+                row.innerHTML = `<td class="task-table-due ${task.dueDate ? '' : 'task-table-muted'}">${task.dueDate ? this.formatDate(task.dueDate) : 'No date'}</td><td class="task-table-star"><button class="btn-icon btn-complete-task" data-task-id="${task.id}" title="Complete task"><span class="material-symbols-outlined" style="font-size:16px;">check_circle</span></button>${task.starred ? '★' : ''}</td><td><span class="task-table-label"><span class="task-table-label-dot" style="background:${bucket.color};"></span>${this.escapeHtml(bucket.name)}</span></td><td class="task-table-title">${this.escapeHtml(task.title)}</td><td class="task-table-activity"><button type="button" class="btn-task-activity" data-task-id="${task.id}" title="View activity and comments">${commentCount ? `${commentCount} comment${commentCount === 1 ? '' : 's'}${latestComment ? ` · ${this.escapeHtml(latestComment)}` : ''}` : 'Add/view comments'}</button></td><td class="task-table-files">${task.attachments?.length ? '📎' : ''}</td>`;
                 row.addEventListener('click', (event) => { if (!event.target.closest('button') && window.currentTaskModal) window.currentTaskModal.open(task.id); });
                 body.appendChild(row);
             });
@@ -308,6 +338,13 @@ export class Dashboard {
     }
 
     bindTableEvents() {
+        this.gridEl.querySelectorAll('.btn-task-activity').forEach(button => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const task = this.tasks.find(item => item.id === button.dataset.taskId);
+                if (task) this.openCommentPreview(task, button);
+            });
+        });
         this.gridEl.querySelectorAll('.table-column-sort').forEach(button => {
             button.addEventListener('click', (event) => {
                 event.stopPropagation();
