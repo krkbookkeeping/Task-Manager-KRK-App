@@ -31,6 +31,7 @@ export class Dashboard {
         this.tableSortDirection = 'asc';
         this.tableSortScope = 'within';
         this.crossBucketDefault = 'move';
+        this.tablePreferencesChanged = false;
         this.thisWeekFilter = false; // Persistent "This Week" filter
         this.pastDueFilter = false; // Persistent "Past Due" filter
 
@@ -84,6 +85,7 @@ export class Dashboard {
         workspaceService.get(this.uid, this.workspaceId).then((workspace) => {
             const tableView = workspace?.settings?.tableView;
             this.crossBucketDefault = workspace?.settings?.crossBucketDefault || this.crossBucketDefault;
+            if (this.tablePreferencesChanged) return;
             if (!tableView) return;
             this.viewMode = tableView.viewMode || this.viewMode;
             this.tableGrouping = tableView.grouping || this.tableGrouping;
@@ -1157,6 +1159,7 @@ export class Dashboard {
         // Saved searches and quick shortcuts are mutually exclusive visual states.
         document.querySelectorAll('.btn-search-shortcut').forEach(button => button.classList.remove('active'));
         this.viewMode = 'table';
+        this.tablePreferencesChanged = true;
         this.syncTableControls();
         this.persistTablePreferences();
         this.searchQuery = savedSearch.query || '';
@@ -1235,6 +1238,7 @@ export class Dashboard {
         const tableSortScope = document.getElementById('table-sort-scope');
         const tableDirection = document.getElementById('btn-table-sort-direction');
         const setTableView = async (viewMode) => {
+            this.tablePreferencesChanged = true;
             this.viewMode = viewMode;
             this.syncTableControls();
             this.render();
@@ -1243,21 +1247,25 @@ export class Dashboard {
         bucketsViewBtn?.addEventListener('click', () => setTableView('buckets'), { signal });
         tableViewBtn?.addEventListener('click', () => setTableView('table'), { signal });
         tableGrouping?.addEventListener('change', async () => {
+            this.tablePreferencesChanged = true;
             this.tableGrouping = tableGrouping.value;
             this.render();
             await this.persistTablePreferences();
         }, { signal });
         tableSort?.addEventListener('change', async () => {
+            this.tablePreferencesChanged = true;
             this.tableSort = tableSort.value;
             this.render();
             await this.persistTablePreferences();
         }, { signal });
         tableSortScope?.addEventListener('change', async () => {
+            this.tablePreferencesChanged = true;
             this.tableSortScope = tableSortScope.value;
             this.render();
             await this.persistTablePreferences();
         }, { signal });
         tableDirection?.addEventListener('click', async () => {
+            this.tablePreferencesChanged = true;
             this.tableSortDirection = this.tableSortDirection === 'asc' ? 'desc' : 'asc';
             this.render();
             await this.persistTablePreferences();

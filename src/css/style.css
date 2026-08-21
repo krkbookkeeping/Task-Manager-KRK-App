@@ -1372,6 +1372,10 @@ textarea.input {
     animation: slideDownFade 0.3s ease forwards;
 }
 
+.search-indicator-hidden {
+    display: none !important;
+}
+
 @keyframes slideDownFade {
     from {
         opacity: 0;
@@ -2508,6 +2512,12 @@ main.has-parked-tray .dashboard-layout {
     width: 100%;
     overflow: auto;
     padding: 0 0 16px;
+}
+
+.bucket-grid.table-view {
+    display: block;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .table-group {

@@ -23,8 +23,8 @@
         }
     }
     </script>
-  <script type="module" crossorigin src="/assets/index-_wtlhmHV.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-i2w2uG7K.css">
+  <script type="module" crossorigin src="/assets/index-BCMh736B.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-i67bgxSk.css">
 </head>
 
 <body>
@@ -443,7 +443,7 @@
                 <!-- Right Side Container containing the buckets -->
                 <div id="right-column" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
                     <!-- Global Search Indicator (Injected dynamically) -->
-                    <div id="search-indicator" class="search-indicator"
+                    <div id="search-indicator" class="search-indicator search-indicator-hidden"
                         style="display: none; align-items: center; justify-content: center; background: var(--warning-subtle); color: var(--warning); padding: 8px 16px; font-weight: 500; font-size: 0.85rem; border-bottom: 1px solid var(--border-light);">
                         <span class="material-symbols-outlined"
                             style="font-size: 16px; margin-right: 6px;">search</span>
@@ -486,6 +486,28 @@
                                     <input type="checkbox" id="filter-past-due" style="accent-color: var(--danger); cursor: pointer;">
                                     Past Due
                                 </label>
+                                <div class="table-view-controls" aria-label="Table view controls">
+                                    <div class="view-toggle" role="group" aria-label="Dashboard view">
+                                        <button class="btn btn-sm btn-outline active" id="btn-view-buckets" type="button" title="Bucket view"><span class="material-symbols-outlined">view_kanban</span> Buckets</button>
+                                        <button class="btn btn-sm btn-outline" id="btn-view-table" type="button" title="Table view"><span class="material-symbols-outlined">table_rows</span> Table</button>
+                                    </div>
+                                    <select id="table-grouping" class="table-control" title="Group table rows">
+                                        <option value="none">No grouping</option>
+                                        <option value="bucket">By bucket</option>
+                                        <option value="date">By due date</option>
+                                    </select>
+                                    <select id="table-sort" class="table-control" title="Sort table rows">
+                                        <option value="dueDate">Due date</option>
+                                        <option value="title">Task title</option>
+                                        <option value="bucket">Bucket</option>
+                                        <option value="createdAt">Created date</option>
+                                    </select>
+                                    <select id="table-sort-scope" class="table-control" title="Apply sorting overall or within each group">
+                                        <option value="within">Within groups</option>
+                                        <option value="overall">Overall</option>
+                                    </select>
+                                    <button class="btn btn-sm btn-outline" id="btn-table-sort-direction" type="button" title="Reverse sort order"><span class="material-symbols-outlined">arrow_upward</span></button>
+                                </div>
                                 <div style="width: 1px; height: 18px; background: var(--border-light); margin: 0 4px;"></div>
                                 <button class="btn btn-sm btn-search-shortcut" id="btn-search-expc" type="button">ExpC</button>
                                 <button class="btn btn-sm btn-search-shortcut" id="btn-search-expr" type="button">ExpR</button>
