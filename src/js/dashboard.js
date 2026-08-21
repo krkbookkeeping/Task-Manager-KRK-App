@@ -30,6 +30,7 @@ export class Dashboard {
         this.tableSort = 'dueDate';
         this.tableSortDirection = 'asc';
         this.tableSortScope = 'within';
+        this.tableGroupSorts = {};
         this.crossBucketDefault = 'move';
         this.tablePreferencesChanged = false;
         this.thisWeekFilter = false; // Persistent "This Week" filter
@@ -220,16 +221,33 @@ export class Dashboard {
         return date.toISOString().split('T')[0];
     }
 
-    sortTableTasks(tasks) {
-        const direction = this.tableSortDirection === 'asc' ? 1 : -1;
+    sortTableTasks(tasks, sortBy = this.tableSort, sortDirection = this.tableSortDirection) {
+        const direction = sortDirection === 'asc' ? 1 : -1;
         return [...tasks].sort((a, b) => {
             let aValue, bValue;
-            if (this.tableSort === 'title') { aValue = a.title || ''; bValue = b.title || ''; }
-            else if (this.tableSort === 'bucket') { aValue = this.getTaskBucket(a).name; bValue = this.getTaskBucket(b).name; }
-            else if (this.tableSort === 'createdAt') { aValue = a.createdAt?.seconds || 0; bValue = b.createdAt?.seconds || 0; }
+            if (sortBy === 'title') { aValue = a.title || ''; bValue = b.title || ''; }
+            else if (sortBy === 'description') { aValue = a.description || ''; bValue = b.description || ''; }
+            else if (sortBy === 'bucket') { aValue = this.getTaskBucket(a).name; bValue = this.getTaskBucket(b).name; }
+            else if (sortBy === 'createdAt') { aValue = a.createdAt?.seconds || 0; bValue = b.createdAt?.seconds || 0; }
+            else if (sortBy === 'files') { aValue = a.attachments?.length || 0; bValue = b.attachments?.length || 0; }
+            else if (sortBy === 'starred') { aValue = a.starred ? 1 : 0; bValue = b.starred ? 1 : 0; }
             else { aValue = a.dueDate?.split('T')[0] || '9999-12-31'; bValue = b.dueDate?.split('T')[0] || '9999-12-31'; }
             return String(aValue).localeCompare(String(bValue), undefined, { numeric: true }) * direction;
         });
+    }
+
+    getTableGroupColor(group) {
+        if (group.bucket?.color) return group.bucket.color;
+        return {
+            overdue: 'var(--danger)', today: 'var(--accent)', tomorrow: '#8b5cf6',
+            'this-week': '#0ea5e9', 'next-week': '#14b8a6', 'this-month': '#f59e0b',
+            'next-month': '#ec4899', later: 'var(--text-muted)', 'no-date': 'var(--text-muted)'
+        }[group.key] || 'var(--accent)';
+    }
+
+    getGroupSortIndicator(groupKey, sortBy) {
+        const current = this.tableGroupSorts[groupKey];
+        return current?.sortBy === sortBy ? (current.direction === 'asc' ? ' ↑' : ' ↓') : '';
     }
 
     renderTableView() {
@@ -262,13 +280,16 @@ export class Dashboard {
             groupList.sort((a, b) => a.name.localeCompare(b.name));
         }
         groupList.forEach(group => {
-            if (this.tableSortScope === 'within') group.tasks = this.sortTableTasks(group.tasks);
+            const groupSort = this.tableGroupSorts[group.key];
+            if (groupSort) group.tasks = this.sortTableTasks(group.tasks, groupSort.sortBy, groupSort.direction);
+            else if (this.tableSortScope === 'within') group.tasks = this.sortTableTasks(group.tasks);
             const section = document.createElement('section');
             section.className = 'table-group';
             section.dataset.groupKey = group.key;
             section.dataset.dropDate = group.dropDate ?? '';
             section.dataset.bucketId = group.bucket?.id || '';
-            section.innerHTML = `<div class="table-group-header"><span>${this.escapeHtml(group.name)}</span><span class="task-count">${group.tasks.length}</span></div><table class="task-table"><thead><tr><th></th><th>Task</th><th>Bucket</th><th>Due</th><th>Star</th><th>Files</th></tr></thead><tbody></tbody></table>`;
+            section.style.setProperty('--table-group-color', this.getTableGroupColor(group));
+            section.innerHTML = `<div class="table-group-header"><span>${this.escapeHtml(group.name)}</span><span class="task-count">${group.tasks.length}</span></div><table class="task-table"><thead><tr><th><button class="table-column-sort" data-sort="dueDate">Due${this.getGroupSortIndicator(group.key, 'dueDate')}</button></th><th><button class="table-column-sort" data-sort="starred">Star${this.getGroupSortIndicator(group.key, 'starred')}</button></th><th><button class="table-column-sort" data-sort="bucket">Bucket${this.getGroupSortIndicator(group.key, 'bucket')}</button></th><th><button class="table-column-sort" data-sort="title">Task${this.getGroupSortIndicator(group.key, 'title')}</button></th><th class="table-description-column"><button class="table-column-sort" data-sort="description">Description${this.getGroupSortIndicator(group.key, 'description')}</button></th><th><button class="table-column-sort" data-sort="files">Files${this.getGroupSortIndicator(group.key, 'files')}</button></th></tr></thead><tbody></tbody></table>`;
             const body = section.querySelector('tbody');
             group.tasks.forEach(task => {
                 const bucket = this.getTaskBucket(task);
@@ -276,7 +297,7 @@ export class Dashboard {
                 row.className = 'task-table-row';
                 row.draggable = !task.completed && !task.archived;
                 row.dataset.taskId = task.id;
-                row.innerHTML = `<td><button class="btn-icon btn-complete-task" data-task-id="${task.id}" title="Complete task"><span class="material-symbols-outlined" style="font-size:18px;">check_circle</span></button></td><td class="task-table-title">${this.escapeHtml(task.title)}</td><td><span class="task-table-label"><span class="task-table-label-dot" style="background:${bucket.color};"></span>${this.escapeHtml(bucket.name)}</span></td><td class="${task.dueDate ? '' : 'task-table-muted'}">${task.dueDate ? this.formatDate(task.dueDate) : 'No date'}</td><td>${task.starred ? '★' : ''}</td><td>${task.attachments?.length ? '📎' : ''}</td>`;
+                row.innerHTML = `<td class="task-table-due ${task.dueDate ? '' : 'task-table-muted'}">${task.dueDate ? this.formatDate(task.dueDate) : 'No date'}</td><td class="task-table-star"><button class="btn-icon btn-complete-task" data-task-id="${task.id}" title="Complete task"><span class="material-symbols-outlined" style="font-size:16px;">check_circle</span></button>${task.starred ? '★' : ''}</td><td><span class="task-table-label"><span class="task-table-label-dot" style="background:${bucket.color};"></span>${this.escapeHtml(bucket.name)}</span></td><td class="task-table-title">${this.escapeHtml(task.title)}</td><td class="task-table-description">${this.escapeHtml(task.description || '')}</td><td class="task-table-files">${task.attachments?.length ? '📎' : ''}</td>`;
                 row.addEventListener('click', (event) => { if (!event.target.closest('button') && window.currentTaskModal) window.currentTaskModal.open(task.id); });
                 body.appendChild(row);
             });
@@ -287,6 +308,18 @@ export class Dashboard {
     }
 
     bindTableEvents() {
+        this.gridEl.querySelectorAll('.table-column-sort').forEach(button => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const groupKey = button.closest('.table-group').dataset.groupKey;
+                const existing = this.tableGroupSorts[groupKey];
+                this.tableGroupSorts[groupKey] = {
+                    sortBy: button.dataset.sort,
+                    direction: existing?.sortBy === button.dataset.sort && existing.direction === 'asc' ? 'desc' : 'asc'
+                };
+                this.renderTableView();
+            });
+        });
         this.gridEl.querySelectorAll('.btn-complete-task').forEach(button => {
             button.addEventListener('click', async (event) => {
                 event.stopPropagation();
