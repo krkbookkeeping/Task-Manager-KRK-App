@@ -2602,8 +2602,15 @@ main.has-parked-tray .dashboard-layout {
     padding: 0;
 }
 .task-table-files { width: 36px; text-align: center; }
-.task-table-activity { width: 42%; }
-.table-activity-column { width: 42%; }
+.task-table-activity { width: 26%; }
+.table-activity-column { width: 26%; }
+.task-table-date-punches,
+.table-date-punch-column { width: 270px; }
+.task-table-date-punches .date-punches { gap: 2px; }
+.task-table-date-punches .btn-date-punch {
+    padding: 1px 4px;
+    font-size: 0.62rem;
+}
 
 .btn-task-activity {
     width: 100%;

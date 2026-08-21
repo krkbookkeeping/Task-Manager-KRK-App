@@ -414,7 +414,7 @@ export class Dashboard {
             section.dataset.dropDate = group.dropDate ?? '';
             section.dataset.bucketId = group.bucket?.id || '';
             section.style.setProperty('--table-group-color', this.getTableGroupColor(group));
-            section.innerHTML = `<div class="table-group-header"><span>${this.escapeHtml(group.name)}</span><div class="table-group-header-actions"><form class="table-group-add-form"><input type="text" placeholder="Add task…" aria-label="Add a task to ${this.escapeHtml(group.name)}"><button type="submit" class="btn-icon" title="Open full task editor"><span class="material-symbols-outlined">add</span></button></form><span class="task-count">${group.tasks.length}</span></div></div><table class="task-table"><thead><tr><th><button class="table-column-sort" data-sort="dueDate">Due${this.getGroupSortIndicator(group.key, 'dueDate')}</button></th><th><button class="table-column-sort" data-sort="starred">Star${this.getGroupSortIndicator(group.key, 'starred')}</button></th><th><button class="table-column-sort" data-sort="bucket">Bucket${this.getGroupSortIndicator(group.key, 'bucket')}</button></th><th><button class="table-column-sort" data-sort="title">Task${this.getGroupSortIndicator(group.key, 'title')}</button></th><th class="table-activity-column"><button class="table-column-sort" data-sort="activity">Activity & comments${this.getGroupSortIndicator(group.key, 'activity')}</button></th><th><button class="table-column-sort" data-sort="files">Files${this.getGroupSortIndicator(group.key, 'files')}</button></th></tr></thead><tbody></tbody></table>`;
+            section.innerHTML = `<div class="table-group-header"><span>${this.escapeHtml(group.name)}</span><div class="table-group-header-actions"><form class="table-group-add-form"><input type="text" placeholder="Add task…" aria-label="Add a task to ${this.escapeHtml(group.name)}"><button type="submit" class="btn-icon" title="Open full task editor"><span class="material-symbols-outlined">add</span></button></form><span class="task-count">${group.tasks.length}</span></div></div><table class="task-table"><thead><tr><th><button class="table-column-sort" data-sort="dueDate">Due${this.getGroupSortIndicator(group.key, 'dueDate')}</button></th><th><button class="table-column-sort" data-sort="starred">Star${this.getGroupSortIndicator(group.key, 'starred')}</button></th><th><button class="table-column-sort" data-sort="bucket">Bucket${this.getGroupSortIndicator(group.key, 'bucket')}</button></th><th><button class="table-column-sort" data-sort="title">Task${this.getGroupSortIndicator(group.key, 'title')}</button></th><th class="table-activity-column"><button class="table-column-sort" data-sort="activity">Activity & comments${this.getGroupSortIndicator(group.key, 'activity')}</button></th><th class="table-date-punch-column">Set date</th><th><button class="table-column-sort" data-sort="files">Files${this.getGroupSortIndicator(group.key, 'files')}</button></th></tr></thead><tbody></tbody></table>`;
             const body = section.querySelector('tbody');
             group.tasks.forEach(task => {
                 const bucket = this.getTaskBucket(task);
@@ -424,7 +424,7 @@ export class Dashboard {
                 row.dataset.taskId = task.id;
                 const commentCount = task.comments?.length || 0;
                 const latestComment = commentCount ? this.getCommentText(task.comments[commentCount - 1]) : '';
-                row.innerHTML = `<td class="task-table-due ${task.dueDate ? '' : 'task-table-muted'}">${task.dueDate ? this.formatDate(task.dueDate) : 'No date'}</td><td class="task-table-star"><button class="btn-icon btn-complete-task" data-task-id="${task.id}" title="Complete task"><span class="material-symbols-outlined" style="font-size:16px;">check_circle</span></button><button class="btn-icon btn-star-card ${task.starred ? 'starred' : ''}" data-task-id="${task.id}" title="${task.starred ? 'Remove star' : 'Star task'}"><span class="material-symbols-outlined" style="font-size:16px;">star</span></button></td><td><span class="task-table-label"><span class="task-table-label-dot" style="background:${bucket.color};"></span>${this.escapeHtml(bucket.name)}</span></td><td class="task-table-title">${this.escapeHtml(task.title)}</td><td class="task-table-activity"><button type="button" class="btn-task-activity" data-task-id="${task.id}" title="View activity and comments">${commentCount ? `${commentCount} comment${commentCount === 1 ? '' : 's'}${latestComment ? ` · ${this.escapeHtml(latestComment)}` : ''}` : 'Add/view comments'}</button></td><td class="task-table-files">${task.attachments?.length ? '📎' : ''}</td>`;
+                row.innerHTML = `<td class="task-table-due ${task.dueDate ? '' : 'task-table-muted'}">${task.dueDate ? this.formatDate(task.dueDate) : 'No date'}</td><td class="task-table-star"><button class="btn-icon btn-complete-task" data-task-id="${task.id}" title="Complete task"><span class="material-symbols-outlined" style="font-size:16px;">check_circle</span></button><button class="btn-icon btn-star-card ${task.starred ? 'starred' : ''}" data-task-id="${task.id}" title="${task.starred ? 'Remove star' : 'Star task'}"><span class="material-symbols-outlined" style="font-size:16px;">star</span></button></td><td><span class="task-table-label"><span class="task-table-label-dot" style="background:${bucket.color};"></span>${this.escapeHtml(bucket.name)}</span></td><td class="task-table-title">${this.escapeHtml(task.title)}</td><td class="task-table-activity"><button type="button" class="btn-task-activity" data-task-id="${task.id}" title="View activity and comments">${commentCount ? `${commentCount} comment${commentCount === 1 ? '' : 's'}${latestComment ? ` · ${this.escapeHtml(latestComment)}` : ''}` : 'Add/view comments'}</button></td><td class="task-table-date-punches"><div class="date-punches">${DASHBOARD_PUNCH_OFFSETS.map(offset => `<button type="button" class="btn-date-punch table-date-punch" data-task-id="${task.id}" data-offset="${offset}" title="Set due date to ${offset}">${offset}</button>`).join('')}</div></td><td class="task-table-files">${task.attachments?.length ? '📎' : ''}</td>`;
                 row.addEventListener('click', (event) => { if (!event.target.closest('button') && window.currentTaskModal) window.currentTaskModal.open(task.id); });
                 body.appendChild(row);
             });
@@ -510,6 +510,23 @@ export class Dashboard {
                     });
                 } catch (error) {
                     console.error('Failed to toggle task star:', error);
+                }
+            });
+        });
+        this.gridEl.querySelectorAll('.table-date-punch').forEach(button => {
+            button.addEventListener('click', async (event) => {
+                event.stopPropagation();
+                const task = this.tasks.find(item => item.id === button.dataset.taskId);
+                if (!task) return;
+                const previousDate = task.dueDate;
+                task.dueDate = calculateOffsetDate(button.dataset.offset);
+                this.renderTableView();
+                try {
+                    await taskService.update(this.uid, this.workspaceId, this.boardId, task.id, { dueDate: task.dueDate });
+                } catch (error) {
+                    console.error('Failed to update due date:', error);
+                    task.dueDate = previousDate;
+                    this.renderTableView();
                 }
             });
         });
