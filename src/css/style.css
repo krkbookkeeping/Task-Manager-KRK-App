@@ -2595,7 +2595,8 @@ main.has-parked-tray .dashboard-layout {
 .task-table-label { display: inline-flex; align-items: center; gap: 5px; }
 .task-table-label-dot { width: 8px; height: 8px; border-radius: 50%; }
 .task-table-due { width: 76px; white-space: nowrap; }
-.task-table-star { width: 54px; white-space: nowrap; }
+.task-table-star { width: 58px; white-space: nowrap; }
+.task-table-star .btn-star-card { padding: 0; }
 .task-table-files { width: 36px; text-align: center; }
 .task-table-activity { width: 42%; }
 .table-activity-column { width: 42%; }

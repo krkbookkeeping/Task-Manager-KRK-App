@@ -424,7 +424,7 @@ export class Dashboard {
                 row.dataset.taskId = task.id;
                 const commentCount = task.comments?.length || 0;
                 const latestComment = commentCount ? this.getCommentText(task.comments[commentCount - 1]) : '';
-                row.innerHTML = `<td class="task-table-due ${task.dueDate ? '' : 'task-table-muted'}">${task.dueDate ? this.formatDate(task.dueDate) : 'No date'}</td><td class="task-table-star"><button class="btn-icon btn-complete-task" data-task-id="${task.id}" title="Complete task"><span class="material-symbols-outlined" style="font-size:16px;">check_circle</span></button>${task.starred ? '★' : ''}</td><td><span class="task-table-label"><span class="task-table-label-dot" style="background:${bucket.color};"></span>${this.escapeHtml(bucket.name)}</span></td><td class="task-table-title">${this.escapeHtml(task.title)}</td><td class="task-table-activity"><button type="button" class="btn-task-activity" data-task-id="${task.id}" title="View activity and comments">${commentCount ? `${commentCount} comment${commentCount === 1 ? '' : 's'}${latestComment ? ` · ${this.escapeHtml(latestComment)}` : ''}` : 'Add/view comments'}</button></td><td class="task-table-files">${task.attachments?.length ? '📎' : ''}</td>`;
+                row.innerHTML = `<td class="task-table-due ${task.dueDate ? '' : 'task-table-muted'}">${task.dueDate ? this.formatDate(task.dueDate) : 'No date'}</td><td class="task-table-star"><button class="btn-icon btn-complete-task" data-task-id="${task.id}" title="Complete task"><span class="material-symbols-outlined" style="font-size:16px;">check_circle</span></button><button class="btn-icon btn-star-card ${task.starred ? 'starred' : ''}" data-task-id="${task.id}" title="${task.starred ? 'Remove star' : 'Star task'}"><span class="material-symbols-outlined" style="font-size:16px;">star</span></button></td><td><span class="task-table-label"><span class="task-table-label-dot" style="background:${bucket.color};"></span>${this.escapeHtml(bucket.name)}</span></td><td class="task-table-title">${this.escapeHtml(task.title)}</td><td class="task-table-activity"><button type="button" class="btn-task-activity" data-task-id="${task.id}" title="View activity and comments">${commentCount ? `${commentCount} comment${commentCount === 1 ? '' : 's'}${latestComment ? ` · ${this.escapeHtml(latestComment)}` : ''}` : 'Add/view comments'}</button></td><td class="task-table-files">${task.attachments?.length ? '📎' : ''}</td>`;
                 row.addEventListener('click', (event) => { if (!event.target.closest('button') && window.currentTaskModal) window.currentTaskModal.open(task.id); });
                 body.appendChild(row);
             });
@@ -497,6 +497,20 @@ export class Dashboard {
                     completed: true,
                     completedAt: new Date().toISOString()
                 });
+            });
+        });
+        this.gridEl.querySelectorAll('.btn-star-card').forEach(button => {
+            button.addEventListener('click', async (event) => {
+                event.stopPropagation();
+                const task = this.tasks.find(item => item.id === button.dataset.taskId);
+                if (!task) return;
+                try {
+                    await taskService.update(this.uid, this.workspaceId, this.boardId, task.id, {
+                        starred: !task.starred
+                    });
+                } catch (error) {
+                    console.error('Failed to toggle task star:', error);
+                }
             });
         });
 
