@@ -2539,16 +2539,15 @@ main.has-parked-tray .dashboard-layout {
     font-weight: 700;
 }
 
-.table-group-header-actions {
+.table-group-header-actions,
+.table-group-add-form {
     display: flex;
     align-items: center;
     gap: 6px;
 }
 
-.btn-table-group-add {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
+.table-group-add-form input {
+    width: 170px;
     padding: 3px 6px;
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-sm);
@@ -2556,11 +2555,10 @@ main.has-parked-tray .dashboard-layout {
     color: var(--text-primary);
     font: inherit;
     font-size: 0.76rem;
-    cursor: pointer;
 }
 
-.btn-table-group-add:hover { background: var(--bg-hover); }
-.btn-table-group-add .material-symbols-outlined { font-size: 16px; }
+.table-group-add-form .btn-icon { width: 24px; height: 24px; padding: 0; }
+.table-group-add-form .material-symbols-outlined { font-size: 17px; }
 
 .table-group.drag-over {
     outline: 2px solid var(--accent);

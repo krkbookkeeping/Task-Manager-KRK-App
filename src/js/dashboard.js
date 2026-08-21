@@ -414,7 +414,7 @@ export class Dashboard {
             section.dataset.dropDate = group.dropDate ?? '';
             section.dataset.bucketId = group.bucket?.id || '';
             section.style.setProperty('--table-group-color', this.getTableGroupColor(group));
-            section.innerHTML = `<div class="table-group-header"><span>${this.escapeHtml(group.name)}</span><div class="table-group-header-actions"><button type="button" class="btn-table-group-add" title="Add a task to ${this.escapeHtml(group.name)}"><span class="material-symbols-outlined">add</span> Add task</button><span class="task-count">${group.tasks.length}</span></div></div><table class="task-table"><thead><tr><th><button class="table-column-sort" data-sort="dueDate">Due${this.getGroupSortIndicator(group.key, 'dueDate')}</button></th><th><button class="table-column-sort" data-sort="starred">Star${this.getGroupSortIndicator(group.key, 'starred')}</button></th><th><button class="table-column-sort" data-sort="bucket">Bucket${this.getGroupSortIndicator(group.key, 'bucket')}</button></th><th><button class="table-column-sort" data-sort="title">Task${this.getGroupSortIndicator(group.key, 'title')}</button></th><th class="table-activity-column"><button class="table-column-sort" data-sort="activity">Activity & comments${this.getGroupSortIndicator(group.key, 'activity')}</button></th><th><button class="table-column-sort" data-sort="files">Files${this.getGroupSortIndicator(group.key, 'files')}</button></th></tr></thead><tbody></tbody></table>`;
+            section.innerHTML = `<div class="table-group-header"><span>${this.escapeHtml(group.name)}</span><div class="table-group-header-actions"><form class="table-group-add-form"><input type="text" placeholder="Add task…" aria-label="Add a task to ${this.escapeHtml(group.name)}"><button type="submit" class="btn-icon" title="Open full task editor"><span class="material-symbols-outlined">add</span></button></form><span class="task-count">${group.tasks.length}</span></div></div><table class="task-table"><thead><tr><th><button class="table-column-sort" data-sort="dueDate">Due${this.getGroupSortIndicator(group.key, 'dueDate')}</button></th><th><button class="table-column-sort" data-sort="starred">Star${this.getGroupSortIndicator(group.key, 'starred')}</button></th><th><button class="table-column-sort" data-sort="bucket">Bucket${this.getGroupSortIndicator(group.key, 'bucket')}</button></th><th><button class="table-column-sort" data-sort="title">Task${this.getGroupSortIndicator(group.key, 'title')}</button></th><th class="table-activity-column"><button class="table-column-sort" data-sort="activity">Activity & comments${this.getGroupSortIndicator(group.key, 'activity')}</button></th><th><button class="table-column-sort" data-sort="files">Files${this.getGroupSortIndicator(group.key, 'files')}</button></th></tr></thead><tbody></tbody></table>`;
             const body = section.querySelector('tbody');
             group.tasks.forEach(task => {
                 const bucket = this.getTaskBucket(task);
@@ -435,30 +435,39 @@ export class Dashboard {
     }
 
     bindTableEvents() {
-        this.gridEl.querySelectorAll('.btn-table-group-add').forEach(button => {
-            button.addEventListener('click', async () => {
-                const section = button.closest('.table-group');
+        this.gridEl.querySelectorAll('.table-group-add-form').forEach(form => {
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const input = form.querySelector('input');
+                const title = input.value.trim();
+                if (!title) {
+                    input.focus();
+                    return;
+                }
+                const section = form.closest('.table-group');
                 const group = {
                     key: section.dataset.groupKey,
                     dropDate: section.dataset.dropDate || null,
                     bucket: section.dataset.bucketId ? { id: section.dataset.bucketId } : null
                 };
-                button.disabled = true;
+                input.disabled = true;
                 try {
                     const dueDate = await this.getTableGroupDueDate(group);
                     if (dueDate === undefined) return;
                     if (!window.currentTaskModal) throw new Error('Task editor is not available.');
 
                     await window.currentTaskModal.open(null, group.bucket?.id || null);
+                    window.currentTaskModal.titleInput.value = title;
                     if (this.tableGrouping === 'date') {
                         window.currentTaskModal.dateInput.value = dueDate || '';
                         window.currentTaskModal.renderDatePunches();
                     }
+                    input.value = '';
                 } catch (error) {
                     console.error('Failed to add task from table group:', error);
                     window.alert('Could not open the task editor. Please try again.');
                 } finally {
-                    button.disabled = false;
+                    input.disabled = false;
                 }
             });
         });
