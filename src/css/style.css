@@ -2637,6 +2637,32 @@ main.has-parked-tray .dashboard-layout {
 .task-activity-modal-content { margin-top: 5px; font-size: 0.9rem; line-height: 1.5; overflow-wrap: anywhere; }
 .task-activity-modal-content img { display: block; max-width: min(100%, 560px); max-height: 340px; margin: 8px 0; border-radius: var(--radius-md); }
 
+.task-activity-comment-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 10px 18px;
+    border-top: 1px solid var(--border-light);
+    background: var(--bg-elevated);
+}
+
+.task-activity-comment-form textarea {
+    flex: 1;
+    min-height: 38px;
+    max-height: 100px;
+    resize: vertical;
+    padding: 8px;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 0.84rem;
+}
+
+.task-activity-comment-form .btn { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.task-activity-comment-form .material-symbols-outlined { font-size: 15px; }
+
 .table-column-sort {
     padding: 0;
     border: 0;

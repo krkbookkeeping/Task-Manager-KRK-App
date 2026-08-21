@@ -267,7 +267,7 @@ export class Dashboard {
         const comments = [...(task.comments || [])].reverse();
         const overlay = document.createElement('div');
         overlay.className = 'task-activity-modal-overlay';
-        overlay.innerHTML = `<section class="task-activity-modal" role="dialog" aria-modal="true" aria-label="Activity and comments"><header><div><div class="task-activity-modal-eyebrow">Activity & comments</div><h3>${this.escapeHtml(task.title)}</h3></div><button type="button" class="btn-icon" aria-label="Close comments"><span class="material-symbols-outlined">close</span></button></header><div class="task-activity-modal-list">${comments.length ? comments.map(comment => `<article class="task-activity-modal-comment"><time>${this.formatActivityDate(comment.createdAt)}</time><div class="task-activity-modal-content">${comment.content || comment.text || '<em>Attachment or formatted comment</em>'}</div></article>`).join('') : '<p class="task-table-muted">No comments yet.</p>'}</div></section>`;
+        overlay.innerHTML = `<section class="task-activity-modal" role="dialog" aria-modal="true" aria-label="Activity and comments"><header><div><div class="task-activity-modal-eyebrow">Activity & comments</div><h3>${this.escapeHtml(task.title)}</h3></div><button type="button" class="btn-icon" aria-label="Close comments"><span class="material-symbols-outlined">close</span></button></header><div class="task-activity-modal-list">${comments.length ? comments.map(comment => `<article class="task-activity-modal-comment"><time>${this.formatActivityDate(comment.createdAt)}</time><div class="task-activity-modal-content">${comment.content || comment.text || '<em>Attachment or formatted comment</em>'}</div></article>`).join('') : '<p class="task-table-muted">No comments yet.</p>'}</div><form class="task-activity-comment-form"><textarea placeholder="Add a comment…" aria-label="New comment"></textarea><button class="btn btn-primary btn-sm" type="submit"><span class="material-symbols-outlined">send</span> Add comment</button></form></section>`;
         const close = () => {
             document.removeEventListener('keydown', closeOnEscape, true);
             overlay.remove();
@@ -291,6 +291,37 @@ export class Dashboard {
                     lightbox.style.display = 'flex';
                 }
             });
+        });
+        overlay.querySelector('.task-activity-comment-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const textarea = form.querySelector('textarea');
+            const submit = form.querySelector('button[type="submit"]');
+            const text = textarea.value.trim();
+            if (!text) return;
+            const comment = {
+                id: globalThis.crypto?.randomUUID?.() || `comment-${Date.now()}`,
+                content: this.escapeHtml(text).replace(/\n/g, '<br>'),
+                createdAt: new Date().toISOString()
+            };
+            submit.disabled = true;
+            try {
+                const updatedComments = [...(task.comments || []), comment];
+                await taskService.update(this.uid, this.workspaceId, this.boardId, task.id, { comments: updatedComments });
+                task.comments = updatedComments;
+                const list = overlay.querySelector('.task-activity-modal-list');
+                list.querySelector('.task-table-muted')?.remove();
+                const entry = document.createElement('article');
+                entry.className = 'task-activity-modal-comment';
+                entry.innerHTML = `<time>${this.formatActivityDate(comment.createdAt)}</time><div class="task-activity-modal-content">${comment.content}</div>`;
+                list.prepend(entry);
+                textarea.value = '';
+            } catch (error) {
+                console.error('Failed to add comment from table view:', error);
+                window.alert('Could not add the comment. Please try again.');
+            } finally {
+                submit.disabled = false;
+            }
         });
         document.body.appendChild(overlay);
     }
