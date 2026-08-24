@@ -654,42 +654,46 @@
     background: var(--bg-body);
 }
 
-/* Selected Labels Display */
-.selected-labels-container {
+/* Clickable task-label picker */
+.task-label-picker {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-top: 8px;
+    align-items: center;
+    min-height: 32px;
 }
 
-.label-tag {
+.task-label-chip {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    background: var(--bg-body);
-    border: 1px solid var(--border-light);
-    padding: 4px 8px;
-    border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in srgb, var(--label-color) 55%, var(--border-light));
+    background: color-mix(in srgb, var(--label-color) 12%, var(--bg-body));
+    color: color-mix(in srgb, var(--label-color) 75%, var(--text-main));
+    padding: 5px 9px;
+    border-radius: 999px;
     font-size: 0.8rem;
     font-weight: 500;
-}
-
-.label-tag-color {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-}
-
-.label-tag-remove {
+    line-height: 1.2;
     cursor: pointer;
-    font-size: 14px;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s, font-weight 0.15s;
 }
 
-.label-tag-remove:hover {
-    color: var(--danger);
+.task-label-chip:hover {
+    border-color: var(--label-color);
+    transform: translateY(-1px);
+}
+
+.task-label-chip.selected {
+    background: var(--label-color);
+    border-color: var(--label-color);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 2px 6px color-mix(in srgb, var(--label-color) 35%, transparent);
+}
+
+.task-label-chip:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
 }
 
 /* Mobile Responsive */

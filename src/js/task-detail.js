@@ -34,14 +34,7 @@ export class TaskModal {
         this.createdInfo = document.getElementById('task-modal-created-info');
         this.statusInfo = document.getElementById('task-modal-status-info');
 
-        // Label Multi-Select Elements
-        this.labelTrigger = document.getElementById('task-label-trigger');
-        this.labelDropdown = document.getElementById('task-label-dropdown');
-        this.labelSearch = document.getElementById('task-label-search');
-        this.labelOptions = document.getElementById('task-label-options');
-        this.labelCreateSection = document.getElementById('task-label-create-section');
-        this.btnCreateLabel = document.getElementById('btn-create-new-label-modal');
-        this.newLabelText = document.getElementById('new-label-text');
+        // Clickable task labels
         this.selectedLabelsContainer = document.getElementById('task-selected-labels');
 
         // State
@@ -94,10 +87,9 @@ export class TaskModal {
     }
 
     init() {
-        // Subscribe to labels so the dropdown is always populated
+        // Subscribe so the clickable label picker stays current.
         this.unsubLabels = labelService.subscribe(this.uid, this.workspaceId, (labels) => {
             this.allLabels = labels;
-            this.renderLabelOptions();
             this.renderSelectedLabels();
         });
     }
@@ -441,41 +433,6 @@ export class TaskModal {
         const sidebarBtn = document.getElementById('btn-sidebar-create-task');
         if (sidebarBtn) sidebarBtn.addEventListener('click', () => this.open());
 
-        // Custom Label Dropdown behavior
-        this.labelTrigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.toggleLabelDropdown();
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!this.labelDropdown.contains(e.target) && !this.labelTrigger.contains(e.target)) {
-                this.labelDropdown.style.display = 'none';
-            }
-        });
-
-        this.labelSearch.addEventListener('input', () => this.filterLabelOptions());
-
-        this.btnCreateLabel.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            const name = this.labelSearch.value.trim();
-            if (name) {
-                try {
-                    // Pick a random default color for inline created labels
-                    const colors = ['#ef4444', '#f97316', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
-                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                    const newLabel = await labelService.create(this.uid, this.workspaceId, name, randomColor);
-
-                    this.selectedLabelIds.add(newLabel.id);
-                    this.labelSearch.value = '';
-                    this.filterLabelOptions();
-                    this.renderSelectedLabels();
-                } catch (e) {
-                    console.error("Failed to create inline label", e);
-                }
-            }
-        });
-
         // Description Toolbar - Bold
         if (this.btnDescBold) {
             this.btnDescBold.addEventListener('mousedown', (e) => {
@@ -591,15 +548,17 @@ export class TaskModal {
         }
 
         // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
+        document.addEventListener('keydown', async (e) => {
             if (e.key === 'Escape') {
                 // Priority: close lightbox first, then save+close modal
                 if (this.lightbox.style.display !== 'none') {
+                    e.preventDefault();
                     e.stopImmediatePropagation();
                     this.closeLightbox();
                 } else if (this.overlay.classList.contains('active')) {
+                    e.preventDefault();
                     e.stopImmediatePropagation();
-                    this.saveTask();
+                    await this.saveTask();
                 }
             }
         });
@@ -608,8 +567,7 @@ export class TaskModal {
     async open(taskId = null, defaultLabelId = null) {
         this.currentTaskId = taskId;
         this.selectedLabelIds.clear();
-        this.labelSearch.value = '';
-        this.filterLabelOptions();
+        this.renderSelectedLabels();
 
         this.isParked = false;
 
@@ -720,7 +678,6 @@ export class TaskModal {
         this.overlay.classList.remove('active');
         this.currentTaskId = null;
         this.isParked = false;
-        this.labelDropdown.style.display = 'none';
         // Reset complete button so it's not stuck on "Completing..."
         if (this.btnComplete) {
             this.btnComplete.disabled = false;
@@ -917,9 +874,10 @@ export class TaskModal {
         const dueDateVal = this.dateInput.value;
         const dueDateString = dueDateVal ? `<div class="meta-item"><strong>Due Date:</strong> ${dueDateVal}</div>` : '';
 
-        // Gather labels
-        const labelBadges = Array.from(this.selectedLabelsContainer.querySelectorAll('.badge'))
-            .map(badge => `<span class="badge" style="background: ${badge.style.backgroundColor}; color: ${badge.style.color};">${badge.textContent}</span>`)
+        // Gather labels directly from selection state so printing matches the picker.
+        const labelBadges = this.allLabels
+            .filter(label => this.selectedLabelIds.has(label.id))
+            .map(label => `<span class="badge" style="background: ${label.color || '#6366f1'}; color: #fff;">${this.escapeHtml(label.name)}</span>`)
             .join(' ');
         const labelsHtml = labelBadges ? `<div class="meta-item"><strong>Labels:</strong><br>${labelBadges}</div>` : '';
 
@@ -1797,98 +1755,25 @@ export class TaskModal {
         }
     }
 
-    // --- Label Dropdown Logic ---
-
-    toggleLabelDropdown() {
-        const isVisible = this.labelDropdown.style.display === 'flex';
-        this.labelDropdown.style.display = isVisible ? 'none' : 'flex';
-        if (!isVisible) {
-            this.labelSearch.focus();
-            this.filterLabelOptions();
-        }
-    }
-
-    renderLabelOptions() {
-        const searchTerm = this.labelSearch.value.trim().toLowerCase();
-        this.labelOptions.innerHTML = '';
-        let matchFound = false;
-
-        this.allLabels.forEach(label => {
-            if (label.name.toLowerCase().includes(searchTerm)) {
-                if (label.name.toLowerCase() === searchTerm) matchFound = true;
-
-                const isSelected = this.selectedLabelIds.has(label.id);
-                const el = document.createElement('div');
-                el.className = `custom-select-option ${isSelected ? 'selected' : ''}`;
-                el.innerHTML = `
-                    <span class="label-dot" style="background-color: ${label.color}; width: 12px; height: 12px;"></span>
-                    <span style="flex: 1;">${this.escapeHtml(label.name)}</span>
-                    ${isSelected ? '<span class="material-symbols-outlined" style="font-size: 16px; color: var(--primary);">check</span>' : ''}
-                `;
-
-                el.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (isSelected) {
-                        this.selectedLabelIds.delete(label.id);
-                    } else {
-                        this.selectedLabelIds.add(label.id);
-                    }
-                    this.renderLabelOptions();
-                    this.renderSelectedLabels();
-                });
-
-                this.labelOptions.appendChild(el);
-            }
-        });
-
-        // Toggle Create UI
-        if (searchTerm && !matchFound) {
-            this.labelCreateSection.style.display = 'block';
-            this.newLabelText.textContent = searchTerm;
-        } else {
-            this.labelCreateSection.style.display = 'none';
-        }
-    }
-
-    filterLabelOptions() {
-        this.renderLabelOptions();
-    }
-
     renderSelectedLabels() {
         this.selectedLabelsContainer.innerHTML = '';
-        if (this.selectedLabelIds.size === 0) {
-            document.getElementById('task-label-display').textContent = 'Select labels...';
-            document.getElementById('task-label-display').style.color = 'var(--text-muted)';
-            return;
-        }
-
-        document.getElementById('task-label-display').textContent = `${this.selectedLabelIds.size} selected`;
-        document.getElementById('task-label-display').style.color = 'var(--text-main)';
-
-        this.selectedLabelIds.forEach(id => {
-            const label = this.allLabels.find(l => l.id === id);
-            if (label) {
-                const tag = document.createElement('div');
-                tag.className = 'label-tag';
-                tag.innerHTML = `
-                    <span class="label-tag-color" style="background-color: ${label.color};"></span>
-                    <span>${this.escapeHtml(label.name)}</span>
-                    <span class="material-symbols-outlined label-tag-remove" data-id="${label.id}">close</span>
-                `;
-                this.selectedLabelsContainer.appendChild(tag);
-            }
-        });
-
-        // Add removed listener to tags
-        const removeBtns = this.selectedLabelsContainer.querySelectorAll('.label-tag-remove');
-        removeBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const idToRemove = btn.getAttribute('data-id');
-                this.selectedLabelIds.delete(idToRemove);
+        this.allLabels.forEach(label => {
+            const isSelected = this.selectedLabelIds.has(label.id);
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = `task-label-chip${isSelected ? ' selected' : ''}`;
+            chip.style.setProperty('--label-color', label.color || 'var(--primary)');
+            chip.setAttribute('aria-pressed', String(isSelected));
+            chip.textContent = label.name;
+            chip.addEventListener('click', () => {
+                if (this.selectedLabelIds.has(label.id)) {
+                    this.selectedLabelIds.delete(label.id);
+                } else {
+                    this.selectedLabelIds.add(label.id);
+                }
                 this.renderSelectedLabels();
-                this.renderLabelOptions(); // Update checkmarks
             });
+            this.selectedLabelsContainer.appendChild(chip);
         });
     }
 
