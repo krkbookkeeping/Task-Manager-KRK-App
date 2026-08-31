@@ -298,6 +298,19 @@ export class Dashboard {
         };
         const closeOnEscape = (event) => {
             if (event.key !== 'Escape') return;
+            // This dialog uses the shared image lightbox.  Because this handler
+            // listens during capture, it runs before the task-detail lightbox
+            // handler; close the lightbox here so Escape does not also dismiss
+            // the comments dialog beneath it.
+            const lightbox = document.getElementById('image-lightbox');
+            if (lightbox?.style.display !== 'none') {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                lightbox.style.display = 'none';
+                const lightboxImage = document.getElementById('lightbox-image');
+                if (lightboxImage) lightboxImage.src = '';
+                return;
+            }
             event.preventDefault();
             event.stopImmediatePropagation();
             close();
