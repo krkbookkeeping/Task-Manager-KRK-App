@@ -188,6 +188,16 @@ export class Dashboard {
         });
     }
 
+    hasActiveTaskFilters() {
+        return Boolean(
+            this.searchQuery ||
+            this.currentFilterDate ||
+            this.thisWeekFilter ||
+            this.pastDueFilter ||
+            this.starFilter
+        );
+    }
+
     getTaskBucket(task) {
         const label = (task.labels || []).map(id => this.labels.find(item => item.id === id)).find(Boolean);
         return label || { id: '', name: 'No Label', color: 'var(--text-muted)' };
@@ -444,6 +454,13 @@ export class Dashboard {
             view.appendChild(section);
         });
         this.gridEl.appendChild(view);
+        if (this.hasActiveTaskFilters()) {
+            const counter = document.createElement('div');
+            counter.className = 'table-results-counter';
+            counter.setAttribute('role', 'status');
+            counter.textContent = `Showing ${tasks.length} matching task${tasks.length === 1 ? '' : 's'}`;
+            this.gridEl.appendChild(counter);
+        }
         this.bindTableEvents();
     }
 
