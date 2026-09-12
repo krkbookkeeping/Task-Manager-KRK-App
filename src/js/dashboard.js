@@ -217,17 +217,41 @@ export class Dashboard {
         const nextWeekEnd = new Date(endOfWeek); nextWeekEnd.setDate(endOfWeek.getDate() + 7);
         const endMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
         const endNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
-        if (date <= endOfWeek.toISOString().split('T')[0]) return { key: 'this-week', name: 'This Week', dropDate: 'choice' };
+        // A date-group drop always uses the Monday that starts the destination
+        // period. This keeps dragging between table groups fast and predictable.
+        if (date <= endOfWeek.toISOString().split('T')[0]) return { key: 'this-week', name: 'This Week', dropDate: this.getWeekMonday(now) };
         if (date <= nextWeekEnd.toISOString().split('T')[0]) return { key: 'next-week', name: 'Next Week', dropDate: this.getNextMonday() };
-        if (date <= endMonth.toISOString().split('T')[0]) return { key: 'this-month', name: 'This Month', dropDate: 'choice' };
-        if (date <= endNextMonth.toISOString().split('T')[0]) return { key: 'next-month', name: 'Next Month', dropDate: `${endMonth.getFullYear()}-${String(endMonth.getMonth() + 2).padStart(2, '0')}-01` };
+        // This group begins after Next Week, so its first weekly category is the
+        // Monday immediately following that group.
+        const thisMonthStart = new Date(nextWeekEnd);
+        thisMonthStart.setDate(thisMonthStart.getDate() + 1);
+        if (date <= endMonth.toISOString().split('T')[0]) return { key: 'this-month', name: 'This Month', dropDate: this.getWeekMonday(thisMonthStart) };
+        if (date <= endNextMonth.toISOString().split('T')[0]) {
+            const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            return { key: 'next-month', name: 'Next Month', dropDate: this.getFirstMondayOfMonth(nextMonthStart) };
+        }
         return { key: 'later', name: 'Later', dropDate: null };
+    }
+
+    getWeekMonday(referenceDate) {
+        const date = new Date(referenceDate);
+        date.setHours(0, 0, 0, 0);
+        const daysSinceMonday = (date.getDay() + 6) % 7;
+        date.setDate(date.getDate() - daysSinceMonday);
+        return date.toISOString().split('T')[0];
     }
 
     getNextMonday() {
         const date = new Date(); date.setHours(0, 0, 0, 0);
         const days = ((8 - date.getDay()) % 7) || 7;
         date.setDate(date.getDate() + days);
+        return date.toISOString().split('T')[0];
+    }
+
+    getFirstMondayOfMonth(monthStart) {
+        const date = new Date(monthStart);
+        date.setHours(0, 0, 0, 0);
+        date.setDate(date.getDate() + ((8 - date.getDay()) % 7));
         return date.toISOString().split('T')[0];
     }
 
@@ -595,24 +619,11 @@ export class Dashboard {
                 }
                 if (this.tableGrouping !== 'date') return;
 
-                let dueDate = group.dataset.dropDate || null;
-                if (dueDate === 'choice') {
-                    const response = window.prompt('Set due date: enter “next” for the next available working day, or enter a date as YYYY-MM-DD.');
-                    if (!response) return;
-                    if (response.trim().toLowerCase() === 'next') dueDate = this.getNextWorkingDay();
-                    else if (/^\d{4}-\d{2}-\d{2}$/.test(response.trim())) dueDate = response.trim();
-                    else { window.alert('Please enter “next” or a date in YYYY-MM-DD format.'); return; }
-                }
+                const dueDate = group.dataset.dropDate || null;
                 if (groupKey === 'overdue' || groupKey === 'later' || groupKey === 'empty') return;
                 await taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { dueDate });
             });
         });
-    }
-
-    getNextWorkingDay() {
-        const date = new Date(); date.setHours(0, 0, 0, 0);
-        do { date.setDate(date.getDate() + 1); } while (date.getDay() === 0 || date.getDay() === 6);
-        return date.toISOString().split('T')[0];
     }
 
     async getTableGroupDueDate(group) {
@@ -625,12 +636,6 @@ export class Dashboard {
         if (group.key === 'later') {
             const response = window.prompt('Enter a due date for this task (YYYY-MM-DD):');
             return /^\d{4}-\d{2}-\d{2}$/.test(response?.trim()) ? response.trim() : undefined;
-        }
-        if (group.dropDate === 'choice') {
-            const response = window.prompt('Set due date: enter “next” for the next available working day, or enter a date as YYYY-MM-DD.');
-            if (!response) return undefined;
-            if (response.trim().toLowerCase() === 'next') return this.getNextWorkingDay();
-            return /^\d{4}-\d{2}-\d{2}$/.test(response.trim()) ? response.trim() : undefined;
         }
         return group.dropDate || null;
     }
