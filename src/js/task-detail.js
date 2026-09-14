@@ -1864,33 +1864,7 @@ export class TaskModal {
                 const existingTimer = this.tagClickTimers.get(tag.id);
                 if (existingTimer) clearTimeout(existingTimer);
                 this.tagClickTimers.delete(tag.id);
-                const name = window.prompt('Tag name:', tag.name);
-                if (name === null) return;
-                const trimmedName = name.trim();
-                if (!trimmedName) {
-                    window.alert('A tag name is required.');
-                    return;
-                }
-                if (this.allTags.some(item => item.id !== tag.id && item.name.toLowerCase() === trimmedName.toLowerCase())) {
-                    window.alert('A tag with that name already exists in this workspace.');
-                    return;
-                }
-                const color = window.prompt('Tag color (hex):', tag.color || '#0ea5e9');
-                if (color === null) return;
-                const normalizedColor = color.trim();
-                if (!/^#[0-9a-f]{6}$/i.test(normalizedColor)) {
-                    window.alert('Use a six-digit hex color, for example #0ea5e9.');
-                    return;
-                }
-                try {
-                    await tagService.update(this.uid, this.workspaceId, tag.id, { name: trimmedName, color: normalizedColor });
-                    tag.name = trimmedName;
-                    tag.color = normalizedColor;
-                    this.renderSelectedTags();
-                } catch (error) {
-                    console.error('Failed to update tag:', error);
-                    window.alert('Could not update the tag. Please try again.');
-                }
+                this.openTagEditor(tag);
             });
             wrapper.appendChild(chip);
             if (isSelected) {
@@ -1909,6 +1883,50 @@ export class TaskModal {
             }
             this.selectedTagsContainer.appendChild(wrapper);
         });
+    }
+
+    openTagEditor(tag) {
+        document.querySelector('.tag-editor-overlay')?.remove();
+        const overlay = document.createElement('div');
+        overlay.className = 'tag-editor-overlay';
+        overlay.innerHTML = `
+            <form class="tag-editor-dialog" aria-label="Edit tag">
+                <div class="tag-editor-header"><h3>Edit tag</h3><button type="button" class="btn-icon tag-editor-close" aria-label="Close"><span class="material-symbols-outlined">close</span></button></div>
+                <label>Tag name<input class="form-input" name="name" maxlength="60" value="${this.escapeHtml(tag.name)}" required></label>
+                <label>Color<input class="tag-editor-color" name="color" type="color" value="${this.escapeHtml(tag.color || '#0ea5e9')}" aria-label="Tag color"></label>
+                <div class="tag-editor-actions"><button type="button" class="btn btn-outline tag-editor-cancel">Cancel</button><button type="submit" class="btn btn-primary">Save changes</button></div>
+            </form>`;
+        const form = overlay.querySelector('form');
+        const close = () => overlay.remove();
+        overlay.querySelector('.tag-editor-close').addEventListener('click', close);
+        overlay.querySelector('.tag-editor-cancel').addEventListener('click', close);
+        overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+            const name = form.elements.name.value.trim();
+            const color = form.elements.color.value;
+            if (!name) return;
+            if (this.allTags.some(item => item.id !== tag.id && item.name.toLowerCase() === name.toLowerCase())) {
+                window.alert('A tag with that name already exists in this workspace.');
+                return;
+            }
+            const saveButton = form.querySelector('button[type="submit"]');
+            saveButton.disabled = true;
+            try {
+                await tagService.update(this.uid, this.workspaceId, tag.id, { name, color });
+                tag.name = name;
+                tag.color = color;
+                this.renderSelectedTags();
+                close();
+            } catch (error) {
+                console.error('Failed to update tag:', error);
+                window.alert('Could not update the tag. Please try again.');
+                saveButton.disabled = false;
+            }
+        });
+        document.body.appendChild(overlay);
+        overlay.querySelector('[name="name"]').focus();
+        overlay.querySelector('[name="name"]').select();
     }
 
     escapeHtml(unsafe) {

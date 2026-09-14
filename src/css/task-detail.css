@@ -704,6 +704,14 @@
 .task-tag-remove { border: 0; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 2px; }
 .task-tag-remove:hover { color: var(--danger); }
 
+.tag-editor-overlay { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 20px; background: color-mix(in srgb, #111827 42%, transparent); }
+.tag-editor-dialog { width: min(420px, 100%); display: grid; gap: 16px; padding: 22px; border: 1px solid var(--border-light); border-radius: var(--radius-lg); background: var(--bg-surface); box-shadow: 0 20px 50px color-mix(in srgb, #111827 35%, transparent); }
+.tag-editor-header { display: flex; align-items: center; justify-content: space-between; }
+.tag-editor-header h3 { margin: 0; font-size: 1.1rem; }
+.tag-editor-dialog label { display: grid; gap: 7px; color: var(--text-secondary); font-size: .85rem; font-weight: 600; }
+.tag-editor-color { width: 64px; height: 38px; padding: 2px; cursor: pointer; border: 1px solid var(--border-light); border-radius: var(--radius-sm); background: var(--bg-body); }
+.tag-editor-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
     .task-modal-layout {
