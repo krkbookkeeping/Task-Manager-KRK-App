@@ -25,6 +25,6 @@ export const tagService = {
     subscribe(uid, wid, callback) {
         return onSnapshot(query(this.getCollectionRef(uid, wid), orderBy('order', 'asc')), snapshot => {
             callback(snapshot.docs.map(item => item.data()));
-        });
+        }, error => console.error('Failed to load task tags:', error));
     }
 };

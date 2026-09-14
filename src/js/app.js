@@ -87,7 +87,7 @@ import('./firebase-config.js')
  */
 async function bootWorkspace(uid, workspaceId, boardId) {
     const { Dashboard } = await import('./dashboard.js?v=20');
-    const { TaskModal } = await import('./task-detail.js?v=6');
+    const { TaskModal } = await import('./task-detail.js?v=7');
     const { Calendar } = await import('./calendar.js?v=3');
     const { BookmarkDashboard } = await import('./bookmark-dashboard.js');
     const { BookmarkModal } = await import('./bookmark-modal.js');

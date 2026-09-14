@@ -378,8 +378,15 @@ export class TaskModal {
             this.btnCreateTag.disabled = true;
             try {
                 const tag = await tagService.create(this.uid, this.workspaceId, name, this.newTagColorInput.value);
+                // Show the new tag immediately instead of waiting for Firestore's
+                // realtime callback, then let the subscription keep it in sync.
+                if (!this.allTags.some(item => item.id === tag.id)) {
+                    this.allTags.push(tag);
+                    this.allTags.sort((a, b) => (a.order || 0) - (b.order || 0));
+                }
                 this.selectedTagIds.add(tag.id);
                 this.newTagNameInput.value = '';
+                this.renderSelectedTags();
             } catch (error) {
                 console.error('Failed to create tag:', error);
                 alert('Could not create the tag. Please try again.');
@@ -1831,6 +1838,8 @@ export class TaskModal {
         this.selectedTagsContainer.innerHTML = '';
         this.allTags.forEach(tag => {
             const isSelected = this.selectedTagIds.has(tag.id);
+            const wrapper = document.createElement('span');
+            wrapper.className = 'task-tag-chip-wrap';
             const chip = document.createElement('button');
             chip.type = 'button';
             chip.className = `task-label-chip${isSelected ? ' selected' : ''}`;
@@ -1842,7 +1851,22 @@ export class TaskModal {
                 else this.selectedTagIds.add(tag.id);
                 this.renderSelectedTags();
             });
-            this.selectedTagsContainer.appendChild(chip);
+            wrapper.appendChild(chip);
+            if (isSelected) {
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'task-tag-remove';
+                remove.setAttribute('aria-label', `Remove ${tag.name} from this task`);
+                remove.title = 'Remove from this task';
+                remove.textContent = '×';
+                remove.addEventListener('click', event => {
+                    event.stopPropagation();
+                    this.selectedTagIds.delete(tag.id);
+                    this.renderSelectedTags();
+                });
+                wrapper.appendChild(remove);
+            }
+            this.selectedTagsContainer.appendChild(wrapper);
         });
     }
 
