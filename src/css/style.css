@@ -2762,6 +2762,13 @@ main.has-parked-tray .dashboard-layout {
 
 .table-column-sort:hover { color: var(--accent); }
 
+.tag-manager-create { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.tag-manager-create input[type="text"] { flex: 1; min-width: 0; }
+.tag-manager-create input[type="color"] { width: 32px; height: 32px; padding: 2px; }
+.settings-tag-list { display: grid; gap: 6px; }
+.settings-tag-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid var(--border-light); }
+.settings-tag-row .tag-name { flex: 1; font-size: .88rem; }
+
 /* Keep the calendar compact without visible scrollbars. It remains scrollable by wheel/touch. */
 .left-column,
 .calendar-column {

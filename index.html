@@ -498,6 +498,10 @@
                                         <option value="none">No grouping</option>
                                         <option value="bucket">By bucket</option>
                                         <option value="date">By due date</option>
+                                        <option value="tag">By tag</option>
+                                    </select>
+                                    <select id="tag-filter" class="table-control" title="Filter tasks by tag">
+                                        <option value="">All tags</option>
                                     </select>
                                     <select id="table-sort" class="table-control" title="Sort table rows">
                                         <option value="dueDate">Due date</option>
@@ -1005,6 +1009,17 @@
                     </div>
                 </div>
 
+                <div class="settings-section">
+                    <h4>Task Tags</h4>
+                    <p class="settings-row-desc" style="margin: 0 0 10px;">Tags are flexible, workspace-wide task categories.</p>
+                    <div class="tag-manager-create">
+                        <input id="new-settings-tag-name" class="form-input form-input-sm" placeholder="New tag name" maxlength="60">
+                        <input id="new-settings-tag-color" type="color" value="#0ea5e9" title="Tag color">
+                        <button id="btn-create-settings-tag" class="btn btn-sm btn-primary" type="button">Create tag</button>
+                    </div>
+                    <div id="settings-tag-list" class="settings-tag-list" aria-label="Manage task tags"></div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -1068,6 +1083,16 @@
                             <span class="meta-label">Labels</span>
                             <div class="task-label-picker" id="task-selected-labels" aria-label="Task labels">
                                 <!-- Labels injected here by JS -->
+                            </div>
+                        </div>
+
+                        <div class="task-meta-item">
+                            <span class="meta-label">Tags</span>
+                            <div class="task-label-picker" id="task-selected-tags" aria-label="Task tags"></div>
+                            <div class="task-tag-create-row">
+                                <input id="new-task-tag-name" class="form-input form-input-sm" placeholder="Create tag…" maxlength="60">
+                                <input id="new-task-tag-color" type="color" value="#0ea5e9" title="Tag color">
+                                <button id="btn-create-task-tag" class="btn btn-sm btn-outline" type="button">Add</button>
                             </div>
                         </div>
 

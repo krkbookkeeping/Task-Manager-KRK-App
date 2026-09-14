@@ -86,8 +86,8 @@ import('./firebase-config.js')
  * TaskModal and BookmarkModal: use switchContext() on re-boot to avoid re-binding ~60 event listeners.
  */
 async function bootWorkspace(uid, workspaceId, boardId) {
-    const { Dashboard } = await import('./dashboard.js?v=19');
-    const { TaskModal } = await import('./task-detail.js?v=5');
+    const { Dashboard } = await import('./dashboard.js?v=20');
+    const { TaskModal } = await import('./task-detail.js?v=6');
     const { Calendar } = await import('./calendar.js?v=3');
     const { BookmarkDashboard } = await import('./bookmark-dashboard.js');
     const { BookmarkModal } = await import('./bookmark-modal.js');

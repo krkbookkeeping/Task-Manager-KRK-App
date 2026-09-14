@@ -25,6 +25,7 @@ export const taskService = {
             description: '',
             dueDate: null,
             labels: labelId ? [labelId] : [],
+            tags: [],
             pinned: {},       // Record of { labelId: boolean } if pinned
             order: {},        // Record of { labelId: integer } for drag-drop ordering
             completed: false,
@@ -144,6 +145,25 @@ export const taskService = {
             await batch.commit();
         }
         return count;
+    },
+
+    // Tags belong to the workspace, so deleting one must clear it from every board.
+    async removeTagFromWorkspace(uid, wid, tagId) {
+        const boardsSnapshot = await getDocs(collection(db, 'users', uid, 'workspaces', wid, 'boards'));
+        let changed = 0;
+        for (const boardDoc of boardsSnapshot.docs) {
+            const tasksSnapshot = await getDocs(collection(boardDoc.ref, 'tasks'));
+            const updates = tasksSnapshot.docs
+                .filter(taskDoc => (taskDoc.data().tags || []).includes(tagId))
+                .map(taskDoc => ({ ref: taskDoc.ref, tags: taskDoc.data().tags.filter(id => id !== tagId) }));
+            for (let start = 0; start < updates.length; start += 450) {
+                const batch = writeBatch(db);
+                updates.slice(start, start + 450).forEach(item => batch.update(item.ref, { tags: item.tags }));
+                await batch.commit();
+            }
+            changed += updates.length;
+        }
+        return changed;
     },
 
     // Subscribe to all ACTIVE tasks for a board

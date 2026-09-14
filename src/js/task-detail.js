@@ -1,5 +1,6 @@
 import { taskService } from './services/task-service.js';
 import { labelService } from './services/label-service.js';
+import { tagService } from './services/tag-service.js';
 import { noteService } from './services/note-service.js';
 import { noteLabelService } from './services/note-label-service.js';
 import { DATE_PUNCH_OFFSETS, calculateOffsetDate } from './utils/date-utils.js';
@@ -36,12 +37,19 @@ export class TaskModal {
 
         // Clickable task labels
         this.selectedLabelsContainer = document.getElementById('task-selected-labels');
+        this.selectedTagsContainer = document.getElementById('task-selected-tags');
+        this.newTagNameInput = document.getElementById('new-task-tag-name');
+        this.newTagColorInput = document.getElementById('new-task-tag-color');
+        this.btnCreateTag = document.getElementById('btn-create-task-tag');
 
         // State
         this.currentTaskId = null; // null if creating new
         this.allLabels = [];
         this.selectedLabelIds = new Set();
         this.unsubLabels = null;
+        this.allTags = [];
+        this.selectedTagIds = new Set();
+        this.unsubTags = null;
         this.comments = []; // Array of comment objects
         this.editingCommentId = null; // Track if we're editing an existing comment
         this.starred = false; // Star state
@@ -92,10 +100,15 @@ export class TaskModal {
             this.allLabels = labels;
             this.renderSelectedLabels();
         });
+        this.unsubTags = tagService.subscribe(this.uid, this.workspaceId, (tags) => {
+            this.allTags = tags;
+            this.renderSelectedTags();
+        });
     }
 
     destroy() {
         if (this.unsubLabels) this.unsubLabels();
+        if (this.unsubTags) this.unsubTags();
     }
 
     /**
@@ -104,13 +117,16 @@ export class TaskModal {
      */
     switchContext(uid, workspaceId, boardId, calendar = null) {
         if (this.unsubLabels) this.unsubLabels();
+        if (this.unsubTags) this.unsubTags();
         this.uid = uid;
         this.workspaceId = workspaceId;
         this.boardId = boardId;
         this.calendar = calendar;
         this.currentTaskId = null;
         this.allLabels = [];
+        this.allTags = [];
         this.selectedLabels = [];
+        this.selectedTagIds.clear();
         this.init();
     }
 
@@ -352,6 +368,29 @@ export class TaskModal {
 
         // Save, Print, Delete, Complete
         this.btnSave.addEventListener('click', () => this.saveTask());
+        const createTag = async () => {
+            const name = this.newTagNameInput?.value.trim();
+            if (!name) return;
+            if (this.allTags.some(tag => tag.name.toLowerCase() === name.toLowerCase())) {
+                alert('A tag with that name already exists in this workspace.');
+                return;
+            }
+            this.btnCreateTag.disabled = true;
+            try {
+                const tag = await tagService.create(this.uid, this.workspaceId, name, this.newTagColorInput.value);
+                this.selectedTagIds.add(tag.id);
+                this.newTagNameInput.value = '';
+            } catch (error) {
+                console.error('Failed to create tag:', error);
+                alert('Could not create the tag. Please try again.');
+            } finally {
+                this.btnCreateTag.disabled = false;
+            }
+        };
+        this.btnCreateTag?.addEventListener('click', createTag);
+        this.newTagNameInput?.addEventListener('keydown', event => {
+            if (event.key === 'Enter') { event.preventDefault(); createTag(); }
+        });
         if (this.btnPrint) {
             this.btnPrint.addEventListener('click', () => this.printTask());
         }
@@ -385,6 +424,7 @@ export class TaskModal {
                             description: this.descInput.innerHTML.trim(),
                             dueDate: this.dateInput.value ? new Date(this.dateInput.value).toISOString() : null,
                             labels: Array.from(this.selectedLabelIds),
+                            tags: Array.from(this.selectedTagIds),
                             relatedTasks: this.relatedTaskIds,
                             relatedNotes: this.relatedNoteIds,
                             starred: this.starred,
@@ -564,10 +604,12 @@ export class TaskModal {
         });
     }
 
-    async open(taskId = null, defaultLabelId = null) {
+    async open(taskId = null, defaultLabelId = null, defaultTagId = null) {
         this.currentTaskId = taskId;
         this.selectedLabelIds.clear();
+        this.selectedTagIds.clear();
         this.renderSelectedLabels();
+        this.renderSelectedTags();
 
         this.isParked = false;
 
@@ -601,6 +643,7 @@ export class TaskModal {
             if (defaultLabelId) {
                 this.selectedLabelIds.add(defaultLabelId);
             }
+            if (defaultTagId) this.selectedTagIds.add(defaultTagId);
             this.starred = false;
         }
 
@@ -609,6 +652,7 @@ export class TaskModal {
         this.renderDatePunches();
 
         this.renderSelectedLabels();
+        this.renderSelectedTags();
         this.overlay.classList.add('active');
         // Only auto-focus title on desktop; on mobile it opens the keyboard
         if (!window.matchMedia('(max-width: 768px)').matches) {
@@ -707,6 +751,9 @@ export class TaskModal {
 
                 if (task.labels && Array.isArray(task.labels)) {
                     task.labels.forEach(id => this.selectedLabelIds.add(id));
+                }
+                if (task.tags && Array.isArray(task.tags)) {
+                    task.tags.forEach(id => this.selectedTagIds.add(id));
                 }
 
                 // Format Created At date: 2026-02-24 08:02pm
@@ -811,6 +858,7 @@ export class TaskModal {
                 description: this.descInput.innerHTML.trim(),
                 dueDate: this.dateInput.value ? new Date(this.dateInput.value).toISOString() : null,
                 labels: Array.from(this.selectedLabelIds),
+                tags: Array.from(this.selectedTagIds),
                 relatedTasks: this.relatedTaskIds,
                 relatedNotes: this.relatedNoteIds,
                 starred: this.starred,
@@ -1756,6 +1804,7 @@ export class TaskModal {
     }
 
     renderSelectedLabels() {
+        if (!this.selectedLabelsContainer) return;
         this.selectedLabelsContainer.innerHTML = '';
         this.allLabels.forEach(label => {
             const isSelected = this.selectedLabelIds.has(label.id);
@@ -1774,6 +1823,26 @@ export class TaskModal {
                 this.renderSelectedLabels();
             });
             this.selectedLabelsContainer.appendChild(chip);
+        });
+    }
+
+    renderSelectedTags() {
+        if (!this.selectedTagsContainer) return;
+        this.selectedTagsContainer.innerHTML = '';
+        this.allTags.forEach(tag => {
+            const isSelected = this.selectedTagIds.has(tag.id);
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = `task-label-chip${isSelected ? ' selected' : ''}`;
+            chip.style.setProperty('--label-color', tag.color || '#0ea5e9');
+            chip.setAttribute('aria-pressed', String(isSelected));
+            chip.textContent = tag.name;
+            chip.addEventListener('click', () => {
+                if (this.selectedTagIds.has(tag.id)) this.selectedTagIds.delete(tag.id);
+                else this.selectedTagIds.add(tag.id);
+                this.renderSelectedTags();
+            });
+            this.selectedTagsContainer.appendChild(chip);
         });
     }
 

@@ -696,6 +696,10 @@
     outline-offset: 2px;
 }
 
+.task-tag-create-row { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
+.task-tag-create-row input[type="text"] { min-width: 0; flex: 1; }
+.task-tag-create-row input[type="color"] { width: 30px; height: 30px; padding: 2px; }
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
     .task-modal-layout {
