@@ -2431,11 +2431,26 @@ main.has-parked-tray .dashboard-layout {
     display: flex;
     align-items: center;
     gap: 4px;
+    flex: 1 1 220px;
+    min-width: 120px;
+    max-width: 360px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 2px 4px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-primary) transparent;
+    overscroll-behavior-x: contain;
 }
+
+/* Only the saved-search strip scrolls; dashboard controls stay fixed. */
+#star-filter-bar > div:first-child { min-width: 0; }
+.saved-searches-container::-webkit-scrollbar { height: 6px; }
+.saved-searches-container::-webkit-scrollbar-thumb { background: var(--border-primary); border-radius: 999px; }
 
 .saved-search-chip {
     display: inline-flex;
     align-items: center;
+    flex: 0 0 auto;
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     overflow: hidden;
@@ -2468,6 +2483,7 @@ main.has-parked-tray .dashboard-layout {
     padding: 2px 5px 2px 3px;
     display: inline-flex;
     align-items: center;
+    color: var(--text-secondary);
 }
 
 .saved-search-chip.active .saved-search-apply,
