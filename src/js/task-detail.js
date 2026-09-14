@@ -50,6 +50,7 @@ export class TaskModal {
         this.allTags = [];
         this.selectedTagIds = new Set();
         this.unsubTags = null;
+        this.tagClickTimers = new Map();
         this.comments = []; // Array of comment objects
         this.editingCommentId = null; // Track if we're editing an existing comment
         this.starred = false; // Star state
@@ -109,6 +110,7 @@ export class TaskModal {
     destroy() {
         if (this.unsubLabels) this.unsubLabels();
         if (this.unsubTags) this.unsubTags();
+        this.tagClickTimers.forEach(timer => clearTimeout(timer));
     }
 
     /**
@@ -1845,11 +1847,50 @@ export class TaskModal {
             chip.className = `task-label-chip${isSelected ? ' selected' : ''}`;
             chip.style.setProperty('--label-color', tag.color || '#0ea5e9');
             chip.setAttribute('aria-pressed', String(isSelected));
+            chip.title = 'Click to select/deselect. Double-click to edit this tag.';
             chip.textContent = tag.name;
             chip.addEventListener('click', () => {
-                if (this.selectedTagIds.has(tag.id)) this.selectedTagIds.delete(tag.id);
-                else this.selectedTagIds.add(tag.id);
-                this.renderSelectedTags();
+                const existingTimer = this.tagClickTimers.get(tag.id);
+                if (existingTimer) clearTimeout(existingTimer);
+                this.tagClickTimers.set(tag.id, setTimeout(() => {
+                    if (this.selectedTagIds.has(tag.id)) this.selectedTagIds.delete(tag.id);
+                    else this.selectedTagIds.add(tag.id);
+                    this.tagClickTimers.delete(tag.id);
+                    this.renderSelectedTags();
+                }, 220));
+            });
+            chip.addEventListener('dblclick', async event => {
+                event.preventDefault();
+                const existingTimer = this.tagClickTimers.get(tag.id);
+                if (existingTimer) clearTimeout(existingTimer);
+                this.tagClickTimers.delete(tag.id);
+                const name = window.prompt('Tag name:', tag.name);
+                if (name === null) return;
+                const trimmedName = name.trim();
+                if (!trimmedName) {
+                    window.alert('A tag name is required.');
+                    return;
+                }
+                if (this.allTags.some(item => item.id !== tag.id && item.name.toLowerCase() === trimmedName.toLowerCase())) {
+                    window.alert('A tag with that name already exists in this workspace.');
+                    return;
+                }
+                const color = window.prompt('Tag color (hex):', tag.color || '#0ea5e9');
+                if (color === null) return;
+                const normalizedColor = color.trim();
+                if (!/^#[0-9a-f]{6}$/i.test(normalizedColor)) {
+                    window.alert('Use a six-digit hex color, for example #0ea5e9.');
+                    return;
+                }
+                try {
+                    await tagService.update(this.uid, this.workspaceId, tag.id, { name: trimmedName, color: normalizedColor });
+                    tag.name = trimmedName;
+                    tag.color = normalizedColor;
+                    this.renderSelectedTags();
+                } catch (error) {
+                    console.error('Failed to update tag:', error);
+                    window.alert('Could not update the tag. Please try again.');
+                }
             });
             wrapper.appendChild(chip);
             if (isSelected) {

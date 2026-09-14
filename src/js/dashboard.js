@@ -301,7 +301,17 @@ export class Dashboard {
             if (sortBy === 'title') { aValue = a.title || ''; bValue = b.title || ''; }
             else if (sortBy === 'activity') { aValue = a.comments?.length || 0; bValue = b.comments?.length || 0; }
             else if (sortBy === 'bucket') { aValue = this.getTaskBucket(a).name; bValue = this.getTaskBucket(b).name; }
-            else if (sortBy === 'tag') { aValue = this.getTaskTags(a).map(tag => tag.name).join(', '); bValue = this.getTaskTags(b).map(tag => tag.name).join(', '); }
+            else if (sortBy === 'tag') {
+                const aTags = this.getTaskTags(a).map(tag => tag.name).sort((x, y) => x.localeCompare(y));
+                const bTags = this.getTaskTags(b).map(tag => tag.name).sort((x, y) => x.localeCompare(y));
+                // Keep untagged tasks together at the end when sorting A–Z so a
+                // Tags-header click has an obvious, useful result.
+                if (!aTags.length || !bTags.length) {
+                    if (!aTags.length && !bTags.length) return 0;
+                    return (!aTags.length ? 1 : -1) * direction;
+                }
+                aValue = aTags.join(', '); bValue = bTags.join(', ');
+            }
             else if (sortBy === 'createdAt') { aValue = a.createdAt?.seconds || 0; bValue = b.createdAt?.seconds || 0; }
             else if (sortBy === 'files') { aValue = a.attachments?.length || 0; bValue = b.attachments?.length || 0; }
             else if (sortBy === 'starred') { aValue = a.starred ? 1 : 0; bValue = b.starred ? 1 : 0; }
