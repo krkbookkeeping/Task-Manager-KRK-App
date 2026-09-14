@@ -2620,8 +2620,12 @@ main.has-parked-tray .dashboard-layout {
 .task-table th:nth-child(1), .task-table td:nth-child(1) { width: 68px; }
 .task-table th:nth-child(2), .task-table td:nth-child(2) { width: 46px; }
 .task-table th:nth-child(3), .task-table td:nth-child(3) { width: 86px; }
-.task-table th:nth-child(4), .task-table td:nth-child(4) { width: 31%; }
-.task-table th:nth-child(5), .task-table td:nth-child(5) { width: 25%; }
+.task-table th:nth-child(4), .task-table td:nth-child(4) { width: 8ch; }
+.task-table th:nth-child(5), .task-table td:nth-child(5) { width: 31%; }
+.task-table th:nth-child(6), .task-table td:nth-child(6) { width: 25%; }
+.task-table-tags { overflow: hidden; white-space: nowrap; }
+.task-table-tags .task-table-label { max-width: 100%; }
+.task-table-tag-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .task-table-star .btn-icon {
     width: 18px;
     height: 18px;

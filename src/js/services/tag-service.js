@@ -1,5 +1,5 @@
 import { db } from '../firebase-config.js';
-import { collection, doc, setDoc, onSnapshot, serverTimestamp, query, orderBy, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot, serverTimestamp, deleteDoc, updateDoc } from 'firebase/firestore';
 
 // References: users/{uid}/workspaces/{wid}/tags/{tagId}
 export const tagService = {
@@ -23,8 +23,14 @@ export const tagService = {
     },
 
     subscribe(uid, wid, callback) {
-        return onSnapshot(query(this.getCollectionRef(uid, wid), orderBy('order', 'asc')), snapshot => {
-            callback(snapshot.docs.map(item => item.data()));
+        // Keep this unfiltered: Firestore orderBy omits older documents that do
+        // not have an order field, which made valid existing tags invisible.
+        return onSnapshot(this.getCollectionRef(uid, wid), snapshot => {
+            callback(snapshot.docs.map(item => item.data()).sort((a, b) => {
+                const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
+                const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
+                return orderA - orderB || (a.name || '').localeCompare(b.name || '');
+            }));
         }, error => console.error('Failed to load task tags:', error));
     }
 };

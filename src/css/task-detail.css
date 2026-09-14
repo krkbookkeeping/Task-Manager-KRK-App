@@ -697,8 +697,9 @@
 }
 
 .task-tag-create-row { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
-.task-tag-create-row input[type="text"] { min-width: 0; flex: 1; }
+.task-tag-create-row input[type="text"] { min-width: 0; width: 0; flex: 1 1 0; }
 .task-tag-create-row input[type="color"] { width: 30px; height: 30px; padding: 2px; }
+.task-tag-create-row .btn { flex: 0 0 auto; }
 .task-tag-chip-wrap { display: inline-flex; align-items: center; gap: 2px; }
 .task-tag-remove { border: 0; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 2px; }
 .task-tag-remove:hover { color: var(--danger); }
