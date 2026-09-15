@@ -517,10 +517,14 @@
                                     <button class="btn btn-sm btn-outline" id="btn-table-sort-direction" type="button" title="Reverse sort order"><span class="material-symbols-outlined">arrow_upward</span></button>
                                 </div>
                                 <div style="width: 1px; height: 18px; background: var(--border-light); margin: 0 4px;"></div>
-                                <button class="btn btn-sm btn-search-shortcut" id="btn-search-expc" data-shortcut-query="ExpC" type="button">ExpC</button>
-                                <button class="btn btn-sm btn-search-shortcut" id="btn-search-expr" data-shortcut-query="ExpR" type="button">ExpR</button>
-                                <button class="btn btn-sm btn-search-shortcut" id="btn-search-kkflw" data-shortcut-query="kkflw" type="button">kkflw</button>
-                                <div id="saved-searches-container" class="saved-searches-container" aria-label="Saved searches"></div>
+                                <div class="saved-search-controls">
+                                    <select id="saved-search-select" class="table-control saved-search-select" aria-label="Saved searches">
+                                        <option value="">Saved searches</option>
+                                    </select>
+                                    <button id="btn-delete-saved-search" class="btn-icon" type="button" title="Delete selected saved search" aria-label="Delete selected saved search" disabled>
+                                        <span class="material-symbols-outlined">close</span>
+                                    </button>
+                                </div>
                             </div>
                             <div class="zoom-controls" style="display: flex; align-items: center; gap: 8px;">
                                 <span class="material-symbols-outlined"

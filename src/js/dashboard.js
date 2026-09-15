@@ -28,7 +28,6 @@ export class Dashboard {
         this.searchCompletedTasks = []; // Completed tasks loaded for search
         this.searchArchivedTasks = []; // Archived tasks loaded for search
         this.savedSearches = []; // Saved per-workspace search states
-        this.hiddenQuickSearches = [];
         this.viewMode = 'buckets';
         this.tableGrouping = 'none';
         this.tableSort = 'dueDate';
@@ -97,8 +96,6 @@ export class Dashboard {
         workspaceService.get(this.uid, this.workspaceId).then((workspace) => {
             const tableView = workspace?.settings?.tableView;
             this.crossBucketDefault = workspace?.settings?.crossBucketDefault || this.crossBucketDefault;
-            this.hiddenQuickSearches = workspace?.settings?.hiddenQuickSearches || [];
-            this.renderQuickSearchShortcutControls();
             if (this.tablePreferencesChanged) return;
             if (!tableView) return;
             this.viewMode = tableView.viewMode || this.viewMode;
@@ -1489,80 +1486,29 @@ export class Dashboard {
     }
 
     renderSavedSearches() {
-        const container = document.getElementById('saved-searches-container');
-        if (!container) return;
+        const select = document.getElementById('saved-search-select');
+        const deleteButton = document.getElementById('btn-delete-saved-search');
+        if (!select || !deleteButton) return;
 
-        container.replaceChildren();
-        this.savedSearches.forEach((savedSearch) => {
-            const chip = document.createElement('span');
-            chip.className = 'saved-search-chip';
-            if (this.isSavedSearchActive(savedSearch)) chip.classList.add('active');
+        const activeSearch = this.savedSearches.find(search => this.isSavedSearchActive(search));
+        select.replaceChildren(new Option('Saved searches', ''));
+        this.savedSearches.forEach(search => select.add(new Option(search.name, search.id)));
+        select.value = activeSearch?.id || '';
+        deleteButton.disabled = !select.value;
+        deleteButton.title = activeSearch ? `Delete saved search: ${activeSearch.name}` : 'Select a saved search to delete';
 
-            const applyBtn = document.createElement('button');
-            applyBtn.type = 'button';
-            applyBtn.className = 'saved-search-apply';
-            applyBtn.textContent = savedSearch.name;
-            applyBtn.title = `Apply saved search: ${savedSearch.name}`;
-            applyBtn.addEventListener('click', () => this.applySavedSearch(savedSearch));
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.type = 'button';
-            deleteBtn.className = 'saved-search-delete';
-            deleteBtn.title = `Delete saved search: ${savedSearch.name}`;
-            deleteBtn.setAttribute('aria-label', deleteBtn.title);
-            deleteBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 14px;">close</span>';
-            deleteBtn.addEventListener('click', async () => {
-                if (!window.confirm(`Delete the saved search “${savedSearch.name}”?`)) return;
-                await savedSearchService.delete(this.uid, this.workspaceId, savedSearch.id);
-            });
-
-            chip.append(applyBtn, deleteBtn);
-            container.appendChild(chip);
-        });
-    }
-
-    renderQuickSearchShortcutControls() {
-        document.querySelectorAll('.btn-search-shortcut[data-shortcut-query]').forEach(button => {
-            let wrapper = button.closest('.quick-search-shortcut-wrap');
-            if (!wrapper) {
-                wrapper = document.createElement('span');
-                wrapper.className = 'quick-search-shortcut-wrap';
-                button.parentNode.insertBefore(wrapper, button);
-                wrapper.appendChild(button);
-            }
-            const query = button.dataset.shortcutQuery;
-            wrapper.hidden = this.hiddenQuickSearches.includes(query);
-            let deleteButton = wrapper.querySelector('.quick-search-shortcut-delete');
-            if (!deleteButton) {
-                deleteButton = document.createElement('button');
-                deleteButton.type = 'button';
-                deleteButton.className = 'quick-search-shortcut-delete';
-                deleteButton.innerHTML = '<span class="material-symbols-outlined">close</span>';
-                wrapper.appendChild(deleteButton);
-            }
-            deleteButton.title = `Remove ${query} shortcut`;
-            deleteButton.setAttribute('aria-label', deleteButton.title);
-            deleteButton.onclick = async event => {
-                event.stopPropagation();
-                if (!window.confirm(`Remove the ${query} search shortcut?`)) return;
-                this.hiddenQuickSearches = [...new Set([...this.hiddenQuickSearches, query])];
-                wrapper.hidden = true;
-                try {
-                    await workspaceService.update(this.uid, this.workspaceId, {
-                        'settings.hiddenQuickSearches': this.hiddenQuickSearches
-                    });
-                } catch (error) {
-                    console.error('Failed to remove quick search shortcut:', error);
-                    this.hiddenQuickSearches = this.hiddenQuickSearches.filter(item => item !== query);
-                    wrapper.hidden = false;
-                }
-            };
-        });
+        select.onchange = () => {
+            const selected = this.savedSearches.find(search => search.id === select.value);
+            if (selected) this.applySavedSearch(selected);
+        };
+        deleteButton.onclick = async () => {
+            const selected = this.savedSearches.find(search => search.id === select.value);
+            if (!selected || !window.confirm(`Delete the saved search “${selected.name}”?`)) return;
+            await savedSearchService.delete(this.uid, this.workspaceId, selected.id);
+        };
     }
 
     applySavedSearch(savedSearch) {
-        // Saved searches and quick shortcuts are mutually exclusive visual states.
-        document.querySelectorAll('.btn-search-shortcut').forEach(button => button.classList.remove('active'));
         this.viewMode = 'table';
         this.tablePreferencesChanged = true;
         this.syncTableControls();
@@ -1915,9 +1861,6 @@ export class Dashboard {
                 if (saveSearchBtn) saveSearchBtn.style.display = 'none';
                 searchIndicator.style.display = 'none';
                 searchInput.value = '';
-                document.querySelectorAll('.btn-search-shortcut, .saved-search-chip').forEach(element => {
-                    element.classList.remove('active');
-                });
             }
             this.renderSavedSearches();
             // Trigger render for the active view
@@ -2078,80 +2021,6 @@ export class Dashboard {
             chkPastDue.addEventListener('change', () => {
                 this.pastDueFilter = chkPastDue.checked;
                 this.render();
-            }, { signal });
-        }
-
-        // ── Quick Search Shortcuts (ExpC / ExpR / kkflw) ──
-        const searchShortcuts = [
-            { btnId: 'btn-search-expc', query: 'ExpC' },
-            { btnId: 'btn-search-expr', query: 'ExpR' },
-            { btnId: 'btn-search-kkflw', query: 'kkflw' },
-        ];
-        const allShortcutBtns = searchShortcuts.map(s => document.getElementById(s.btnId)).filter(Boolean);
-        this.renderQuickSearchShortcutControls();
-
-        const activateSearchShortcut = (query, btn) => {
-            const searchInput = document.getElementById('global-search');
-            const searchClearBtn = document.getElementById('btn-clear-search');
-            const searchIndicator = document.getElementById('search-indicator');
-            const searchIndicatorText = document.getElementById('search-indicator-text');
-
-            // Toggle off if already active
-            if (this.searchQuery.toLowerCase() === query.toLowerCase() && btn && btn.classList.contains('active')) {
-                this.searchQuery = '';
-                allShortcutBtns.forEach(b => b.classList.remove('active'));
-                if (searchInput) searchInput.value = '';
-                if (searchClearBtn) searchClearBtn.style.display = 'none';
-                if (searchIndicator) searchIndicator.style.display = 'none';
-                this.render();
-                this.renderSavedSearches();
-                return;
-            }
-
-            // Activate
-            this.searchQuery = query;
-            allShortcutBtns.forEach(b => b.classList.remove('active'));
-            if (btn) btn.classList.add('active');
-            if (searchInput) searchInput.value = query;
-            if (searchClearBtn) searchClearBtn.style.display = 'flex';
-            if (searchIndicator) {
-                searchIndicator.style.display = 'flex';
-                if (searchIndicatorText) searchIndicatorText.textContent = `Filtered by search: '${query}'`;
-            }
-            this.render();
-            this.renderSavedSearches();
-        };
-
-        searchShortcuts.forEach(({ btnId, query }) => {
-            const btn = document.getElementById(btnId);
-            if (btn) {
-                btn.addEventListener('click', () => activateSearchShortcut(query, btn), { signal });
-            }
-        });
-
-        // Keyboard shortcuts: C → ExpC, R → ExpR, K → kkflw
-        document.addEventListener('keydown', (e) => {
-            const tag = e.target.tagName;
-            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
-            if (e.altKey || e.ctrlKey || e.metaKey) return;
-            const activeModal = document.querySelector('.modal-overlay.active, .task-modal-overlay.active');
-            if (activeModal) return;
-
-            const key = e.key.toLowerCase();
-            const shortcutMap = { 'c': 'btn-search-expc', 'r': 'btn-search-expr', 'k': 'btn-search-kkflw' };
-            const queryMap = { 'c': 'ExpC', 'r': 'ExpR', 'k': 'kkflw' };
-            if (shortcutMap[key]) {
-                e.preventDefault();
-                const btn = document.getElementById(shortcutMap[key]);
-                activateSearchShortcut(queryMap[key], btn);
-            }
-        }, { signal });
-
-        // Clear shortcut active state when search input changes manually
-        const searchInputEl = document.getElementById('global-search');
-        if (searchInputEl) {
-            searchInputEl.addEventListener('input', () => {
-                allShortcutBtns.forEach(b => b.classList.remove('active'));
             }, { signal });
         }
 
@@ -2480,8 +2349,6 @@ export class Dashboard {
             if (searchInput) searchInput.value = '';
             if (searchClearBtn) searchClearBtn.style.display = 'none';
             if (searchIndicator) searchIndicator.style.display = 'none';
-            // Clear search shortcut active states
-            document.querySelectorAll('.btn-search-shortcut.active').forEach(b => b.classList.remove('active'));
             cleared = true;
         }
 

@@ -1372,27 +1372,6 @@ textarea.input {
     animation: slideDownFade 0.3s ease forwards;
 }
 
-.quick-search-shortcut-wrap {
-    display: inline-flex;
-    align-items: center;
-    flex: 0 0 auto;
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-}
-.quick-search-shortcut-wrap .btn-search-shortcut { border: 0; border-radius: 0; }
-.quick-search-shortcut-delete {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 5px 2px 3px;
-    border: 0;
-    background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-}
-.quick-search-shortcut-delete .material-symbols-outlined { font-size: 14px; }
-.quick-search-shortcut-delete:hover { color: var(--danger); }
-
 .search-indicator-hidden {
     display: none !important;
 }
@@ -2448,73 +2427,17 @@ main.has-parked-tray .dashboard-layout {
     min-height: 0;
 }
 
-.saved-searches-container {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex: 1 1 220px;
-    min-width: 120px;
-    max-width: 360px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 2px 2px 4px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-primary) transparent;
-    overscroll-behavior-x: contain;
-}
+#star-filter-bar > div:first-child { min-width: 0; flex: 1 1 auto; }
+.btn-star-filter,
+#btn-sort-all-date,
+#star-filter-bar label,
+.table-view-controls { flex: 0 0 auto; white-space: nowrap; }
 
-/* Only the saved-search strip scrolls; dashboard controls stay fixed. */
-#star-filter-bar > div:first-child { min-width: 0; }
-.saved-searches-container::-webkit-scrollbar { height: 6px; }
-.saved-searches-container::-webkit-scrollbar-thumb { background: var(--border-primary); border-radius: 999px; }
-
-.saved-search-chip {
-    display: inline-flex;
-    align-items: center;
-    flex: 0 0 auto;
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    background: transparent;
-}
-
-.saved-search-chip.active {
-    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-    border-color: transparent;
-    box-shadow: var(--shadow-sm);
-}
-
-.saved-search-apply,
-.saved-search-delete {
-    border: 0;
-    background: transparent;
-    color: var(--text-primary);
-    cursor: pointer;
-    font: inherit;
-}
-
-.saved-search-apply {
-    padding: 2px 4px 2px 8px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-.saved-search-delete {
-    padding: 2px 5px 2px 3px;
-    display: inline-flex;
-    align-items: center;
-    color: var(--text-secondary);
-}
-
-.saved-search-chip.active .saved-search-apply,
-.saved-search-chip.active .saved-search-delete {
-    color: white;
-}
-
-.saved-search-delete:hover {
-    color: var(--danger);
-}
+.saved-search-controls { display: inline-flex; align-items: center; gap: 3px; flex: 0 0 auto; }
+.saved-search-select { width: 142px; max-width: 142px; }
+#btn-delete-saved-search { width: 24px; height: 24px; padding: 0; color: var(--text-secondary); }
+#btn-delete-saved-search .material-symbols-outlined { font-size: 16px; }
+#btn-delete-saved-search:not(:disabled):hover { color: var(--danger); }
 
 .table-view-controls, .view-toggle {
     display: flex;
