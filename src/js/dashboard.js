@@ -28,6 +28,7 @@ export class Dashboard {
         this.searchCompletedTasks = []; // Completed tasks loaded for search
         this.searchArchivedTasks = []; // Archived tasks loaded for search
         this.savedSearches = []; // Saved per-workspace search states
+        this.hiddenQuickSearches = [];
         this.viewMode = 'buckets';
         this.tableGrouping = 'none';
         this.tableSort = 'dueDate';
@@ -96,6 +97,8 @@ export class Dashboard {
         workspaceService.get(this.uid, this.workspaceId).then((workspace) => {
             const tableView = workspace?.settings?.tableView;
             this.crossBucketDefault = workspace?.settings?.crossBucketDefault || this.crossBucketDefault;
+            this.hiddenQuickSearches = workspace?.settings?.hiddenQuickSearches || [];
+            this.renderQuickSearchShortcutControls();
             if (this.tablePreferencesChanged) return;
             if (!tableView) return;
             this.viewMode = tableView.viewMode || this.viewMode;
@@ -1518,6 +1521,45 @@ export class Dashboard {
         });
     }
 
+    renderQuickSearchShortcutControls() {
+        document.querySelectorAll('.btn-search-shortcut[data-shortcut-query]').forEach(button => {
+            let wrapper = button.closest('.quick-search-shortcut-wrap');
+            if (!wrapper) {
+                wrapper = document.createElement('span');
+                wrapper.className = 'quick-search-shortcut-wrap';
+                button.parentNode.insertBefore(wrapper, button);
+                wrapper.appendChild(button);
+            }
+            const query = button.dataset.shortcutQuery;
+            wrapper.hidden = this.hiddenQuickSearches.includes(query);
+            let deleteButton = wrapper.querySelector('.quick-search-shortcut-delete');
+            if (!deleteButton) {
+                deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'quick-search-shortcut-delete';
+                deleteButton.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                wrapper.appendChild(deleteButton);
+            }
+            deleteButton.title = `Remove ${query} shortcut`;
+            deleteButton.setAttribute('aria-label', deleteButton.title);
+            deleteButton.onclick = async event => {
+                event.stopPropagation();
+                if (!window.confirm(`Remove the ${query} search shortcut?`)) return;
+                this.hiddenQuickSearches = [...new Set([...this.hiddenQuickSearches, query])];
+                wrapper.hidden = true;
+                try {
+                    await workspaceService.update(this.uid, this.workspaceId, {
+                        'settings.hiddenQuickSearches': this.hiddenQuickSearches
+                    });
+                } catch (error) {
+                    console.error('Failed to remove quick search shortcut:', error);
+                    this.hiddenQuickSearches = this.hiddenQuickSearches.filter(item => item !== query);
+                    wrapper.hidden = false;
+                }
+            };
+        });
+    }
+
     applySavedSearch(savedSearch) {
         // Saved searches and quick shortcuts are mutually exclusive visual states.
         document.querySelectorAll('.btn-search-shortcut').forEach(button => button.classList.remove('active'));
@@ -2046,6 +2088,7 @@ export class Dashboard {
             { btnId: 'btn-search-kkflw', query: 'kkflw' },
         ];
         const allShortcutBtns = searchShortcuts.map(s => document.getElementById(s.btnId)).filter(Boolean);
+        this.renderQuickSearchShortcutControls();
 
         const activateSearchShortcut = (query, btn) => {
             const searchInput = document.getElementById('global-search');

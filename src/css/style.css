@@ -1372,6 +1372,27 @@ textarea.input {
     animation: slideDownFade 0.3s ease forwards;
 }
 
+.quick-search-shortcut-wrap {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+.quick-search-shortcut-wrap .btn-search-shortcut { border: 0; border-radius: 0; }
+.quick-search-shortcut-delete {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 5px 2px 3px;
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+.quick-search-shortcut-delete .material-symbols-outlined { font-size: 14px; }
+.quick-search-shortcut-delete:hover { color: var(--danger); }
+
 .search-indicator-hidden {
     display: none !important;
 }
