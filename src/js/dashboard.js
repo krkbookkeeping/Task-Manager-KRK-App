@@ -1,5 +1,6 @@
 import { labelService } from './services/label-service.js';
 import { tagService } from './services/tag-service.js';
+import { classService } from './services/class-service.js';
 import { taskService } from './services/task-service.js';
 import { savedSearchService } from './services/saved-search-service.js';
 import { workspaceService } from './services/workspace-service.js';
@@ -14,11 +15,13 @@ export class Dashboard {
 
         this.labels = [];
         this.tags = [];
+        this.classes = [];
         this.tasks = [];
         this.currentFilterDate = null; // Stored as YYYY-MM-DD
         this.currentFilterDateEnd = null; // End of range filter
         this.starFilter = false; // Only show starred tasks
         this.tagFilter = '';
+        this.classFilter = '';
         this.searchQuery = ''; // Global search query
         this.currentView = 'active'; // 'active' or 'completed' or 'archived'
         this.completedTasks = []; // Cache for completed view
@@ -48,6 +51,7 @@ export class Dashboard {
 
         this.unsubLabels = null;
         this.unsubTags = null;
+        this.unsubClasses = null;
         this.unsubTasks = null;
         this.unsubSearchCompleted = null;
         this.unsubSearchArchived = null;
@@ -84,6 +88,11 @@ export class Dashboard {
             this.tags = tags;
             this.syncTagFilter();
             this.renderSettingsTags();
+            this.render();
+        });
+        this.unsubClasses = classService.subscribe(this.uid, this.workspaceId, (classes) => {
+            this.classes = classes;
+            this.syncClassFilter();
             this.render();
         });
 
@@ -132,6 +141,7 @@ export class Dashboard {
     destroy() {
         if (this.unsubLabels) this.unsubLabels();
         if (this.unsubTags) this.unsubTags();
+        if (this.unsubClasses) this.unsubClasses();
         if (this.unsubTasks) this.unsubTasks();
         if (this.unsubCompletedTasks) this.unsubCompletedTasks();
         if (this.unsubArchivedTasks) this.unsubArchivedTasks();
@@ -163,6 +173,7 @@ export class Dashboard {
         const tableBtn = document.getElementById('btn-view-table');
         const grouping = document.getElementById('table-grouping');
         const tagFilter = document.getElementById('tag-filter');
+        const classFilter = document.getElementById('class-filter');
         const sort = document.getElementById('table-sort');
         const sortScope = document.getElementById('table-sort-scope');
         const direction = document.getElementById('btn-table-sort-direction');
@@ -170,6 +181,7 @@ export class Dashboard {
         tableBtn?.classList.toggle('active', this.viewMode === 'table');
         if (grouping) { grouping.value = this.tableGrouping; grouping.disabled = this.viewMode !== 'table'; }
         if (tagFilter) { tagFilter.value = this.tagFilter; tagFilter.disabled = false; }
+        if (classFilter) { classFilter.value = this.classFilter; classFilter.disabled = false; }
         if (sort) { sort.value = this.tableSort; sort.disabled = this.viewMode !== 'table'; }
         if (sortScope) { sortScope.value = this.tableSortScope; sortScope.disabled = this.viewMode !== 'table'; }
         if (direction) {
@@ -197,6 +209,8 @@ export class Dashboard {
             if (this.pastDueFilter && (!date || date >= todayStr)) return false;
             if (this.starFilter && !task.starred) return false;
             if (this.tagFilter && !(task.tags || []).includes(this.tagFilter)) return false;
+            if (this.classFilter === '__none__' && task.classId) return false;
+            if (this.classFilter && this.classFilter !== '__none__' && task.classId !== this.classFilter) return false;
             if (this.searchQuery && !this.filterTaskByQuery(task, this.searchQuery)) return false;
             return true;
         });
@@ -210,6 +224,7 @@ export class Dashboard {
             this.pastDueFilter ||
             this.starFilter
             || this.tagFilter
+            || this.classFilter
         );
     }
 
@@ -222,6 +237,10 @@ export class Dashboard {
         return (task.tags || []).map(id => this.tags.find(tag => tag.id === id)).filter(Boolean);
     }
 
+    getTaskClass(task) {
+        return this.classes.find(item => item.id === task.classId) || null;
+    }
+
     syncTagFilter() {
         const select = document.getElementById('tag-filter');
         if (!select) return;
@@ -230,6 +249,16 @@ export class Dashboard {
             .map(tag => `<option value="${this.escapeHtml(tag.id)}">${this.escapeHtml(tag.name)}</option>`).join('');
         if (!this.tags.some(tag => tag.id === previous)) this.tagFilter = '';
         select.value = this.tagFilter;
+    }
+
+    syncClassFilter() {
+        const select = document.getElementById('class-filter');
+        if (!select) return;
+        const previous = this.classFilter;
+        select.innerHTML = '<option value="">All classes</option><option value="__none__">No class</option>' + this.classes
+            .map(item => `<option value="${this.escapeHtml(item.id)}">● ${this.escapeHtml(item.name)}</option>`).join('');
+        if (previous && previous !== '__none__' && !this.classes.some(item => item.id === previous)) this.classFilter = '';
+        select.value = this.classFilter;
     }
 
     renderSettingsTags() {
@@ -311,6 +340,15 @@ export class Dashboard {
                     return (!aTags.length ? 1 : -1) * direction;
                 }
                 aValue = aTags.join(', '); bValue = bTags.join(', ');
+            }
+            else if (sortBy === 'class') {
+                const aClass = this.getTaskClass(a);
+                const bClass = this.getTaskClass(b);
+                if (!aClass || !bClass) {
+                    if (!aClass && !bClass) return 0;
+                    return (!aClass ? 1 : -1) * direction;
+                }
+                aValue = aClass.name; bValue = bClass.name;
             }
             else if (sortBy === 'createdAt') { aValue = a.createdAt?.seconds || 0; bValue = b.createdAt?.seconds || 0; }
             else if (sortBy === 'files') { aValue = a.attachments?.length || 0; bValue = b.attachments?.length || 0; }
@@ -519,20 +557,22 @@ export class Dashboard {
             section.dataset.bucketId = group.bucket?.id || '';
             section.dataset.tagId = group.tag?.id || '';
             section.style.setProperty('--table-group-color', this.getTableGroupColor(group));
-            section.innerHTML = `<div class="table-group-header"><span>${this.escapeHtml(group.name)}</span><div class="table-group-header-actions"><form class="table-group-add-form"><input type="text" placeholder="Add task…" aria-label="Add a task to ${this.escapeHtml(group.name)}"><button type="submit" class="btn-icon" title="Open full task editor"><span class="material-symbols-outlined">add</span></button></form><span class="task-count">${group.tasks.length}</span></div></div><table class="task-table"><thead><tr><th><button class="table-column-sort" data-sort="dueDate">Due${this.getGroupSortIndicator(group.key, 'dueDate')}</button></th><th><button class="table-column-sort" data-sort="starred">Star${this.getGroupSortIndicator(group.key, 'starred')}</button></th><th><button class="table-column-sort" data-sort="bucket">Bucket${this.getGroupSortIndicator(group.key, 'bucket')}</button></th><th class="task-table-tags"><button class="table-column-sort" data-sort="tag">Tags${this.getGroupSortIndicator(group.key, 'tag')}</button></th><th><button class="table-column-sort" data-sort="title">Task${this.getGroupSortIndicator(group.key, 'title')}</button></th><th class="table-activity-column"><button class="table-column-sort" data-sort="activity">Activity & comments${this.getGroupSortIndicator(group.key, 'activity')}</button></th><th class="table-date-punch-column">Set date</th><th><button class="table-column-sort" data-sort="files">Files${this.getGroupSortIndicator(group.key, 'files')}</button></th></thead><tbody></tbody></table>`;
+            section.innerHTML = `<div class="table-group-header"><span>${this.escapeHtml(group.name)}</span><div class="table-group-header-actions"><form class="table-group-add-form"><input type="text" placeholder="Add task…" aria-label="Add a task to ${this.escapeHtml(group.name)}"><button type="submit" class="btn-icon" title="Open full task editor"><span class="material-symbols-outlined">add</span></button></form><span class="task-count">${group.tasks.length}</span></div></div><table class="task-table"><thead><tr><th><button class="table-column-sort" data-sort="dueDate">Due${this.getGroupSortIndicator(group.key, 'dueDate')}</button></th><th><button class="table-column-sort" data-sort="starred">Star${this.getGroupSortIndicator(group.key, 'starred')}</button></th><th><button class="table-column-sort" data-sort="bucket">Bucket${this.getGroupSortIndicator(group.key, 'bucket')}</button></th><th class="task-table-tags"><button class="table-column-sort" data-sort="tag">Tags${this.getGroupSortIndicator(group.key, 'tag')}</button></th><th class="task-table-class"><button class="table-column-sort" data-sort="class">Class${this.getGroupSortIndicator(group.key, 'class')}</button></th><th><button class="table-column-sort" data-sort="title">Task${this.getGroupSortIndicator(group.key, 'title')}</button></th><th class="table-activity-column"><button class="table-column-sort" data-sort="activity">Activity & comments${this.getGroupSortIndicator(group.key, 'activity')}</button></th><th class="table-date-punch-column">Set date</th><th><button class="table-column-sort" data-sort="files">Files${this.getGroupSortIndicator(group.key, 'files')}</button></th></thead><tbody></tbody></table>`;
             const body = section.querySelector('tbody');
             group.tasks.forEach(task => {
                 const bucket = this.getTaskBucket(task);
                 const tags = this.getTaskTags(task);
                 const tagNames = tags.map(tag => tag.name).join(', ');
                 const tagHtml = tags.length ? `<span class="task-table-label" title="${this.escapeHtml(tagNames)}"><span class="task-table-label-dot" style="background:${this.escapeHtml(tags[0].color || '#0ea5e9')};"></span><span class="task-table-tag-text">${this.escapeHtml(tagNames)}</span></span>` : '<span class="task-table-muted">—</span>';
+                const taskClass = this.getTaskClass(task);
+                const classHtml = taskClass ? `<span class="task-table-label"><span class="task-table-label-dot" style="background:${this.escapeHtml(taskClass.color || '#8b5cf6')};"></span><span class="task-table-tag-text">${this.escapeHtml(taskClass.name)}</span></span>` : '';
                 const row = document.createElement('tr');
                 row.className = 'task-table-row';
                 row.draggable = !task.completed && !task.archived;
                 row.dataset.taskId = task.id;
                 const commentCount = task.comments?.length || 0;
                 const latestComment = commentCount ? this.getCommentText(task.comments[commentCount - 1]) : '';
-                row.innerHTML = `<td class="task-table-due ${task.dueDate ? '' : 'task-table-muted'}">${task.dueDate ? this.formatDate(task.dueDate) : 'No date'}</td><td class="task-table-star"><button class="btn-icon btn-complete-task" data-task-id="${task.id}" title="Complete task"><span class="material-symbols-outlined" style="font-size:16px;">check_circle</span></button><button class="btn-icon btn-star-card ${task.starred ? 'starred' : ''}" data-task-id="${task.id}" title="${task.starred ? 'Remove star' : 'Star task'}"><span class="material-symbols-outlined" style="font-size:16px;">star</span></button></td><td><span class="task-table-label"><span class="task-table-label-dot" style="background:${bucket.color};"></span>${this.escapeHtml(bucket.name)}</span></td><td class="task-table-tags">${tagHtml}</td><td class="task-table-title">${this.escapeHtml(task.title)}</td><td class="task-table-activity"><button type="button" class="btn-task-activity" data-task-id="${task.id}" title="View activity and comments">${commentCount ? `${commentCount} comment${commentCount === 1 ? '' : 's'}${latestComment ? ` · ${this.escapeHtml(latestComment)}` : ''}` : 'Add/view comments'}</button></td><td class="task-table-date-punches"><div class="date-punches">${DASHBOARD_PUNCH_OFFSETS.map(offset => `<button type="button" class="btn-date-punch table-date-punch" data-task-id="${task.id}" data-offset="${offset}" title="Set due date to ${offset}">${offset}</button>`).join('')}</div></td><td class="task-table-files">${task.attachments?.length ? '📎' : ''}</td>`;
+                row.innerHTML = `<td class="task-table-due ${task.dueDate ? '' : 'task-table-muted'}">${task.dueDate ? this.formatDate(task.dueDate) : 'No date'}</td><td class="task-table-star"><button class="btn-icon btn-complete-task" data-task-id="${task.id}" title="Complete task"><span class="material-symbols-outlined" style="font-size:16px;">check_circle</span></button><button class="btn-icon btn-star-card ${task.starred ? 'starred' : ''}" data-task-id="${task.id}" title="${task.starred ? 'Remove star' : 'Star task'}"><span class="material-symbols-outlined" style="font-size:16px;">star</span></button></td><td><span class="task-table-label"><span class="task-table-label-dot" style="background:${bucket.color};"></span>${this.escapeHtml(bucket.name)}</span></td><td class="task-table-tags">${tagHtml}</td><td class="task-table-class">${classHtml}</td><td class="task-table-title">${this.escapeHtml(task.title)}</td><td class="task-table-activity"><button type="button" class="btn-task-activity" data-task-id="${task.id}" title="View activity and comments">${commentCount ? `${commentCount} comment${commentCount === 1 ? '' : 's'}${latestComment ? ` · ${this.escapeHtml(latestComment)}` : ''}` : 'Add/view comments'}</button></td><td class="task-table-date-punches"><div class="date-punches">${DASHBOARD_PUNCH_OFFSETS.map(offset => `<button type="button" class="btn-date-punch table-date-punch" data-task-id="${task.id}" data-offset="${offset}" title="Set due date to ${offset}">${offset}</button>`).join('')}</div></td><td class="task-table-files">${task.attachments?.length ? '📎' : ''}</td>`;
                 row.addEventListener('click', (event) => { if (!event.target.closest('button') && window.currentTaskModal) window.currentTaskModal.open(task.id); });
                 body.appendChild(row);
             });
@@ -741,7 +781,7 @@ export class Dashboard {
             allSearchableTasks.push(...this.searchArchivedTasks);
         }
 
-        if (this.starFilter || this.searchQuery || this.tagFilter) {
+        if (this.starFilter || this.searchQuery || this.tagFilter || this.classFilter) {
             // When star filter or search is active, dynamically show/hide buckets
             // based on whether they contain matching tasks
             const nowStr = new Date().toISOString().split('T')[0];
@@ -761,7 +801,8 @@ export class Dashboard {
                 const matchesSearch = !this.searchQuery || this.filterTaskByQuery(t, this.searchQuery) || isPastDue;
                 const matchesWeek = !this.thisWeekFilter || !t.dueDate || t.dueDate.split('T')[0] <= weekOutStr || isPastDue;
                 const matchesTag = !this.tagFilter || (t.tags || []).includes(this.tagFilter);
-                if (matchesStar && matchesSearch && matchesWeek && matchesTag) {
+                const matchesClass = !this.classFilter || (this.classFilter === '__none__' ? !t.classId : t.classId === this.classFilter);
+                if (matchesStar && matchesSearch && matchesWeek && matchesTag && matchesClass) {
                     t.labels.forEach(lid => labelsWithMatchingTasks.add(lid));
                 }
             });
@@ -858,9 +899,10 @@ export class Dashboard {
             }
 
             if (this.tagFilter) bucketTasks = bucketTasks.filter(t => (t.tags || []).includes(this.tagFilter));
+            if (this.classFilter) bucketTasks = bucketTasks.filter(t => this.classFilter === '__none__' ? !t.classId : t.classId === this.classFilter);
 
             // When filtering is active, skip buckets that end up empty
-            if ((this.starFilter || this.searchQuery || this.tagFilter || this.currentFilterDate || this.thisWeekFilter || this.pastDueFilter) && bucketTasks.length === 0) {
+            if ((this.starFilter || this.searchQuery || this.tagFilter || this.classFilter || this.currentFilterDate || this.thisWeekFilter || this.pastDueFilter) && bucketTasks.length === 0) {
                 return;
             }
 
@@ -1640,6 +1682,7 @@ export class Dashboard {
         const tableViewBtn = document.getElementById('btn-view-table');
         const tableGrouping = document.getElementById('table-grouping');
         const tagFilter = document.getElementById('tag-filter');
+        const classFilter = document.getElementById('class-filter');
         const tableSort = document.getElementById('table-sort');
         const tableSortScope = document.getElementById('table-sort-scope');
         const tableDirection = document.getElementById('btn-table-sort-direction');
@@ -1669,6 +1712,10 @@ export class Dashboard {
         }, { signal });
         tagFilter?.addEventListener('change', () => {
             this.tagFilter = tagFilter.value;
+            this.render();
+        }, { signal });
+        classFilter?.addEventListener('change', () => {
+            this.classFilter = classFilter.value;
             this.render();
         }, { signal });
 
@@ -2129,21 +2176,43 @@ export class Dashboard {
 
 
         const zoomSlider = document.getElementById('zoom-slider');
+        const zoomInput = document.getElementById('zoom-input');
+        const zoomTrigger = document.getElementById('zoom-trigger');
+        const zoomTriggerText = document.getElementById('zoom-trigger-text');
+        const zoomMenu = document.getElementById('zoom-menu');
         const isMobile = window.matchMedia('(max-width: 768px)').matches;
         if (zoomSlider && this.gridEl) {
-            // Load saved zoom preference — skip on mobile
-            const savedZoom = localStorage.getItem('bucketGridZoom') || '1';
-            zoomSlider.value = savedZoom;
+            const setZoom = rawValue => {
+                const percent = Math.max(50, Math.min(150, Number(rawValue) || 100));
+                const zoomVal = percent / 100;
+                zoomSlider.value = String(percent);
+                if (zoomInput) zoomInput.value = String(percent);
+                if (zoomTriggerText) zoomTriggerText.textContent = `${percent}%`;
+                if (!isMobile) this.gridEl.style.zoom = String(zoomVal);
+                localStorage.setItem('bucketGridZoom', String(zoomVal));
+            };
+            // Load saved zoom preference — skip applying it on mobile.
+            const savedZoom = Number(localStorage.getItem('bucketGridZoom') || '1') * 100;
+            setZoom(savedZoom);
             if (!isMobile) {
-                this.gridEl.style.zoom = savedZoom;
+                this.gridEl.style.zoom = String(savedZoom / 100);
             } else {
                 this.gridEl.style.zoom = '';
             }
-
-            zoomSlider.addEventListener('input', (e) => {
-                const zoomVal = e.target.value;
-                this.gridEl.style.zoom = zoomVal;
-                localStorage.setItem('bucketGridZoom', zoomVal);
+            zoomSlider.addEventListener('input', e => setZoom(e.target.value), { signal });
+            zoomInput?.addEventListener('change', e => setZoom(e.target.value), { signal });
+            document.querySelectorAll('[data-zoom]').forEach(button => button.addEventListener('click', () => setZoom(button.dataset.zoom), { signal }));
+            zoomTrigger?.addEventListener('click', event => {
+                event.stopPropagation();
+                zoomMenu.hidden = !zoomMenu.hidden;
+                zoomTrigger.setAttribute('aria-expanded', String(!zoomMenu.hidden));
+                if (!zoomMenu.hidden) zoomInput?.focus();
+            }, { signal });
+            document.addEventListener('click', event => {
+                if (zoomMenu && zoomTrigger && !zoomMenu.parentElement.contains(event.target)) {
+                    zoomMenu.hidden = true;
+                    zoomTrigger.setAttribute('aria-expanded', 'false');
+                }
             }, { signal });
         }
 

@@ -26,6 +26,7 @@ export const taskService = {
             dueDate: null,
             labels: labelId ? [labelId] : [],
             tags: [],
+            classId: null,
             pinned: {},       // Record of { labelId: boolean } if pinned
             order: {},        // Record of { labelId: integer } for drag-drop ordering
             completed: false,
@@ -159,6 +160,23 @@ export const taskService = {
             for (let start = 0; start < updates.length; start += 450) {
                 const batch = writeBatch(db);
                 updates.slice(start, start + 450).forEach(item => batch.update(item.ref, { tags: item.tags }));
+                await batch.commit();
+            }
+            changed += updates.length;
+        }
+        return changed;
+    },
+
+    // Classes belong to the workspace. Removing one clears only that field, never its tasks.
+    async removeClassFromWorkspace(uid, wid, classId) {
+        const boardsSnapshot = await getDocs(collection(db, 'users', uid, 'workspaces', wid, 'boards'));
+        let changed = 0;
+        for (const boardDoc of boardsSnapshot.docs) {
+            const tasksSnapshot = await getDocs(collection(boardDoc.ref, 'tasks'));
+            const updates = tasksSnapshot.docs.filter(taskDoc => taskDoc.data().classId === classId);
+            for (let start = 0; start < updates.length; start += 450) {
+                const batch = writeBatch(db);
+                updates.slice(start, start + 450).forEach(item => batch.update(item.ref, { classId: null }));
                 await batch.commit();
             }
             changed += updates.length;

@@ -663,6 +663,9 @@
     min-height: 32px;
 }
 
+.task-class-item { grid-column: 2; }
+.task-tags-item { grid-column: 1 / -1; }
+
 .task-label-chip {
     display: inline-flex;
     align-items: center;
@@ -721,6 +724,9 @@
     .task-meta-grid {
         grid-template-columns: 1fr;
     }
+
+    .task-class-item,
+    .task-tags-item { grid-column: auto; }
 
     .task-modal-sidebar {
         border-left: none;

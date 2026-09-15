@@ -24,8 +24,8 @@
         }
     }
     </script>
-  <script type="module" crossorigin src="/assets/index-Ctir0Wst.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-CawWDreP.css">
+  <script type="module" crossorigin src="/assets/index-C6lULBQE.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-kXSTBBgz.css">
 </head>
 
 <body>
@@ -496,32 +496,43 @@
                                         <option value="none">No grouping</option>
                                         <option value="bucket">By bucket</option>
                                         <option value="date">By due date</option>
+                                        <option value="tag">By tag</option>
+                                    </select>
+                                    <select id="tag-filter" class="table-control" title="Filter tasks by tag">
+                                        <option value="">All tags</option>
                                     </select>
                                     <select id="table-sort" class="table-control" title="Sort table rows">
                                         <option value="dueDate">Due date</option>
                                         <option value="title">Task title</option>
                                         <option value="bucket">Bucket</option>
+                                        <option value="tag">Tag</option>
                                         <option value="createdAt">Created date</option>
                                     </select>
                                     <select id="table-sort-scope" class="table-control" title="Apply sorting overall or within each group">
                                         <option value="within">Within groups</option>
                                         <option value="overall">Overall</option>
                                     </select>
+                                    <select id="class-filter" class="table-control" title="Filter tasks by class">
+                                        <option value="">All classes</option>
+                                        <option value="__none__">No class</option>
+                                    </select>
                                     <button class="btn btn-sm btn-outline" id="btn-table-sort-direction" type="button" title="Reverse sort order"><span class="material-symbols-outlined">arrow_upward</span></button>
                                 </div>
                                 <div style="width: 1px; height: 18px; background: var(--border-light); margin: 0 4px;"></div>
-                                <button class="btn btn-sm btn-search-shortcut" id="btn-search-expc" type="button">ExpC</button>
-                                <button class="btn btn-sm btn-search-shortcut" id="btn-search-expr" type="button">ExpR</button>
-                                <button class="btn btn-sm btn-search-shortcut" id="btn-search-kkflw" type="button">kkflw</button>
-                                <div id="saved-searches-container" class="saved-searches-container" aria-label="Saved searches"></div>
+                                <div class="saved-search-controls">
+                                    <button id="saved-search-trigger" class="table-control saved-search-trigger" type="button" aria-haspopup="menu" aria-expanded="false">
+                                        <span id="saved-search-trigger-text">Saved searches</span>
+                                        <span class="material-symbols-outlined">expand_more</span>
+                                    </button>
+                                    <div id="saved-search-menu" class="saved-search-menu" role="menu" hidden></div>
+                                </div>
                             </div>
-                            <div class="zoom-controls" style="display: flex; align-items: center; gap: 8px;">
-                                <span class="material-symbols-outlined"
-                                    style="font-size: 16px; color: var(--text-muted);">zoom_out</span>
-                                <input type="range" id="zoom-slider" min="0.5" max="1.5" step="0.1" value="1.0"
-                                    style="width: 100px;">
-                                <span class="material-symbols-outlined"
-                                    style="font-size: 16px; color: var(--text-muted);">zoom_in</span>
+                            <div class="zoom-controls">
+                                <button id="zoom-trigger" class="table-control zoom-trigger" type="button" aria-haspopup="menu" aria-expanded="false"><span id="zoom-trigger-text">100%</span><span class="material-symbols-outlined">expand_more</span></button>
+                                <div id="zoom-menu" class="zoom-menu" role="menu" hidden>
+                                    <label>Zoom <input id="zoom-input" type="number" min="50" max="150" step="1" aria-label="Zoom percentage">%</label>
+                                    <div class="zoom-menu-body"><input id="zoom-slider" type="range" min="50" max="150" step="1" value="100" aria-label="Adjust zoom"><div class="zoom-presets" role="group" aria-label="Zoom presets"><button type="button" data-zoom="50">50%</button><button type="button" data-zoom="75">75%</button><button type="button" data-zoom="90">90%</button><button type="button" data-zoom="100">100%</button><button type="button" data-zoom="110">110%</button><button type="button" data-zoom="125">125%</button><button type="button" data-zoom="150">150%</button></div></div>
+                                </div>
                             </div>
                         </div>
                         <div id="dashboard-container" class="layout-container"
@@ -1003,6 +1014,17 @@
                     </div>
                 </div>
 
+                <div class="settings-section">
+                    <h4>Task Tags</h4>
+                    <p class="settings-row-desc" style="margin: 0 0 10px;">Tags are flexible, workspace-wide task categories.</p>
+                    <div class="tag-manager-create">
+                        <input id="new-settings-tag-name" class="form-input form-input-sm" placeholder="New tag name" maxlength="60">
+                        <input id="new-settings-tag-color" type="color" value="#0ea5e9" title="Tag color">
+                        <button id="btn-create-settings-tag" class="btn btn-sm btn-primary" type="button">Create tag</button>
+                    </div>
+                    <div id="settings-tag-list" class="settings-tag-list" aria-label="Manage task tags"></div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -1078,6 +1100,26 @@
                                 <div id="task-detail-date-punches" class="date-punches">
                                     <!-- Punches injected by JS -->
                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="task-meta-item task-class-item">
+                            <span class="meta-label">Class</span>
+                            <div class="task-label-picker" id="task-selected-class" aria-label="Task class"></div>
+                            <div class="task-tag-create-row">
+                                <input id="new-task-class-name" class="form-input form-input-sm" placeholder="Create class…" maxlength="60">
+                                <input id="new-task-class-color" type="color" value="#8b5cf6" title="Class color">
+                                <button id="btn-create-task-class" class="btn btn-sm btn-outline" type="button">Add</button>
+                            </div>
+                        </div>
+
+                        <div class="task-meta-item task-tags-item">
+                            <span class="meta-label">Tags</span>
+                            <div class="task-label-picker" id="task-selected-tags" aria-label="Task tags"></div>
+                            <div class="task-tag-create-row">
+                                <input id="new-task-tag-name" class="form-input form-input-sm" placeholder="Create tag…" maxlength="60">
+                                <input id="new-task-tag-color" type="color" value="#0ea5e9" title="Tag color">
+                                <button id="btn-create-task-tag" class="btn btn-sm btn-outline" type="button">Add</button>
                             </div>
                         </div>
 

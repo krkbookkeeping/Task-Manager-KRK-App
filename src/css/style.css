@@ -2591,9 +2591,12 @@ main.has-parked-tray .dashboard-layout {
 .task-table th:nth-child(2), .task-table td:nth-child(2) { width: 46px; }
 .task-table th:nth-child(3), .task-table td:nth-child(3) { width: 86px; }
 .task-table th:nth-child(4), .task-table td:nth-child(4) { width: 8ch; }
-.task-table th:nth-child(5), .task-table td:nth-child(5) { width: 31%; }
-.task-table th:nth-child(6), .task-table td:nth-child(6) { width: 25%; }
+.task-table th:nth-child(5), .task-table td:nth-child(5) { width: 16%; }
+.task-table th:nth-child(6), .task-table td:nth-child(6) { width: 24%; }
+.task-table th:nth-child(7), .task-table td:nth-child(7) { width: 18%; }
 .task-table-tags { overflow: hidden; white-space: nowrap; }
+.task-table-class { overflow: hidden; white-space: nowrap; }
+.task-table-class .task-table-label { max-width: 100%; }
 .task-table-tags .task-table-label { max-width: 100%; }
 .task-table-tag-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .task-table-star .btn-icon {
@@ -2603,12 +2606,25 @@ main.has-parked-tray .dashboard-layout {
 }
 .task-table-files { width: 35px; text-align: center; }
 .task-table-date-punches,
-.table-date-punch-column { width: 265px; }
+.table-date-punch-column { width: 285px; }
 .task-table-date-punches .date-punches { gap: 2px; }
 .task-table-date-punches .btn-date-punch {
     padding: 1px 4px;
     font-size: 0.62rem;
 }
+
+.zoom-controls { position: relative; display: flex; align-items: center; }
+.zoom-trigger { display: inline-flex; align-items: center; gap: 2px; min-width: 72px; justify-content: space-between; }
+.zoom-trigger .material-symbols-outlined { font-size: 17px; }
+.zoom-menu { position: absolute; z-index: 1050; right: 0; top: calc(100% + 6px); width: 210px; padding: 10px; border: 1px solid var(--border-primary); border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: var(--shadow-lg); }
+.zoom-menu[hidden] { display: none; }
+.zoom-menu > label { display: flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--text-secondary); }
+.zoom-menu input[type="number"] { width: 58px; padding: 4px 6px; border: 1px solid var(--border-primary); border-radius: var(--radius-sm); background: var(--bg-body); color: var(--text-primary); }
+.zoom-menu-body { display: flex; gap: 12px; align-items: center; margin-top: 9px; }
+.zoom-menu input[type="range"] { appearance: slider-vertical; width: 18px; height: 110px; accent-color: var(--accent); }
+.zoom-presets { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; flex: 1; }
+.zoom-presets button { padding: 3px 5px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); font: inherit; font-size: .76rem; text-align: left; cursor: pointer; }
+.zoom-presets button:hover { background: var(--bg-elevated); color: var(--accent); }
 
 .btn-task-activity {
     width: 100%;

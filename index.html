@@ -514,6 +514,10 @@
                                         <option value="within">Within groups</option>
                                         <option value="overall">Overall</option>
                                     </select>
+                                    <select id="class-filter" class="table-control" title="Filter tasks by class">
+                                        <option value="">All classes</option>
+                                        <option value="__none__">No class</option>
+                                    </select>
                                     <button class="btn btn-sm btn-outline" id="btn-table-sort-direction" type="button" title="Reverse sort order"><span class="material-symbols-outlined">arrow_upward</span></button>
                                 </div>
                                 <div style="width: 1px; height: 18px; background: var(--border-light); margin: 0 4px;"></div>
@@ -525,13 +529,12 @@
                                     <div id="saved-search-menu" class="saved-search-menu" role="menu" hidden></div>
                                 </div>
                             </div>
-                            <div class="zoom-controls" style="display: flex; align-items: center; gap: 8px;">
-                                <span class="material-symbols-outlined"
-                                    style="font-size: 16px; color: var(--text-muted);">zoom_out</span>
-                                <input type="range" id="zoom-slider" min="0.5" max="1.5" step="0.1" value="1.0"
-                                    style="width: 100px;">
-                                <span class="material-symbols-outlined"
-                                    style="font-size: 16px; color: var(--text-muted);">zoom_in</span>
+                            <div class="zoom-controls">
+                                <button id="zoom-trigger" class="table-control zoom-trigger" type="button" aria-haspopup="menu" aria-expanded="false"><span id="zoom-trigger-text">100%</span><span class="material-symbols-outlined">expand_more</span></button>
+                                <div id="zoom-menu" class="zoom-menu" role="menu" hidden>
+                                    <label>Zoom <input id="zoom-input" type="number" min="50" max="150" step="1" aria-label="Zoom percentage">%</label>
+                                    <div class="zoom-menu-body"><input id="zoom-slider" type="range" min="50" max="150" step="1" value="100" aria-label="Adjust zoom"><div class="zoom-presets" role="group" aria-label="Zoom presets"><button type="button" data-zoom="50">50%</button><button type="button" data-zoom="75">75%</button><button type="button" data-zoom="90">90%</button><button type="button" data-zoom="100">100%</button><button type="button" data-zoom="110">110%</button><button type="button" data-zoom="125">125%</button><button type="button" data-zoom="150">150%</button></div></div>
+                                </div>
                             </div>
                         </div>
                         <div id="dashboard-container" class="layout-container"
@@ -1102,7 +1105,17 @@
                             </div>
                         </div>
 
-                        <div class="task-meta-item">
+                        <div class="task-meta-item task-class-item">
+                            <span class="meta-label">Class</span>
+                            <div class="task-label-picker" id="task-selected-class" aria-label="Task class"></div>
+                            <div class="task-tag-create-row">
+                                <input id="new-task-class-name" class="form-input form-input-sm" placeholder="Create class…" maxlength="60">
+                                <input id="new-task-class-color" type="color" value="#8b5cf6" title="Class color">
+                                <button id="btn-create-task-class" class="btn btn-sm btn-outline" type="button">Add</button>
+                            </div>
+                        </div>
+
+                        <div class="task-meta-item task-tags-item">
                             <span class="meta-label">Tags</span>
                             <div class="task-label-picker" id="task-selected-tags" aria-label="Task tags"></div>
                             <div class="task-tag-create-row">

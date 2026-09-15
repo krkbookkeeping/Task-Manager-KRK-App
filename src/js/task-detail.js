@@ -1,6 +1,7 @@
 import { taskService } from './services/task-service.js';
 import { labelService } from './services/label-service.js';
 import { tagService } from './services/tag-service.js';
+import { classService } from './services/class-service.js';
 import { noteService } from './services/note-service.js';
 import { noteLabelService } from './services/note-label-service.js';
 import { DATE_PUNCH_OFFSETS, calculateOffsetDate } from './utils/date-utils.js';
@@ -38,9 +39,13 @@ export class TaskModal {
         // Clickable task labels
         this.selectedLabelsContainer = document.getElementById('task-selected-labels');
         this.selectedTagsContainer = document.getElementById('task-selected-tags');
+        this.selectedClassContainer = document.getElementById('task-selected-class');
         this.newTagNameInput = document.getElementById('new-task-tag-name');
         this.newTagColorInput = document.getElementById('new-task-tag-color');
         this.btnCreateTag = document.getElementById('btn-create-task-tag');
+        this.newClassNameInput = document.getElementById('new-task-class-name');
+        this.newClassColorInput = document.getElementById('new-task-class-color');
+        this.btnCreateClass = document.getElementById('btn-create-task-class');
 
         // State
         this.currentTaskId = null; // null if creating new
@@ -51,6 +56,10 @@ export class TaskModal {
         this.selectedTagIds = new Set();
         this.unsubTags = null;
         this.tagClickTimers = new Map();
+        this.allClasses = [];
+        this.selectedClassId = null;
+        this.unsubClasses = null;
+        this.classClickTimers = new Map();
         this.comments = []; // Array of comment objects
         this.editingCommentId = null; // Track if we're editing an existing comment
         this.starred = false; // Star state
@@ -105,12 +114,19 @@ export class TaskModal {
             this.allTags = tags;
             this.renderSelectedTags();
         });
+        this.unsubClasses = classService.subscribe(this.uid, this.workspaceId, (classes) => {
+            this.allClasses = classes;
+            if (this.selectedClassId && !classes.some(item => item.id === this.selectedClassId)) this.selectedClassId = null;
+            this.renderSelectedClass();
+        });
     }
 
     destroy() {
         if (this.unsubLabels) this.unsubLabels();
         if (this.unsubTags) this.unsubTags();
+        if (this.unsubClasses) this.unsubClasses();
         this.tagClickTimers.forEach(timer => clearTimeout(timer));
+        this.classClickTimers.forEach(timer => clearTimeout(timer));
     }
 
     /**
@@ -120,6 +136,7 @@ export class TaskModal {
     switchContext(uid, workspaceId, boardId, calendar = null) {
         if (this.unsubLabels) this.unsubLabels();
         if (this.unsubTags) this.unsubTags();
+        if (this.unsubClasses) this.unsubClasses();
         this.uid = uid;
         this.workspaceId = workspaceId;
         this.boardId = boardId;
@@ -127,8 +144,10 @@ export class TaskModal {
         this.currentTaskId = null;
         this.allLabels = [];
         this.allTags = [];
+        this.allClasses = [];
         this.selectedLabels = [];
         this.selectedTagIds.clear();
+        this.selectedClassId = null;
         this.init();
     }
 
@@ -400,6 +419,29 @@ export class TaskModal {
         this.newTagNameInput?.addEventListener('keydown', event => {
             if (event.key === 'Enter') { event.preventDefault(); createTag(); }
         });
+        const createClass = async () => {
+            const name = this.newClassNameInput?.value.trim();
+            if (!name) return;
+            if (this.allClasses.some(item => item.name.toLowerCase() === name.toLowerCase())) {
+                alert('A class with that name already exists in this workspace.');
+                return;
+            }
+            this.btnCreateClass.disabled = true;
+            try {
+                const item = await classService.create(this.uid, this.workspaceId, name, this.newClassColorInput.value);
+                if (!this.allClasses.some(existing => existing.id === item.id)) this.allClasses.push(item);
+                this.selectedClassId = item.id;
+                this.newClassNameInput.value = '';
+                this.renderSelectedClass();
+            } catch (error) {
+                console.error('Failed to create class:', error);
+                alert('Could not create the class. Please try again.');
+            } finally { this.btnCreateClass.disabled = false; }
+        };
+        this.btnCreateClass?.addEventListener('click', createClass);
+        this.newClassNameInput?.addEventListener('keydown', event => {
+            if (event.key === 'Enter') { event.preventDefault(); createClass(); }
+        });
         if (this.btnPrint) {
             this.btnPrint.addEventListener('click', () => this.printTask());
         }
@@ -617,8 +659,10 @@ export class TaskModal {
         this.currentTaskId = taskId;
         this.selectedLabelIds.clear();
         this.selectedTagIds.clear();
+        this.selectedClassId = null;
         this.renderSelectedLabels();
         this.renderSelectedTags();
+        this.renderSelectedClass();
 
         this.isParked = false;
 
@@ -662,6 +706,7 @@ export class TaskModal {
 
         this.renderSelectedLabels();
         this.renderSelectedTags();
+        this.renderSelectedClass();
         this.overlay.classList.add('active');
         // Only auto-focus title on desktop; on mobile it opens the keyboard
         if (!window.matchMedia('(max-width: 768px)').matches) {
@@ -764,6 +809,8 @@ export class TaskModal {
                 if (task.tags && Array.isArray(task.tags)) {
                     task.tags.forEach(id => this.selectedTagIds.add(id));
                 }
+                this.selectedClassId = task.classId || null;
+                this.renderSelectedClass();
 
                 // Format Created At date: 2026-02-24 08:02pm
                 if (this.createdInfo) {
@@ -868,6 +915,7 @@ export class TaskModal {
                 dueDate: this.dateInput.value ? new Date(this.dateInput.value).toISOString() : null,
                 labels: Array.from(this.selectedLabelIds),
                 tags: Array.from(this.selectedTagIds),
+                classId: this.selectedClassId,
                 relatedTasks: this.relatedTaskIds,
                 relatedNotes: this.relatedNoteIds,
                 starred: this.starred,
@@ -1883,6 +1931,107 @@ export class TaskModal {
             }
             this.selectedTagsContainer.appendChild(wrapper);
         });
+    }
+
+    renderSelectedClass() {
+        if (!this.selectedClassContainer) return;
+        this.selectedClassContainer.innerHTML = '';
+        this.allClasses.forEach(item => {
+            const isSelected = this.selectedClassId === item.id;
+            const wrapper = document.createElement('span');
+            wrapper.className = 'task-tag-chip-wrap';
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = `task-label-chip${isSelected ? ' selected' : ''}`;
+            chip.style.setProperty('--label-color', item.color || '#8b5cf6');
+            chip.setAttribute('aria-pressed', String(isSelected));
+            chip.title = 'Click to assign or clear this class. Double-click to edit.';
+            chip.textContent = item.name;
+            chip.addEventListener('click', () => {
+                const timer = this.classClickTimers.get(item.id);
+                if (timer) clearTimeout(timer);
+                this.classClickTimers.set(item.id, setTimeout(() => {
+                    this.selectedClassId = this.selectedClassId === item.id ? null : item.id;
+                    this.classClickTimers.delete(item.id);
+                    this.renderSelectedClass();
+                }, 220));
+            });
+            chip.addEventListener('dblclick', event => {
+                event.preventDefault();
+                const timer = this.classClickTimers.get(item.id);
+                if (timer) clearTimeout(timer);
+                this.classClickTimers.delete(item.id);
+                this.openClassEditor(item);
+            });
+            wrapper.appendChild(chip);
+            if (isSelected) {
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'task-tag-remove';
+                remove.setAttribute('aria-label', `Remove ${item.name} from this task`);
+                remove.textContent = '×';
+                remove.addEventListener('click', event => {
+                    event.stopPropagation();
+                    this.selectedClassId = null;
+                    this.renderSelectedClass();
+                });
+                wrapper.appendChild(remove);
+            }
+            this.selectedClassContainer.appendChild(wrapper);
+        });
+    }
+
+    openClassEditor(item) {
+        document.querySelector('.tag-editor-overlay')?.remove();
+        const overlay = document.createElement('div');
+        overlay.className = 'tag-editor-overlay';
+        overlay.innerHTML = `
+            <form class="tag-editor-dialog" aria-label="Edit class">
+                <div class="tag-editor-header"><h3>Edit class</h3><button type="button" class="btn-icon tag-editor-close" aria-label="Close"><span class="material-symbols-outlined">close</span></button></div>
+                <label>Class name<input class="form-input" name="name" maxlength="60" value="${this.escapeHtml(item.name)}" required></label>
+                <label>Color<input class="tag-editor-color" name="color" type="color" value="${this.escapeHtml(item.color || '#8b5cf6')}" aria-label="Class color"></label>
+                <div class="tag-editor-actions"><button type="button" class="btn btn-outline class-editor-delete" style="color:var(--danger)">Delete</button><button type="button" class="btn btn-outline tag-editor-cancel">Cancel</button><button type="submit" class="btn btn-primary">Save changes</button></div>
+            </form>`;
+        const form = overlay.querySelector('form');
+        const close = () => overlay.remove();
+        overlay.querySelector('.tag-editor-close').addEventListener('click', close);
+        overlay.querySelector('.tag-editor-cancel').addEventListener('click', close);
+        overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+        overlay.querySelector('.class-editor-delete').addEventListener('click', async () => {
+            if (!window.confirm(`Delete class "${item.name}"? It will be removed from assigned tasks.`)) return;
+            try {
+                await taskService.removeClassFromWorkspace(this.uid, this.workspaceId, item.id);
+                await classService.delete(this.uid, this.workspaceId, item.id);
+                if (this.selectedClassId === item.id) this.selectedClassId = null;
+                this.renderSelectedClass();
+                close();
+            } catch (error) {
+                console.error('Failed to delete class:', error);
+                alert('Could not delete the class. Please try again.');
+            }
+        });
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+            const name = form.elements.name.value.trim();
+            const color = form.elements.color.value;
+            if (!name) return;
+            if (this.allClasses.some(existing => existing.id !== item.id && existing.name.toLowerCase() === name.toLowerCase())) {
+                window.alert('A class with that name already exists in this workspace.');
+                return;
+            }
+            try {
+                await classService.update(this.uid, this.workspaceId, item.id, { name, color });
+                item.name = name; item.color = color;
+                this.renderSelectedClass();
+                close();
+            } catch (error) {
+                console.error('Failed to update class:', error);
+                alert('Could not update the class. Please try again.');
+            }
+        });
+        document.body.appendChild(overlay);
+        overlay.querySelector('[name="name"]').focus();
+        overlay.querySelector('[name="name"]').select();
     }
 
     openTagEditor(tag) {
