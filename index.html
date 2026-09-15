@@ -518,12 +518,11 @@
                                 </div>
                                 <div style="width: 1px; height: 18px; background: var(--border-light); margin: 0 4px;"></div>
                                 <div class="saved-search-controls">
-                                    <select id="saved-search-select" class="table-control saved-search-select" aria-label="Saved searches">
-                                        <option value="">Saved searches</option>
-                                    </select>
-                                    <button id="btn-delete-saved-search" class="btn-icon" type="button" title="Delete selected saved search" aria-label="Delete selected saved search" disabled>
-                                        <span class="material-symbols-outlined">close</span>
+                                    <button id="saved-search-trigger" class="table-control saved-search-trigger" type="button" aria-haspopup="menu" aria-expanded="false">
+                                        <span id="saved-search-trigger-text">Saved searches</span>
+                                        <span class="material-symbols-outlined">expand_more</span>
                                     </button>
+                                    <div id="saved-search-menu" class="saved-search-menu" role="menu" hidden></div>
                                 </div>
                             </div>
                             <div class="zoom-controls" style="display: flex; align-items: center; gap: 8px;">

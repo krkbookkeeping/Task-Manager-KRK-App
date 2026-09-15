@@ -1486,26 +1486,80 @@ export class Dashboard {
     }
 
     renderSavedSearches() {
-        const select = document.getElementById('saved-search-select');
-        const deleteButton = document.getElementById('btn-delete-saved-search');
-        if (!select || !deleteButton) return;
+        const controls = document.querySelector('.saved-search-controls');
+        const trigger = document.getElementById('saved-search-trigger');
+        const triggerText = document.getElementById('saved-search-trigger-text');
+        const menu = document.getElementById('saved-search-menu');
+        if (!controls || !trigger || !triggerText || !menu) return;
 
         const activeSearch = this.savedSearches.find(search => this.isSavedSearchActive(search));
-        select.replaceChildren(new Option('Saved searches', ''));
-        this.savedSearches.forEach(search => select.add(new Option(search.name, search.id)));
-        select.value = activeSearch?.id || '';
-        deleteButton.disabled = !select.value;
-        deleteButton.title = activeSearch ? `Delete saved search: ${activeSearch.name}` : 'Select a saved search to delete';
+        triggerText.textContent = activeSearch?.name || 'Saved searches';
+        trigger.title = activeSearch ? `Saved search: ${activeSearch.name}` : 'Open saved searches';
+        trigger.onclick = event => {
+            event.stopPropagation();
+            menu.hidden = !menu.hidden;
+            trigger.setAttribute('aria-expanded', String(!menu.hidden));
+        };
 
-        select.onchange = () => {
-            const selected = this.savedSearches.find(search => search.id === select.value);
-            if (selected) this.applySavedSearch(selected);
-        };
-        deleteButton.onclick = async () => {
-            const selected = this.savedSearches.find(search => search.id === select.value);
-            if (!selected || !window.confirm(`Delete the saved search “${selected.name}”?`)) return;
-            await savedSearchService.delete(this.uid, this.workspaceId, selected.id);
-        };
+        menu.replaceChildren();
+        if (!this.savedSearches.length) {
+            const empty = document.createElement('div');
+            empty.className = 'saved-search-empty';
+            empty.textContent = 'No saved searches yet';
+            menu.appendChild(empty);
+            return;
+        }
+
+        this.savedSearches.forEach(search => {
+            const row = document.createElement('div');
+            row.className = `saved-search-menu-row${activeSearch?.id === search.id ? ' active' : ''}`;
+            row.dataset.searchId = search.id;
+            row.draggable = true;
+            row.innerHTML = `<span class="material-symbols-outlined saved-search-drag" title="Drag to reorder">drag_indicator</span><button type="button" class="saved-search-menu-apply" role="menuitem">${this.escapeHtml(search.name)}</button><button type="button" class="saved-search-menu-delete" aria-label="Delete saved search ${this.escapeHtml(search.name)}" title="Delete saved search"><span class="material-symbols-outlined">close</span></button>`;
+            row.querySelector('.saved-search-menu-apply').addEventListener('click', () => {
+                menu.hidden = true;
+                trigger.setAttribute('aria-expanded', 'false');
+                this.applySavedSearch(search);
+            });
+            row.querySelector('.saved-search-menu-delete').addEventListener('click', async event => {
+                event.stopPropagation();
+                if (!window.confirm(`Delete the saved search “${search.name}”?`)) return;
+                await savedSearchService.delete(this.uid, this.workspaceId, search.id);
+            });
+            row.addEventListener('dragstart', event => {
+                row.classList.add('dragging');
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', search.id);
+            });
+            row.addEventListener('dragend', () => row.classList.remove('dragging'));
+            row.addEventListener('dragover', event => {
+                event.preventDefault();
+                row.classList.add('drag-over');
+            });
+            row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+            row.addEventListener('drop', async event => {
+                event.preventDefault();
+                row.classList.remove('drag-over');
+                const draggedId = event.dataTransfer.getData('text/plain');
+                if (!draggedId || draggedId === search.id) return;
+                const orderedIds = this.savedSearches.map(item => item.id);
+                const fromIndex = orderedIds.indexOf(draggedId);
+                const toIndex = orderedIds.indexOf(search.id);
+                if (fromIndex < 0 || toIndex < 0) return;
+                orderedIds.splice(fromIndex, 1);
+                orderedIds.splice(toIndex, 0, draggedId);
+                const byId = new Map(this.savedSearches.map(item => [item.id, item]));
+                this.savedSearches = orderedIds.map(id => byId.get(id));
+                this.renderSavedSearches();
+                try {
+                    await savedSearchService.updateOrders(this.uid, this.workspaceId, orderedIds);
+                } catch (error) {
+                    console.error('Failed to reorder saved searches:', error);
+                    window.alert('Could not save the new saved-search order.');
+                }
+            });
+            menu.appendChild(row);
+        });
     }
 
     applySavedSearch(savedSearch) {
@@ -1589,6 +1643,15 @@ export class Dashboard {
         const tableSort = document.getElementById('table-sort');
         const tableSortScope = document.getElementById('table-sort-scope');
         const tableDirection = document.getElementById('btn-table-sort-direction');
+        document.addEventListener('click', event => {
+            const controls = document.querySelector('.saved-search-controls');
+            const menu = document.getElementById('saved-search-menu');
+            const trigger = document.getElementById('saved-search-trigger');
+            if (controls && menu && !controls.contains(event.target)) {
+                menu.hidden = true;
+                trigger?.setAttribute('aria-expanded', 'false');
+            }
+        }, { signal });
         const setTableView = async (viewMode) => {
             this.tablePreferencesChanged = true;
             this.viewMode = viewMode;

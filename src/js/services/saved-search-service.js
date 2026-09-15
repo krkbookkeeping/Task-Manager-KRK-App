@@ -1,5 +1,5 @@
 import { db } from '../firebase-config.js';
-import { collection, doc, setDoc, onSnapshot, serverTimestamp, query, orderBy, deleteDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot, serverTimestamp, query, orderBy, deleteDoc, writeBatch } from 'firebase/firestore';
 
 // References: users/{uid}/workspaces/{wid}/savedSearches/{searchId}
 export const savedSearchService = {
@@ -21,6 +21,14 @@ export const savedSearchService = {
 
     async delete(uid, wid, searchId) {
         await deleteDoc(doc(db, 'users', uid, 'workspaces', wid, 'savedSearches', searchId));
+    },
+
+    async updateOrders(uid, wid, orderedSearchIds) {
+        const batch = writeBatch(db);
+        orderedSearchIds.forEach((searchId, index) => {
+            batch.update(doc(db, 'users', uid, 'workspaces', wid, 'savedSearches', searchId), { order: index * 100 });
+        });
+        await batch.commit();
     },
 
     subscribe(uid, wid, callback) {
