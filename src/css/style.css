@@ -2591,7 +2591,7 @@ main.has-parked-tray .dashboard-layout {
 .task-table th:nth-child(2), .task-table td:nth-child(2) { width: 46px; }
 .task-table th:nth-child(3), .task-table td:nth-child(3) { width: 86px; }
 .task-table th:nth-child(4), .task-table td:nth-child(4) { width: 8ch; }
-.task-table th:nth-child(5), .task-table td:nth-child(5) { width: 16%; }
+.task-table th:nth-child(5), .task-table td:nth-child(5) { width: 12%; }
 .task-table th:nth-child(6), .task-table td:nth-child(6) { width: 24%; }
 .task-table th:nth-child(7), .task-table td:nth-child(7) { width: 18%; }
 .task-table-tags { overflow: hidden; white-space: nowrap; }
