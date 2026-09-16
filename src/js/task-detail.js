@@ -1999,6 +1999,12 @@ export class TaskModal {
             </form>`;
         const form = overlay.querySelector('form');
         const close = () => overlay.remove();
+        overlay.addEventListener('keydown', event => {
+            if (event.key !== 'Escape') return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            close();
+        }, true);
         overlay.querySelector('.tag-editor-close').addEventListener('click', close);
         overlay.querySelector('.tag-editor-cancel').addEventListener('click', close);
         overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
@@ -2052,6 +2058,12 @@ export class TaskModal {
             </form>`;
         const form = overlay.querySelector('form');
         const close = () => overlay.remove();
+        overlay.addEventListener('keydown', event => {
+            if (event.key !== 'Escape') return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            close();
+        }, true);
         overlay.querySelector('.tag-editor-close').addEventListener('click', close);
         overlay.querySelector('.tag-editor-cancel').addEventListener('click', close);
         overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
