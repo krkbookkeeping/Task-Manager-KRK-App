@@ -253,12 +253,33 @@ export class Dashboard {
 
     syncClassFilter() {
         const select = document.getElementById('class-filter');
-        if (!select) return;
         const previous = this.classFilter;
-        select.innerHTML = '<option value="">All classes</option><option value="__none__">No class</option>' + this.classes
-            .map(item => `<option value="${this.escapeHtml(item.id)}">● ${this.escapeHtml(item.name)}</option>`).join('');
         if (previous && previous !== '__none__' && !this.classes.some(item => item.id === previous)) this.classFilter = '';
-        select.value = this.classFilter;
+        if (select) {
+            select.innerHTML = '<option value="">All classes</option><option value="__none__">No class</option>' + this.classes
+                .map(item => `<option value="${this.escapeHtml(item.id)}">● ${this.escapeHtml(item.name)}</option>`).join('');
+            select.value = this.classFilter;
+        }
+        this.renderClassFilterIcons();
+    }
+
+    renderClassFilterIcons() {
+        const container = document.getElementById('class-filter-icons');
+        if (!container) return;
+        container.innerHTML = this.classes.map(item => {
+            const color = this.escapeHtml(item.color || '#8b5cf6');
+            const selected = this.classFilter === item.id;
+            return `<button class="class-filter-icon ${selected ? 'active' : ''}" type="button" data-class-id="${this.escapeHtml(item.id)}" style="--class-color:${color};" aria-pressed="${selected}" title="${this.escapeHtml(item.name)}"><span class="class-filter-icon-dot"></span><span class="class-filter-icon-name">${this.escapeHtml(item.name)}</span></button>`;
+        }).join('');
+        container.querySelectorAll('[data-class-id]').forEach(button => {
+            button.addEventListener('click', () => {
+                this.classFilter = this.classFilter === button.dataset.classId ? '' : button.dataset.classId;
+                const select = document.getElementById('class-filter');
+                if (select) select.value = this.classFilter;
+                this.renderClassFilterIcons();
+                this.render();
+            });
+        });
     }
 
     renderSettingsTags() {
@@ -612,7 +633,7 @@ export class Dashboard {
                     if (dueDate === undefined) return;
                     if (!window.currentTaskModal) throw new Error('Task editor is not available.');
 
-                    await window.currentTaskModal.open(null, group.bucket?.id || null, group.tag?.id || null);
+                    await window.currentTaskModal.open(null, group.bucket?.id || null, group.tag?.id || null, this.classFilter === '__none__' ? null : this.classFilter);
                     window.currentTaskModal.titleInput.value = title;
                     if (this.tableGrouping === 'date') {
                         window.currentTaskModal.dateInput.value = dueDate || '';
@@ -1065,7 +1086,7 @@ export class Dashboard {
                             const dueDate = (this.calendar && this.calendar.selectedDate)
                                 ? this.calendar.selectedDate
                                 : calculateOffsetDate('1d');
-                            await taskService.update(this.uid, this.workspaceId, this.boardId, newTask.id, { dueDate });
+                            await taskService.update(this.uid, this.workspaceId, this.boardId, newTask.id, { dueDate, classId: this.classFilter === '__none__' ? null : this.classFilter });
                             // Auto-open the new task so user can fill in details
                             if (window.currentTaskModal) {
                                 window.currentTaskModal.open(newTask.id);
@@ -1716,6 +1737,7 @@ export class Dashboard {
         }, { signal });
         classFilter?.addEventListener('change', () => {
             this.classFilter = classFilter.value;
+            this.renderClassFilterIcons();
             this.render();
         }, { signal });
 

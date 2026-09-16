@@ -489,6 +489,7 @@
                                     <input type="checkbox" id="filter-past-due" style="accent-color: var(--danger); cursor: pointer;">
                                     Past Due
                                 </label>
+                                <div id="class-filter-icons" class="class-filter-icons" role="group" aria-label="Filter tasks by class"></div>
                                 <div class="table-view-controls" aria-label="Table view controls">
                                     <div class="view-toggle" role="group" aria-label="Dashboard view">
                                         <button class="btn btn-sm btn-outline active" id="btn-view-buckets" type="button" title="Bucket view"><span class="material-symbols-outlined">view_kanban</span> Buckets</button>
@@ -513,10 +514,6 @@
                                     <select id="table-sort-scope" class="table-control" title="Apply sorting overall or within each group">
                                         <option value="within">Within groups</option>
                                         <option value="overall">Overall</option>
-                                    </select>
-                                    <select id="class-filter" class="table-control" title="Filter tasks by class">
-                                        <option value="">All classes</option>
-                                        <option value="__none__">No class</option>
                                     </select>
                                     <button class="btn btn-sm btn-outline" id="btn-table-sort-direction" type="button" title="Reverse sort order"><span class="material-symbols-outlined">arrow_upward</span></button>
                                 </div>

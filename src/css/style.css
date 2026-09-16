@@ -2431,7 +2431,41 @@ main.has-parked-tray .dashboard-layout {
 .btn-star-filter,
 #btn-sort-all-date,
 #star-filter-bar label,
-.table-view-controls { flex: 0 0 auto; white-space: nowrap; }
+.table-view-controls,
+.class-filter-icons { flex: 0 0 auto; white-space: nowrap; }
+
+.class-filter-icons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 260px;
+    overflow-x: auto;
+    padding: 1px;
+}
+
+.class-filter-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 3px 7px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font: inherit;
+    font-size: .75rem;
+}
+
+.class-filter-icon:hover { background: color-mix(in srgb, var(--class-color) 10%, transparent); }
+.class-filter-icon.active {
+    border-color: var(--class-color);
+    background: color-mix(in srgb, var(--class-color) 16%, transparent);
+    color: var(--text-primary);
+}
+.class-filter-icon-dot { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: var(--class-color); }
+.class-filter-icon-name { overflow: hidden; text-overflow: ellipsis; }
 
 .saved-search-controls { position: relative; display: inline-flex; flex: 0 0 auto; }
 .saved-search-trigger { display: inline-flex; align-items: center; justify-content: space-between; gap: 5px; width: 142px; max-width: 142px; cursor: pointer; }

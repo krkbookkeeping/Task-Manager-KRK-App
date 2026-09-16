@@ -519,10 +519,10 @@ export class TaskModal {
 
         // External triggers (Top Bar & Sidebar buttons)
         const topbarBtn = document.getElementById('btn-topbar-create-task');
-        if (topbarBtn) topbarBtn.addEventListener('click', () => this.open());
+        if (topbarBtn) topbarBtn.addEventListener('click', () => this.open(null, null, null, window.currentDashboard?.classFilter === '__none__' ? null : window.currentDashboard?.classFilter || null));
 
         const sidebarBtn = document.getElementById('btn-sidebar-create-task');
-        if (sidebarBtn) sidebarBtn.addEventListener('click', () => this.open());
+        if (sidebarBtn) sidebarBtn.addEventListener('click', () => this.open(null, null, null, window.currentDashboard?.classFilter === '__none__' ? null : window.currentDashboard?.classFilter || null));
 
         // Description Toolbar - Bold
         if (this.btnDescBold) {
@@ -655,7 +655,7 @@ export class TaskModal {
         });
     }
 
-    async open(taskId = null, defaultLabelId = null, defaultTagId = null) {
+    async open(taskId = null, defaultLabelId = null, defaultTagId = null, defaultClassId = null) {
         this.currentTaskId = taskId;
         this.selectedLabelIds.clear();
         this.selectedTagIds.clear();
@@ -697,6 +697,7 @@ export class TaskModal {
                 this.selectedLabelIds.add(defaultLabelId);
             }
             if (defaultTagId) this.selectedTagIds.add(defaultTagId);
+            if (defaultClassId) this.selectedClassId = defaultClassId;
             this.starred = false;
         }
 
@@ -1836,6 +1837,10 @@ export class TaskModal {
     async createAndLinkTask(title, labelId) {
         try {
             const newTask = await taskService.create(this.uid, this.workspaceId, this.boardId, title, labelId);
+            const selectedClassId = window.currentDashboard?.classFilter;
+            if (selectedClassId && selectedClassId !== '__none__') {
+                await taskService.update(this.uid, this.workspaceId, this.boardId, newTask.id, { classId: selectedClassId });
+            }
             // Add to local cache so linkTask can find it
             this.allBoardTasks.push(newTask);
             // Link it to the current task (bidirectional)

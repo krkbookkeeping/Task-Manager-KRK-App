@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 var labelId = getVisibleLabelId('main-board');
                 if (window.currentTaskModal) {
-                    window.currentTaskModal.open(null, labelId);
+                    window.currentTaskModal.open(null, labelId, null, window.currentDashboard?.classFilter === '__none__' ? null : window.currentDashboard?.classFilter || null);
                 } else {
                     var create = document.getElementById('btn-topbar-create-task');
                     if (create) create.click();
