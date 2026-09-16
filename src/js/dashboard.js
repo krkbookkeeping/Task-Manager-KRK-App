@@ -621,10 +621,12 @@ export class Dashboard {
                     return;
                 }
                 const section = form.closest('.table-group');
+                const bucketId = section.dataset.bucketId
+                    || (section.dataset.groupKey.startsWith('bucket:') ? section.dataset.groupKey.slice('bucket:'.length) : null);
                 const group = {
                     key: section.dataset.groupKey,
                     dropDate: section.dataset.dropDate || null,
-                    bucket: section.dataset.bucketId ? { id: section.dataset.bucketId } : null,
+                    bucket: bucketId ? { id: bucketId } : null,
                     tag: section.dataset.tagId ? { id: section.dataset.tagId } : null
                 };
                 input.disabled = true;
