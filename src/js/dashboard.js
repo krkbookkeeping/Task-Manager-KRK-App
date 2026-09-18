@@ -203,6 +203,9 @@ export class Dashboard {
         const weekOutStr = weekOut.toISOString().split('T')[0];
 
         return tasks.filter(task => {
+            // Parked tasks live exclusively in the Parked tray until restored.
+            // This keeps the table and bucket views consistent.
+            if (task.parked === true) return false;
             const date = task.dueDate?.split('T')[0];
             if (this.currentFilterDate && (!date || date < this.currentFilterDate || (this.currentFilterDateEnd ? date > this.currentFilterDateEnd : date !== this.currentFilterDate))) return false;
             if (this.thisWeekFilter && date && date > weekOutStr) return false;
@@ -818,6 +821,9 @@ export class Dashboard {
             }
             const labelsWithMatchingTasks = new Set();
             allSearchableTasks.forEach(t => {
+                // A parked task must not keep a bucket visible while it is in
+                // the tray. It becomes visible again as soon as it is restored.
+                if (t.parked === true) return;
                 if (!t.labels) return;
                 const isPastDue = this.pastDueFilter && t.dueDate && t.dueDate.split('T')[0] < nowStr;
                 const matchesStar = !this.starFilter || t.starred === true || isPastDue;
@@ -830,8 +836,8 @@ export class Dashboard {
                 }
             });
 
-            visibleLabels = this.labels.filter(label => labelsWithMatchingTasks.has(label.id));
-            parkedLabels = sortParked(this.labels.filter(label => !labelsWithMatchingTasks.has(label.id)));
+            visibleLabels = this.labels.filter(label => !label.isParked && labelsWithMatchingTasks.has(label.id));
+            parkedLabels = sortParked(this.labels.filter(label => label.isParked || !labelsWithMatchingTasks.has(label.id)));
         } else {
             visibleLabels = this.labels.filter(label => !label.isParked);
             parkedLabels = sortParked(this.labels.filter(label => label.isParked));
@@ -871,7 +877,12 @@ export class Dashboard {
 
         // Render each label as a bucket
         visibleLabels.forEach((label) => {
-            let bucketTasks = allSearchableTasks.filter(t => t.labels && t.labels.includes(label.id));
+            // Parked tasks are intentionally absent from bucket cards. Their
+            // only active representation is the Parked tray, where Restore
+            // returns them to every bucket assigned by their labels.
+            let bucketTasks = allSearchableTasks.filter(t =>
+                t.parked !== true && t.labels && t.labels.includes(label.id)
+            );
 
             // Apply Date Filter if active
             if (this.currentFilterDate) {
