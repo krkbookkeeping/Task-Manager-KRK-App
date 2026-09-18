@@ -535,6 +535,64 @@ export class Dashboard {
         document.body.appendChild(overlay);
     }
 
+    openTaskMetadataEditor(task, field) {
+        const isTags = field === 'tags';
+        const items = isTags ? this.tags : this.classes;
+        const selectedIds = isTags ? new Set(task.tags || []) : new Set(task.classId ? [task.classId] : []);
+        const label = isTags ? 'Tags' : 'Class';
+        const fieldName = isTags ? 'tag' : 'class';
+        const overlay = document.createElement('div');
+        overlay.className = 'task-metadata-modal-overlay';
+        overlay.innerHTML = `<section class="task-metadata-modal" role="dialog" aria-modal="true" aria-label="Edit task ${fieldName}"><header><div><div class="task-activity-modal-eyebrow">Task ${fieldName}</div><h3>${this.escapeHtml(task.title)}</h3></div><button type="button" class="btn-icon" aria-label="Close ${fieldName} editor"><span class="material-symbols-outlined">close</span></button></header><form><div class="task-metadata-options">${isTags ? items.map(item => `<label class="task-metadata-option"><input type="checkbox" value="${this.escapeHtml(item.id)}" ${selectedIds.has(item.id) ? 'checked' : ''}><span class="task-table-label-dot" style="background:${this.escapeHtml(item.color || '#0ea5e9')};"></span><span>${this.escapeHtml(item.name)}</span></label>`).join('') : `<label class="task-metadata-option"><input type="radio" name="task-class" value="" ${!task.classId ? 'checked' : ''}><span>No class</span></label>${items.map(item => `<label class="task-metadata-option"><input type="radio" name="task-class" value="${this.escapeHtml(item.id)}" ${selectedIds.has(item.id) ? 'checked' : ''}><span class="task-table-label-dot" style="background:${this.escapeHtml(item.color || '#8b5cf6')};"></span><span>${this.escapeHtml(item.name)}</span></label>`).join('')}</div><details class="task-metadata-create"><summary>New ${fieldName}</summary><div><input class="form-input" name="new-name" maxlength="60" placeholder="${isTags ? 'Tag' : 'Class'} name"><input name="new-color" type="color" value="${isTags ? '#0ea5e9' : '#8b5cf6'}" aria-label="${label} color"></div></details><footer><button type="button" class="btn btn-outline task-metadata-cancel">Cancel</button><button type="submit" class="btn btn-primary">Save ${label}</button></footer></form></section>`}`;
+        const close = () => {
+            document.removeEventListener('keydown', onKeydown, true);
+            overlay.remove();
+        };
+        const onKeydown = event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                close();
+            }
+        };
+        overlay.querySelector('header button').addEventListener('click', close);
+        overlay.querySelector('.task-metadata-cancel').addEventListener('click', close);
+        overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+        overlay.querySelector('form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const submit = form.querySelector('button[type="submit"]');
+            const newName = form.elements['new-name'].value.trim();
+            const newColor = form.elements['new-color'].value;
+            try {
+                submit.disabled = true;
+                let newItem = null;
+                if (newName) {
+                    const existing = items.find(item => item.name.toLowerCase() === newName.toLowerCase());
+                    newItem = existing || await (isTags ? tagService.create(this.uid, this.workspaceId, newName, newColor) : classService.create(this.uid, this.workspaceId, newName, newColor));
+                    if (!existing) items.push(newItem);
+                }
+                const value = isTags
+                    ? [...form.querySelectorAll('input[type="checkbox"]:checked')].map(input => input.value)
+                    : form.querySelector('input[name="task-class"]:checked')?.value || null;
+                const updates = isTags
+                    ? { tags: newItem ? [...new Set([...value, newItem.id])] : value }
+                    : { classId: newItem?.id || value };
+                await taskService.update(this.uid, this.workspaceId, this.boardId, task.id, updates);
+                Object.assign(task, updates);
+                close();
+                this.renderTableView();
+            } catch (error) {
+                console.error(`Failed to save task ${fieldName} from table view:`, error);
+                window.alert(`Could not save the task ${fieldName}. Please try again.`);
+            } finally {
+                submit.disabled = false;
+            }
+        });
+        document.addEventListener('keydown', onKeydown, true);
+        document.body.appendChild(overlay);
+    }
+
     renderTableView() {
         this.gridEl.innerHTML = '';
         this.gridEl.classList.add('table-view');
@@ -596,7 +654,7 @@ export class Dashboard {
                 row.dataset.taskId = task.id;
                 const commentCount = task.comments?.length || 0;
                 const latestComment = commentCount ? this.getCommentText(task.comments[commentCount - 1]) : '';
-                row.innerHTML = `<td class="task-table-due ${task.dueDate ? '' : 'task-table-muted'}">${task.dueDate ? this.formatDate(task.dueDate) : 'No date'}</td><td class="task-table-star"><button class="btn-icon btn-complete-task" data-task-id="${task.id}" title="Complete task"><span class="material-symbols-outlined" style="font-size:16px;">check_circle</span></button><button class="btn-icon btn-star-card ${task.starred ? 'starred' : ''}" data-task-id="${task.id}" title="${task.starred ? 'Remove star' : 'Star task'}"><span class="material-symbols-outlined" style="font-size:16px;">star</span></button></td><td><span class="task-table-label"><span class="task-table-label-dot" style="background:${bucket.color};"></span>${this.escapeHtml(bucket.name)}</span></td><td class="task-table-tags">${tagHtml}</td><td class="task-table-class">${classHtml}</td><td class="task-table-title">${this.escapeHtml(task.title)}</td><td class="task-table-activity"><button type="button" class="btn-task-activity" data-task-id="${task.id}" title="View activity and comments">${commentCount ? `${commentCount} comment${commentCount === 1 ? '' : 's'}${latestComment ? ` · ${this.escapeHtml(latestComment)}` : ''}` : 'Add/view comments'}</button></td><td class="task-table-date-punches"><div class="date-punches">${DASHBOARD_PUNCH_OFFSETS.map(offset => `<button type="button" class="btn-date-punch table-date-punch" data-task-id="${task.id}" data-offset="${offset}" title="Set due date to ${offset}">${offset}</button>`).join('')}</div></td><td class="task-table-files">${task.attachments?.length ? '📎' : ''}</td>`;
+                row.innerHTML = `<td class="task-table-due ${task.dueDate ? '' : 'task-table-muted'}">${task.dueDate ? this.formatDate(task.dueDate) : 'No date'}</td><td class="task-table-star"><button class="btn-icon btn-complete-task" data-task-id="${task.id}" title="Complete task"><span class="material-symbols-outlined" style="font-size:16px;">check_circle</span></button><button class="btn-icon btn-star-card ${task.starred ? 'starred' : ''}" data-task-id="${task.id}" title="${task.starred ? 'Remove star' : 'Star task'}"><span class="material-symbols-outlined" style="font-size:16px;">star</span></button></td><td><span class="task-table-label"><span class="task-table-label-dot" style="background:${bucket.color};"></span>${this.escapeHtml(bucket.name)}</span></td><td class="task-table-tags"><button type="button" class="btn-task-metadata" data-task-id="${task.id}" data-field="tags" title="Edit task tags">${tagHtml}</button></td><td class="task-table-class"><button type="button" class="btn-task-metadata" data-task-id="${task.id}" data-field="class" title="Edit task class">${classHtml || '<span class="task-table-muted">—</span>'}</button></td><td class="task-table-title">${this.escapeHtml(task.title)}</td><td class="task-table-activity"><button type="button" class="btn-task-activity" data-task-id="${task.id}" title="View activity and comments">${commentCount ? `${commentCount} comment${commentCount === 1 ? '' : 's'}${latestComment ? ` · ${this.escapeHtml(latestComment)}` : ''}` : 'Add/view comments'}</button></td><td class="task-table-date-punches"><div class="date-punches">${DASHBOARD_PUNCH_OFFSETS.map(offset => `<button type="button" class="btn-date-punch table-date-punch" data-task-id="${task.id}" data-offset="${offset}" title="Set due date to ${offset}">${offset}</button>`).join('')}</div></td><td class="task-table-files">${task.attachments?.length ? '📎' : ''}</td>`;
                 row.addEventListener('click', (event) => { if (!event.target.closest('button') && window.currentTaskModal) window.currentTaskModal.open(task.id); });
                 body.appendChild(row);
             });
@@ -658,6 +716,13 @@ export class Dashboard {
                 event.stopPropagation();
                 const task = this.tasks.find(item => item.id === button.dataset.taskId);
                 if (task) this.openCommentPreview(task, button);
+            });
+        });
+        this.gridEl.querySelectorAll('.btn-task-metadata').forEach(button => {
+            button.addEventListener('click', event => {
+                event.stopPropagation();
+                const task = this.tasks.find(item => item.id === button.dataset.taskId);
+                if (task) this.openTaskMetadataEditor(task, button.dataset.field);
             });
         });
         this.gridEl.querySelectorAll('.table-column-sort').forEach(button => {
