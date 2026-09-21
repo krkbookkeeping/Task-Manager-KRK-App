@@ -652,7 +652,7 @@ export class Dashboard {
                 const taskClass = this.getTaskClass(task);
                 const classHtml = taskClass ? `<span class="task-table-label"><span class="task-table-label-dot" style="background:${this.escapeHtml(taskClass.color || '#8b5cf6')};"></span><span class="task-table-tag-text">${this.escapeHtml(taskClass.name)}</span></span>` : '';
                 const row = document.createElement('tr');
-                row.className = 'task-table-row';
+                row.className = `task-table-row${task.completed ? ' task-table-row-completed' : ''}`;
                 row.draggable = !task.completed && !task.archived;
                 row.dataset.taskId = task.id;
                 const commentCount = task.comments?.length || 0;
