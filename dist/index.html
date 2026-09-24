@@ -512,20 +512,20 @@
                                         <option value="tag">Tag</option>
                                         <option value="createdAt">Created date</option>
                                     </select>
-                                    <select id="table-sort-scope" class="table-control" title="Apply sorting overall or within each group">
-                                        <option value="within">Within groups</option>
-                                        <option value="overall">Overall</option>
-                                    </select>
+                                    <div class="saved-search-controls">
+                                        <button id="saved-search-trigger" class="table-control saved-search-trigger" type="button" aria-haspopup="menu" aria-expanded="false">
+                                            <span id="saved-search-trigger-text">Saved searches</span>
+                                            <span class="material-symbols-outlined">expand_more</span>
+                                        </button>
+                                        <div id="saved-search-menu" class="saved-search-menu" role="menu" hidden></div>
+                                    </div>
                                     <button class="btn btn-sm btn-outline" id="btn-table-sort-direction" type="button" title="Reverse sort order"><span class="material-symbols-outlined">arrow_upward</span></button>
                                 </div>
                                 <div style="width: 1px; height: 18px; background: var(--border-light); margin: 0 4px;"></div>
-                                <div class="saved-search-controls">
-                                    <button id="saved-search-trigger" class="table-control saved-search-trigger" type="button" aria-haspopup="menu" aria-expanded="false">
-                                        <span id="saved-search-trigger-text">Saved searches</span>
-                                        <span class="material-symbols-outlined">expand_more</span>
-                                    </button>
-                                    <div id="saved-search-menu" class="saved-search-menu" role="menu" hidden></div>
-                                </div>
+                                <select id="table-sort-scope" class="table-control" title="Apply sorting overall or within each group">
+                                    <option value="within">Sort2</option>
+                                    <option value="overall">Overall</option>
+                                </select>
                             </div>
                             <div class="zoom-controls">
                                 <button id="zoom-trigger" class="table-control zoom-trigger" type="button" aria-haspopup="menu" aria-expanded="false"><span id="zoom-trigger-text">100%</span><span class="material-symbols-outlined">expand_more</span></button>
