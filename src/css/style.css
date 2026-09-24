@@ -2512,6 +2512,12 @@ main.has-parked-tray .dashboard-layout {
     font-size: 0.75rem;
 }
 
+.table-secondary-control {
+    margin-left: 5px;
+    border-color: color-mix(in srgb, var(--accent) 30%, var(--border-light));
+    opacity: 0.88;
+}
+
 .table-view {
     width: 100%;
     overflow: auto;
@@ -2556,6 +2562,25 @@ main.has-parked-tray .dashboard-layout {
     background: color-mix(in srgb, var(--table-group-color) 14%, var(--bg-elevated));
     border-left: 5px solid var(--table-group-color);
     font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.table-secondary-row td {
+    padding: 0 !important;
+    border-bottom: 0 !important;
+}
+
+.table-secondary-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 5px 6px 3px 18px;
+    padding: 3px 8px;
+    border-left: 3px solid var(--table-group-color);
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--table-group-color) 8%, var(--bg-surface));
+    color: var(--text-secondary);
+    font-size: 0.72rem;
     font-weight: 700;
 }
 

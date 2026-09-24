@@ -33,6 +33,7 @@ export class Dashboard {
         this.savedSearches = []; // Saved per-workspace search states
         this.viewMode = 'buckets';
         this.tableGrouping = 'none';
+        this.tableSecondaryGrouping = 'none';
         this.tableSort = 'dueDate';
         this.tableSortDirection = 'asc';
         this.tableSortScope = 'within';
@@ -109,6 +110,7 @@ export class Dashboard {
             if (!tableView) return;
             this.viewMode = tableView.viewMode || this.viewMode;
             this.tableGrouping = tableView.grouping || this.tableGrouping;
+            this.tableSecondaryGrouping = tableView.secondaryGrouping || this.tableSecondaryGrouping;
             this.tableSort = tableView.sort || this.tableSort;
             this.tableSortDirection = tableView.direction || this.tableSortDirection;
             this.tableSortScope = tableView.sortScope || this.tableSortScope;
@@ -158,6 +160,7 @@ export class Dashboard {
                 'settings.tableView': {
                     viewMode: this.viewMode,
                     grouping: this.tableGrouping,
+                    secondaryGrouping: this.tableSecondaryGrouping,
                     sort: this.tableSort,
                     direction: this.tableSortDirection,
                     sortScope: this.tableSortScope
@@ -172,6 +175,7 @@ export class Dashboard {
         const bucketsBtn = document.getElementById('btn-view-buckets');
         const tableBtn = document.getElementById('btn-view-table');
         const grouping = document.getElementById('table-grouping');
+        const secondaryGrouping = document.getElementById('table-secondary-grouping');
         const tagFilter = document.getElementById('tag-filter');
         const classFilter = document.getElementById('class-filter');
         const sort = document.getElementById('table-sort');
@@ -180,6 +184,7 @@ export class Dashboard {
         bucketsBtn?.classList.toggle('active', this.viewMode === 'buckets');
         tableBtn?.classList.toggle('active', this.viewMode === 'table');
         if (grouping) { grouping.value = this.tableGrouping; grouping.disabled = this.viewMode !== 'table'; }
+        this.syncTableSecondaryGrouping(secondaryGrouping);
         if (tagFilter) { tagFilter.value = this.tagFilter; tagFilter.disabled = false; }
         if (classFilter) { classFilter.value = this.classFilter; classFilter.disabled = false; }
         if (sort) { sort.value = this.tableSort; sort.disabled = this.viewMode !== 'table'; }
@@ -188,6 +193,21 @@ export class Dashboard {
             direction.disabled = this.viewMode !== 'table';
             direction.querySelector('span').textContent = this.tableSortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward';
         }
+    }
+
+    syncTableSecondaryGrouping(select = document.getElementById('table-secondary-grouping')) {
+        if (!select) return;
+        const optionsByPrimaryGroup = {
+            date: [['bucket', 'Then by bucket'], ['tag', 'Then by tag']],
+            bucket: [['date', 'Then by due date'], ['tag', 'Then by tag']],
+            tag: [['date', 'Then by due date'], ['bucket', 'Then by bucket']]
+        };
+        const options = optionsByPrimaryGroup[this.tableGrouping] || [];
+        if (!options.some(([value]) => value === this.tableSecondaryGrouping)) this.tableSecondaryGrouping = 'none';
+        select.innerHTML = '<option value="none">Secondary: none</option>' + options
+            .map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
+        select.value = this.tableSecondaryGrouping;
+        select.disabled = this.viewMode !== 'table' || options.length === 0;
     }
 
     getTableTasks() {
@@ -390,6 +410,38 @@ export class Dashboard {
             'this-week': '#0ea5e9', 'next-week': '#14b8a6', 'this-month': '#f59e0b',
             'next-month': '#ec4899', later: 'var(--text-muted)', 'no-date': 'var(--text-muted)'
         }[group.key] || 'var(--accent)';
+    }
+
+    getTableGroups(tasks, grouping) {
+        const groups = new Map();
+        tasks.forEach(task => {
+            let taskGroups = [{ key: 'all', name: 'All tasks', dropDate: null }];
+            if (grouping === 'bucket') {
+                const bucket = this.getTaskBucket(task);
+                taskGroups = [{ key: `bucket:${bucket.id}`, name: bucket.name, bucket }];
+            } else if (grouping === 'date') {
+                taskGroups = [this.getDateGroup(task)];
+            } else if (grouping === 'tag') {
+                const tags = this.getTaskTags(task);
+                taskGroups = tags.length ? tags.map(tag => ({ key: `tag:${tag.id}`, name: tag.name, tag })) : [{ key: 'tag:untagged', name: 'Untagged' }];
+            }
+            taskGroups.forEach(group => {
+                if (!groups.has(group.key)) groups.set(group.key, { ...group, tasks: [] });
+                groups.get(group.key).tasks.push(task);
+            });
+        });
+        return groups;
+    }
+
+    sortTableGroups(groups, grouping, forceGroupOrder = false) {
+        const groupList = [...groups.values()];
+        if (grouping === 'date') {
+            const dateOrder = ['overdue', 'today', 'tomorrow', 'this-week', 'next-week', 'this-month', 'next-month', 'later', 'no-date'];
+            groupList.sort((a, b) => dateOrder.indexOf(a.key) - dateOrder.indexOf(b.key));
+        } else if ((grouping === 'bucket' || grouping === 'tag') && (this.tableSortScope === 'within' || forceGroupOrder)) {
+            groupList.sort((a, b) => a.name.localeCompare(b.name));
+        }
+        return groupList;
     }
 
     getGroupSortIndicator(groupKey, sortBy) {
@@ -604,37 +656,30 @@ export class Dashboard {
         this.syncTableControls();
 
         const tasks = this.tableSortScope === 'overall' ? this.sortTableTasks(this.getTableTasks()) : this.getTableTasks();
-        const groups = new Map();
-        tasks.forEach(task => {
-            let taskGroups = [{ key: 'all', name: 'All tasks', dropDate: null }];
-            if (this.tableGrouping === 'bucket') {
-                const bucket = this.getTaskBucket(task);
-                taskGroups = [{ key: `bucket:${bucket.id}`, name: bucket.name, bucket }];
-            } else if (this.tableGrouping === 'date') taskGroups = [this.getDateGroup(task)];
-            else if (this.tableGrouping === 'tag') {
-                const tags = this.getTaskTags(task);
-                taskGroups = tags.length ? tags.map(tag => ({ key: `tag:${tag.id}`, name: tag.name, tag })) : [{ key: 'tag:untagged', name: 'Untagged' }];
-            }
-            taskGroups.forEach(group => {
-                if (!groups.has(group.key)) groups.set(group.key, { ...group, tasks: [] });
-                groups.get(group.key).tasks.push(task);
-            });
-        });
+        const groups = this.getTableGroups(tasks, this.tableGrouping);
         if (groups.size === 0) groups.set('empty', { key: 'empty', name: 'No matching tasks', tasks: [] });
 
         const view = document.createElement('div');
         view.className = 'table-view';
-        let groupList = [...groups.values()];
-        if (this.tableGrouping === 'date') {
-            const dateOrder = ['overdue', 'today', 'tomorrow', 'this-week', 'next-week', 'this-month', 'next-month', 'later', 'no-date'];
-            groupList.sort((a, b) => dateOrder.indexOf(a.key) - dateOrder.indexOf(b.key));
-        } else if ((this.tableGrouping === 'bucket' || this.tableGrouping === 'tag') && this.tableSortScope === 'within') {
-            groupList.sort((a, b) => a.name.localeCompare(b.name));
-        }
+        const groupList = this.sortTableGroups(groups, this.tableGrouping);
         groupList.forEach(group => {
+            const hasSecondaryGroups = this.tableSecondaryGrouping !== 'none' && group.tasks.length > 0;
+            const secondaryGroups = hasSecondaryGroups
+                ? this.sortTableGroups(this.getTableGroups(group.tasks, this.tableSecondaryGrouping), this.tableSecondaryGrouping, true)
+                : [];
             const groupSort = this.tableGroupSorts[group.key];
-            if (groupSort) group.tasks = this.sortTableTasks(group.tasks, groupSort.sortBy, groupSort.direction);
-            else if (this.tableSortScope === 'within') group.tasks = this.sortTableTasks(group.tasks);
+            if (!hasSecondaryGroups) {
+                if (groupSort) group.tasks = this.sortTableTasks(group.tasks, groupSort.sortBy, groupSort.direction);
+                else if (this.tableSortScope === 'within') group.tasks = this.sortTableTasks(group.tasks);
+            }
+            const tableRows = hasSecondaryGroups
+                ? secondaryGroups.flatMap(secondaryGroup => {
+                    const sortedTasks = this.tableSortScope === 'within'
+                        ? this.sortTableTasks(secondaryGroup.tasks, groupSort?.sortBy || this.tableSort, groupSort?.direction || this.tableSortDirection)
+                        : secondaryGroup.tasks;
+                    return sortedTasks.map((task, index) => ({ task, secondaryGroup: index === 0 ? secondaryGroup : null }));
+                })
+                : group.tasks.map(task => ({ task, secondaryGroup: null }));
             const section = document.createElement('section');
             section.className = 'table-group';
             section.dataset.groupKey = group.key;
@@ -644,7 +689,13 @@ export class Dashboard {
             section.style.setProperty('--table-group-color', this.getTableGroupColor(group));
             section.innerHTML = `<div class="table-group-header"><span>${this.escapeHtml(group.name)}</span><div class="table-group-header-actions"><form class="table-group-add-form"><input type="text" placeholder="Add task…" aria-label="Add a task to ${this.escapeHtml(group.name)}"><button type="submit" class="btn-icon" title="Open full task editor"><span class="material-symbols-outlined">add</span></button></form><span class="task-count">${group.tasks.length}</span></div></div><table class="task-table"><thead><tr><th><button class="table-column-sort" data-sort="dueDate">Due${this.getGroupSortIndicator(group.key, 'dueDate')}</button></th><th><button class="table-column-sort" data-sort="starred">Star${this.getGroupSortIndicator(group.key, 'starred')}</button></th><th><button class="table-column-sort" data-sort="bucket">Bucket${this.getGroupSortIndicator(group.key, 'bucket')}</button></th><th class="task-table-tags"><button class="table-column-sort" data-sort="tag">Tags${this.getGroupSortIndicator(group.key, 'tag')}</button></th><th class="task-table-class"><button class="table-column-sort" data-sort="class">Class${this.getGroupSortIndicator(group.key, 'class')}</button></th><th><button class="table-column-sort" data-sort="title">Task${this.getGroupSortIndicator(group.key, 'title')}</button></th><th class="table-activity-column"><button class="table-column-sort" data-sort="activity">Activity & comments${this.getGroupSortIndicator(group.key, 'activity')}</button></th><th class="table-date-punch-column">Set date</th><th><button class="table-column-sort" data-sort="files">Files${this.getGroupSortIndicator(group.key, 'files')}</button></th></thead><tbody></tbody></table>`;
             const body = section.querySelector('tbody');
-            group.tasks.forEach(task => {
+            tableRows.forEach(({ task, secondaryGroup }) => {
+                if (secondaryGroup) {
+                    const secondaryHeader = document.createElement('tr');
+                    secondaryHeader.className = 'table-secondary-row';
+                    secondaryHeader.innerHTML = `<td colspan="9"><div class="table-secondary-group-header"><span>${this.escapeHtml(secondaryGroup.name)}</span><span class="task-count">${secondaryGroup.tasks.length}</span></div></td>`;
+                    body.appendChild(secondaryHeader);
+                }
                 // Completed search results come from a separate Firestore subscription.
                 // Use that source list to mark the row, so the visual treatment stays
                 // correct even when a legacy task record has an inconsistent flag.
@@ -1789,6 +1840,7 @@ export class Dashboard {
         const bucketsViewBtn = document.getElementById('btn-view-buckets');
         const tableViewBtn = document.getElementById('btn-view-table');
         const tableGrouping = document.getElementById('table-grouping');
+        const tableSecondaryGrouping = document.getElementById('table-secondary-grouping');
         const tagFilter = document.getElementById('tag-filter');
         const classFilter = document.getElementById('class-filter');
         const tableSort = document.getElementById('table-sort');
@@ -1815,6 +1867,13 @@ export class Dashboard {
         tableGrouping?.addEventListener('change', async () => {
             this.tablePreferencesChanged = true;
             this.tableGrouping = tableGrouping.value;
+            this.syncTableSecondaryGrouping(tableSecondaryGrouping);
+            this.render();
+            await this.persistTablePreferences();
+        }, { signal });
+        tableSecondaryGrouping?.addEventListener('change', async () => {
+            this.tablePreferencesChanged = true;
+            this.tableSecondaryGrouping = tableSecondaryGrouping.value;
             this.render();
             await this.persistTablePreferences();
         }, { signal });
