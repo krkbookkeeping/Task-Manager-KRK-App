@@ -693,6 +693,11 @@ export class Dashboard {
                 if (secondaryGroup) {
                     const secondaryHeader = document.createElement('tr');
                     secondaryHeader.className = 'table-secondary-row';
+                    secondaryHeader.dataset.grouping = this.tableSecondaryGrouping;
+                    secondaryHeader.dataset.groupKey = secondaryGroup.key;
+                    secondaryHeader.dataset.dropDate = secondaryGroup.dropDate ?? '';
+                    secondaryHeader.dataset.bucketId = secondaryGroup.bucket?.id || '';
+                    secondaryHeader.dataset.tagId = secondaryGroup.tag?.id || '';
                     secondaryHeader.innerHTML = `<td colspan="9"><div class="table-secondary-group-header"><span>${this.escapeHtml(secondaryGroup.name)}</span><span class="task-count">${secondaryGroup.tasks.length}</span></div></td>`;
                     body.appendChild(secondaryHeader);
                 }
@@ -843,8 +848,36 @@ export class Dashboard {
                 row.classList.add('dragging-task');
                 event.dataTransfer.effectAllowed = 'move';
                 event.dataTransfer.setData('application/x-task-card', row.dataset.taskId);
+                let previousRow = row.previousElementSibling;
+                while (previousRow && !previousRow.classList.contains('table-secondary-row')) previousRow = previousRow.previousElementSibling;
+                if (previousRow?.dataset.grouping === 'tag') {
+                    event.dataTransfer.setData('application/x-table-source-tag', previousRow.dataset.tagId);
+                }
             });
             row.addEventListener('dragend', () => row.classList.remove('dragging-task'));
+        });
+
+        this.gridEl.querySelectorAll('.table-secondary-row').forEach(group => {
+            group.addEventListener('dragover', event => {
+                if (!event.dataTransfer.types.includes('application/x-task-card')) return;
+                event.preventDefault();
+                group.classList.add('drag-over');
+            });
+            group.addEventListener('dragleave', () => group.classList.remove('drag-over'));
+            group.addEventListener('drop', async event => {
+                const taskId = event.dataTransfer.getData('application/x-task-card');
+                group.classList.remove('drag-over');
+                if (!taskId) return;
+                event.preventDefault();
+                event.stopPropagation();
+                await this.dropTaskInTableGroup(taskId, {
+                    grouping: group.dataset.grouping,
+                    key: group.dataset.groupKey,
+                    dropDate: group.dataset.dropDate || null,
+                    bucketId: group.dataset.bucketId,
+                    tagId: group.dataset.tagId
+                }, event, event.dataTransfer.getData('application/x-table-source-tag'));
+            });
         });
 
         this.gridEl.querySelectorAll('.table-group').forEach(group => {
@@ -859,33 +892,45 @@ export class Dashboard {
                 group.classList.remove('drag-over');
                 if (!taskId) return;
                 event.preventDefault();
-                const groupKey = group.dataset.groupKey;
-                if (this.tableGrouping === 'bucket') {
-                    const targetLabelId = group.dataset.bucketId;
-                    const task = this.tasks.find(item => item.id === taskId);
-                    if (!targetLabelId || !task || task.labels?.includes(targetLabelId)) return;
-                    const defaultMode = this.crossBucketDefault === 'add' ? 'add' : 'move';
-                    const mode = event.shiftKey ? (defaultMode === 'add' ? 'move' : 'add') : defaultMode;
-                    const labels = mode === 'add' ? [...new Set([...(task.labels || []), targetLabelId])] : [targetLabelId];
-                    await taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { labels });
-                    return;
-                }
-                if (this.tableGrouping === 'tag') {
-                    const targetTagId = group.dataset.tagId;
-                    const task = this.tasks.find(item => item.id === taskId);
-                    if (!targetTagId || !task || task.tags?.includes(targetTagId)) return;
-                    await taskService.update(this.uid, this.workspaceId, this.boardId, taskId, {
-                        tags: [...new Set([...(task.tags || []), targetTagId])]
-                    });
-                    return;
-                }
-                if (this.tableGrouping !== 'date') return;
-
-                const dueDate = group.dataset.dropDate || null;
-                if (groupKey === 'overdue' || groupKey === 'later' || groupKey === 'empty') return;
-                await taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { dueDate });
+                await this.dropTaskInTableGroup(taskId, {
+                    grouping: this.tableGrouping,
+                    key: group.dataset.groupKey,
+                    dropDate: group.dataset.dropDate || null,
+                    bucketId: group.dataset.bucketId,
+                    tagId: group.dataset.tagId
+                }, event);
             });
         });
+    }
+
+    async dropTaskInTableGroup(taskId, group, event, sourceTagId = '') {
+        const task = this.tasks.find(item => item.id === taskId);
+        if (!task) return;
+
+        if (group.grouping === 'bucket') {
+            const targetLabelId = group.bucketId;
+            if (!targetLabelId || task.labels?.includes(targetLabelId)) return;
+            const defaultMode = this.crossBucketDefault === 'add' ? 'add' : 'move';
+            const mode = event.shiftKey ? (defaultMode === 'add' ? 'move' : 'add') : defaultMode;
+            const labels = mode === 'add' ? [...new Set([...(task.labels || []), targetLabelId])] : [targetLabelId];
+            await taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { labels });
+            return;
+        }
+
+        if (group.grouping === 'tag') {
+            const targetTagId = group.tagId;
+            if (!targetTagId) return;
+            const tags = sourceTagId && sourceTagId !== targetTagId && !event.shiftKey
+                ? (task.tags || []).filter(tagId => tagId !== sourceTagId)
+                : [...(task.tags || [])];
+            if (!tags.includes(targetTagId)) tags.push(targetTagId);
+            if (tags.length === (task.tags || []).length && tags.every((tagId, index) => tagId === task.tags[index])) return;
+            await taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { tags });
+            return;
+        }
+
+        if (group.grouping !== 'date' || ['overdue', 'later', 'empty'].includes(group.key)) return;
+        await taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { dueDate: group.dropDate || null });
     }
 
     async getTableGroupDueDate(group) {

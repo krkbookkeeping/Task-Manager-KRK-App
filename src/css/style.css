@@ -2584,6 +2584,12 @@ main.has-parked-tray .dashboard-layout {
     font-weight: 700;
 }
 
+.table-secondary-row.drag-over .table-secondary-group-header {
+    outline: 2px solid var(--table-group-color);
+    outline-offset: -2px;
+    background: color-mix(in srgb, var(--table-group-color) 18%, var(--bg-surface));
+}
+
 .table-group-header-actions,
 .table-group-add-form {
     display: flex;
