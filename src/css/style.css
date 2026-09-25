@@ -2577,6 +2577,10 @@ main.has-parked-tray .dashboard-layout {
     height: 20px;
     padding: 0;
     color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1;
 }
 
 .table-group-heading .material-symbols-outlined { font-size: 17px; }
