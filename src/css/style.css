@@ -2565,6 +2565,24 @@ main.has-parked-tray .dashboard-layout {
     font-weight: 700;
 }
 
+.table-group-heading {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 2px;
+}
+
+.table-group-heading .btn-icon {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    color: var(--text-secondary);
+}
+
+.table-group-heading .material-symbols-outlined { font-size: 17px; }
+
+.table-group.table-group-collapsed > .task-table { display: none; }
+
 .table-secondary-row td {
     padding: 0 !important;
     border-bottom: 0 !important;
@@ -2610,6 +2628,8 @@ main.has-parked-tray .dashboard-layout {
     outline-offset: -2px;
     background: color-mix(in srgb, var(--table-group-color) 18%, var(--bg-surface));
 }
+
+.task-table-row.table-secondary-collapsed { display: none; }
 
 .table-group-header-actions,
 .table-group-add-form {

@@ -38,6 +38,8 @@ export class Dashboard {
         this.tableSortDirection = 'asc';
         this.tableSortScope = 'within';
         this.tableGroupSorts = {};
+        this.collapsedTableGroups = new Set();
+        this.collapsedTableSecondaryGroups = new Set();
         this.crossBucketDefault = 'move';
         this.tablePreferencesChanged = false;
         this.thisWeekFilter = false; // Persistent "This Week" filter
@@ -181,6 +183,7 @@ export class Dashboard {
         const sort = document.getElementById('table-sort');
         const sortScope = document.getElementById('table-sort-scope');
         const direction = document.getElementById('btn-table-sort-direction');
+        const expandAllGroups = document.getElementById('btn-expand-table-groups');
         bucketsBtn?.classList.toggle('active', this.viewMode === 'buckets');
         tableBtn?.classList.toggle('active', this.viewMode === 'table');
         if (grouping) { grouping.value = this.tableGrouping; grouping.disabled = this.viewMode !== 'table'; }
@@ -193,6 +196,7 @@ export class Dashboard {
             direction.disabled = this.viewMode !== 'table';
             direction.querySelector('span').textContent = this.tableSortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward';
         }
+        if (expandAllGroups) expandAllGroups.disabled = this.viewMode !== 'table';
     }
 
     syncTableSecondaryGrouping(select = document.getElementById('table-secondary-grouping')) {
@@ -674,10 +678,16 @@ export class Dashboard {
             }
             const tableRows = hasSecondaryGroups
                 ? secondaryGroups.flatMap(secondaryGroup => {
+                    const secondaryCollapseKey = `${group.key}::${secondaryGroup.key}`;
                     const sortedTasks = this.tableSortScope === 'within'
                         ? this.sortTableTasks(secondaryGroup.tasks, groupSort?.sortBy || this.tableSort, groupSort?.direction || this.tableSortDirection)
                         : secondaryGroup.tasks;
-                    return sortedTasks.map((task, index) => ({ task, secondaryGroup: index === 0 ? secondaryGroup : null }));
+                    return sortedTasks.map((task, index) => ({
+                        task,
+                        secondaryGroup: index === 0 ? secondaryGroup : null,
+                        secondaryCollapseKey,
+                        secondaryCollapsed: this.collapsedTableSecondaryGroups.has(secondaryCollapseKey)
+                    }));
                 })
                 : group.tasks.map(task => ({ task, secondaryGroup: null }));
             const section = document.createElement('section');
@@ -687,9 +697,11 @@ export class Dashboard {
             section.dataset.bucketId = group.bucket?.id || '';
             section.dataset.tagId = group.tag?.id || '';
             section.style.setProperty('--table-group-color', this.getTableGroupColor(group));
-            section.innerHTML = `<div class="table-group-header"><span>${this.escapeHtml(group.name)}</span><div class="table-group-header-actions"><form class="table-group-add-form"><input type="text" placeholder="Add task…" aria-label="Add a task to ${this.escapeHtml(group.name)}"><button type="submit" class="btn-icon" title="Open full task editor"><span class="material-symbols-outlined">add</span></button></form><span class="task-count">${group.tasks.length}</span></div></div><table class="task-table"><thead><tr><th><button class="table-column-sort" data-sort="dueDate">Due${this.getGroupSortIndicator(group.key, 'dueDate')}</button></th><th><button class="table-column-sort" data-sort="starred">Star${this.getGroupSortIndicator(group.key, 'starred')}</button></th><th><button class="table-column-sort" data-sort="bucket">Bucket${this.getGroupSortIndicator(group.key, 'bucket')}</button></th><th class="task-table-tags"><button class="table-column-sort" data-sort="tag">Tags${this.getGroupSortIndicator(group.key, 'tag')}</button></th><th class="task-table-class"><button class="table-column-sort" data-sort="class">Class${this.getGroupSortIndicator(group.key, 'class')}</button></th><th><button class="table-column-sort" data-sort="title">Task${this.getGroupSortIndicator(group.key, 'title')}</button></th><th class="table-activity-column"><button class="table-column-sort" data-sort="activity">Activity & comments${this.getGroupSortIndicator(group.key, 'activity')}</button></th><th class="table-date-punch-column">Set date</th><th><button class="table-column-sort" data-sort="files">Files${this.getGroupSortIndicator(group.key, 'files')}</button></th></thead><tbody></tbody></table>`;
+            const mainCollapsed = this.collapsedTableGroups.has(group.key);
+            section.classList.toggle('table-group-collapsed', mainCollapsed);
+            section.innerHTML = `<div class="table-group-header"><div class="table-group-heading"><button type="button" class="btn-icon btn-toggle-table-group" data-group-key="${this.escapeHtml(group.key)}" aria-expanded="${!mainCollapsed}" title="${mainCollapsed ? 'Expand group' : 'Collapse group'}"><span class="material-symbols-outlined">${mainCollapsed ? 'chevron_right' : 'expand_more'}</span></button><span>${this.escapeHtml(group.name)}</span></div><div class="table-group-header-actions"><form class="table-group-add-form"><input type="text" placeholder="Add task…" aria-label="Add a task to ${this.escapeHtml(group.name)}"><button type="submit" class="btn-icon" title="Open full task editor"><span class="material-symbols-outlined">add</span></button></form><span class="task-count">${group.tasks.length}</span></div></div><table class="task-table"><thead><tr><th><button class="table-column-sort" data-sort="dueDate">Due${this.getGroupSortIndicator(group.key, 'dueDate')}</button></th><th><button class="table-column-sort" data-sort="starred">Star${this.getGroupSortIndicator(group.key, 'starred')}</button></th><th><button class="table-column-sort" data-sort="bucket">Bucket${this.getGroupSortIndicator(group.key, 'bucket')}</button></th><th class="task-table-tags"><button class="table-column-sort" data-sort="tag">Tags${this.getGroupSortIndicator(group.key, 'tag')}</button></th><th class="task-table-class"><button class="table-column-sort" data-sort="class">Class${this.getGroupSortIndicator(group.key, 'class')}</button></th><th><button class="table-column-sort" data-sort="title">Task${this.getGroupSortIndicator(group.key, 'title')}</button></th><th class="table-activity-column"><button class="table-column-sort" data-sort="activity">Activity & comments${this.getGroupSortIndicator(group.key, 'activity')}</button></th><th class="table-date-punch-column">Set date</th><th><button class="table-column-sort" data-sort="files">Files${this.getGroupSortIndicator(group.key, 'files')}</button></th></thead><tbody></tbody></table>`;
             const body = section.querySelector('tbody');
-            tableRows.forEach(({ task, secondaryGroup }) => {
+            tableRows.forEach(({ task, secondaryGroup, secondaryCollapseKey, secondaryCollapsed }) => {
                 if (secondaryGroup) {
                     const secondaryHeader = document.createElement('tr');
                     secondaryHeader.className = 'table-secondary-row';
@@ -698,7 +710,8 @@ export class Dashboard {
                     secondaryHeader.dataset.dropDate = secondaryGroup.dropDate ?? '';
                     secondaryHeader.dataset.bucketId = secondaryGroup.bucket?.id || '';
                     secondaryHeader.dataset.tagId = secondaryGroup.tag?.id || '';
-                    secondaryHeader.innerHTML = `<td colspan="9"><div class="table-secondary-group-header"><span>${this.escapeHtml(secondaryGroup.name)}</span><div class="table-secondary-group-header-actions"><form class="table-secondary-add-form"><input type="text" placeholder="Add task…" aria-label="Add a task to ${this.escapeHtml(secondaryGroup.name)}"><button type="submit" class="btn-icon" title="Open full task editor"><span class="material-symbols-outlined">add</span></button></form><span class="task-count">${secondaryGroup.tasks.length}</span></div></div></td>`;
+                    secondaryHeader.dataset.collapseKey = secondaryCollapseKey;
+                    secondaryHeader.innerHTML = `<td colspan="9"><div class="table-secondary-group-header"><div class="table-group-heading"><button type="button" class="btn-icon btn-toggle-table-secondary-group" data-collapse-key="${this.escapeHtml(secondaryCollapseKey)}" aria-expanded="${!secondaryCollapsed}" title="${secondaryCollapsed ? 'Expand group' : 'Collapse group'}"><span class="material-symbols-outlined">${secondaryCollapsed ? 'chevron_right' : 'expand_more'}</span></button><span>${this.escapeHtml(secondaryGroup.name)}</span></div><div class="table-secondary-group-header-actions"><form class="table-secondary-add-form"><input type="text" placeholder="Add task…" aria-label="Add a task to ${this.escapeHtml(secondaryGroup.name)}"><button type="submit" class="btn-icon" title="Open full task editor"><span class="material-symbols-outlined">add</span></button></form><span class="task-count">${secondaryGroup.tasks.length}</span></div></div></td>`;
                     body.appendChild(secondaryHeader);
                 }
                 // Completed search results come from a separate Firestore subscription.
@@ -713,9 +726,10 @@ export class Dashboard {
                 const taskClass = this.getTaskClass(task);
                 const classHtml = taskClass ? `<span class="task-table-label"><span class="task-table-label-dot" style="background:${this.escapeHtml(taskClass.color || '#8b5cf6')};"></span><span class="task-table-tag-text">${this.escapeHtml(taskClass.name)}</span></span>` : '';
                 const row = document.createElement('tr');
-                row.className = `task-table-row${isCompletedSearchResult ? ' task-table-row-completed' : ''}`;
+                row.className = `task-table-row${isCompletedSearchResult ? ' task-table-row-completed' : ''}${secondaryCollapsed ? ' table-secondary-collapsed' : ''}`;
                 row.draggable = !task.completed && !task.archived;
                 row.dataset.taskId = task.id;
+                if (secondaryCollapseKey) row.dataset.secondaryCollapseKey = secondaryCollapseKey;
                 const commentCount = task.comments?.length || 0;
                 const latestComment = commentCount ? this.getCommentText(task.comments[commentCount - 1]) : '';
                 const parkedLabel = task.parked === true ? ' <span class="task-table-muted">(Parked)</span>' : '';
@@ -759,6 +773,30 @@ export class Dashboard {
     }
 
     bindTableEvents() {
+        this.gridEl.querySelectorAll('.btn-toggle-table-group').forEach(button => {
+            button.addEventListener('click', event => {
+                event.stopPropagation();
+                const groupKey = button.dataset.groupKey;
+                if (this.collapsedTableGroups.has(groupKey)) {
+                    this.collapsedTableGroups.delete(groupKey);
+                } else {
+                    this.collapsedTableGroups.add(groupKey);
+                    button.closest('.table-group').querySelectorAll('.table-secondary-row').forEach(row => {
+                        this.collapsedTableSecondaryGroups.add(row.dataset.collapseKey);
+                    });
+                }
+                this.renderTableView();
+            });
+        });
+        this.gridEl.querySelectorAll('.btn-toggle-table-secondary-group').forEach(button => {
+            button.addEventListener('click', event => {
+                event.stopPropagation();
+                const collapseKey = button.dataset.collapseKey;
+                if (this.collapsedTableSecondaryGroups.has(collapseKey)) this.collapsedTableSecondaryGroups.delete(collapseKey);
+                else this.collapsedTableSecondaryGroups.add(collapseKey);
+                this.renderTableView();
+            });
+        });
         this.gridEl.querySelectorAll('.table-group-add-form').forEach(form => {
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
@@ -1941,6 +1979,7 @@ export class Dashboard {
         const tableSort = document.getElementById('table-sort');
         const tableSortScope = document.getElementById('table-sort-scope');
         const tableDirection = document.getElementById('btn-table-sort-direction');
+        const expandAllTableGroups = document.getElementById('btn-expand-table-groups');
         document.addEventListener('click', event => {
             const controls = document.querySelector('.saved-search-controls');
             const menu = document.getElementById('saved-search-menu');
@@ -1959,6 +1998,11 @@ export class Dashboard {
         };
         bucketsViewBtn?.addEventListener('click', () => setTableView('buckets'), { signal });
         tableViewBtn?.addEventListener('click', () => setTableView('table'), { signal });
+        expandAllTableGroups?.addEventListener('click', () => {
+            this.collapsedTableGroups.clear();
+            this.collapsedTableSecondaryGroups.clear();
+            if (this.viewMode === 'table') this.renderTableView();
+        }, { signal });
         tableGrouping?.addEventListener('change', async () => {
             this.tablePreferencesChanged = true;
             this.tableGrouping = tableGrouping.value;
