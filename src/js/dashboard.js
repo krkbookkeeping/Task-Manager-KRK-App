@@ -698,7 +698,7 @@ export class Dashboard {
                     secondaryHeader.dataset.dropDate = secondaryGroup.dropDate ?? '';
                     secondaryHeader.dataset.bucketId = secondaryGroup.bucket?.id || '';
                     secondaryHeader.dataset.tagId = secondaryGroup.tag?.id || '';
-                    secondaryHeader.innerHTML = `<td colspan="9"><div class="table-secondary-group-header"><span>${this.escapeHtml(secondaryGroup.name)}</span><span class="task-count">${secondaryGroup.tasks.length}</span></div></td>`;
+                    secondaryHeader.innerHTML = `<td colspan="9"><div class="table-secondary-group-header"><span>${this.escapeHtml(secondaryGroup.name)}</span><div class="table-secondary-group-header-actions"><form class="table-secondary-add-form"><input type="text" placeholder="Add task…" aria-label="Add a task to ${this.escapeHtml(secondaryGroup.name)}"><button type="submit" class="btn-icon" title="Open full task editor"><span class="material-symbols-outlined">add</span></button></form><span class="task-count">${secondaryGroup.tasks.length}</span></div></div></td>`;
                     body.appendChild(secondaryHeader);
                 }
                 // Completed search results come from a separate Firestore subscription.
@@ -736,6 +736,28 @@ export class Dashboard {
         this.bindTableEvents();
     }
 
+    async openTableTaskEditor(title, groups) {
+        const bucketGroup = groups.find(group => group.grouping === 'bucket');
+        const tagGroup = groups.find(group => group.grouping === 'tag');
+        const dateGroup = groups.find(group => group.grouping === 'date');
+        const dueDate = dateGroup ? await this.getTableGroupDueDate(dateGroup, 'date') : null;
+        if (dueDate === undefined) return false;
+        if (!window.currentTaskModal) throw new Error('Task editor is not available.');
+
+        await window.currentTaskModal.open(
+            null,
+            bucketGroup?.bucket?.id || null,
+            tagGroup?.tag?.id || null,
+            this.classFilter === '__none__' ? null : this.classFilter
+        );
+        window.currentTaskModal.titleInput.value = title;
+        if (dateGroup) {
+            window.currentTaskModal.dateInput.value = dueDate || '';
+            window.currentTaskModal.renderDatePunches();
+        }
+        return true;
+    }
+
     bindTableEvents() {
         this.gridEl.querySelectorAll('.table-group-add-form').forEach(form => {
             form.addEventListener('submit', async (event) => {
@@ -750,6 +772,7 @@ export class Dashboard {
                 const bucketId = section.dataset.bucketId
                     || (section.dataset.groupKey.startsWith('bucket:') ? section.dataset.groupKey.slice('bucket:'.length) : null);
                 const group = {
+                    grouping: this.tableGrouping,
                     key: section.dataset.groupKey,
                     dropDate: section.dataset.dropDate || null,
                     bucket: bucketId ? { id: bucketId } : null,
@@ -757,19 +780,46 @@ export class Dashboard {
                 };
                 input.disabled = true;
                 try {
-                    const dueDate = await this.getTableGroupDueDate(group);
-                    if (dueDate === undefined) return;
-                    if (!window.currentTaskModal) throw new Error('Task editor is not available.');
-
-                    await window.currentTaskModal.open(null, group.bucket?.id || null, group.tag?.id || null, this.classFilter === '__none__' ? null : this.classFilter);
-                    window.currentTaskModal.titleInput.value = title;
-                    if (this.tableGrouping === 'date') {
-                        window.currentTaskModal.dateInput.value = dueDate || '';
-                        window.currentTaskModal.renderDatePunches();
-                    }
-                    input.value = '';
+                    if (await this.openTableTaskEditor(title, [group])) input.value = '';
                 } catch (error) {
                     console.error('Failed to add task from table group:', error);
+                    window.alert('Could not open the task editor. Please try again.');
+                } finally {
+                    input.disabled = false;
+                }
+            });
+        });
+        this.gridEl.querySelectorAll('.table-secondary-add-form').forEach(form => {
+            form.addEventListener('submit', async event => {
+                event.preventDefault();
+                const input = form.querySelector('input');
+                const title = input.value.trim();
+                if (!title) {
+                    input.focus();
+                    return;
+                }
+                const secondaryRow = form.closest('.table-secondary-row');
+                const section = form.closest('.table-group');
+                if (!secondaryRow || !section) return;
+                const primaryGroup = {
+                    grouping: this.tableGrouping,
+                    key: section.dataset.groupKey,
+                    dropDate: section.dataset.dropDate || null,
+                    bucket: section.dataset.bucketId ? { id: section.dataset.bucketId } : null,
+                    tag: section.dataset.tagId ? { id: section.dataset.tagId } : null
+                };
+                const secondaryGroup = {
+                    grouping: secondaryRow.dataset.grouping,
+                    key: secondaryRow.dataset.groupKey,
+                    dropDate: secondaryRow.dataset.dropDate || null,
+                    bucket: secondaryRow.dataset.bucketId ? { id: secondaryRow.dataset.bucketId } : null,
+                    tag: secondaryRow.dataset.tagId ? { id: secondaryRow.dataset.tagId } : null
+                };
+                input.disabled = true;
+                try {
+                    if (await this.openTableTaskEditor(title, [primaryGroup, secondaryGroup])) input.value = '';
+                } catch (error) {
+                    console.error('Failed to add task from table secondary group:', error);
                     window.alert('Could not open the task editor. Please try again.');
                 } finally {
                     input.disabled = false;
@@ -933,8 +983,8 @@ export class Dashboard {
         await taskService.update(this.uid, this.workspaceId, this.boardId, taskId, { dueDate: group.dropDate || null });
     }
 
-    async getTableGroupDueDate(group) {
-        if (this.tableGrouping !== 'date') return null;
+    async getTableGroupDueDate(group, grouping = this.tableGrouping) {
+        if (grouping !== 'date') return null;
         if (group.key === 'overdue') {
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);

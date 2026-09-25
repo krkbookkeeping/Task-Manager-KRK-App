@@ -2584,6 +2584,27 @@ main.has-parked-tray .dashboard-layout {
     font-weight: 700;
 }
 
+.table-secondary-group-header-actions,
+.table-secondary-add-form {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.table-secondary-add-form input {
+    width: 145px;
+    padding: 2px 6px;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 0.72rem;
+}
+
+.table-secondary-add-form .btn-icon { width: 22px; height: 22px; padding: 0; }
+.table-secondary-add-form .material-symbols-outlined { font-size: 16px; }
+
 .table-secondary-row.drag-over .table-secondary-group-header {
     outline: 2px solid var(--table-group-color);
     outline-offset: -2px;
