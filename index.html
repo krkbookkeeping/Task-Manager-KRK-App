@@ -157,6 +157,9 @@
                         <input type="checkbox" id="search-include-archived" style="accent-color: var(--text-muted); cursor: pointer;">
                         Archived
                     </label>
+                    <button class="btn btn-sm btn-outline btn-expand-table-groups" id="btn-expand-table-groups" type="button" title="Expand all table groups" disabled>
+                        Expand all
+                    </button>
                 </div>
 
                 <!-- Header Actions: Task view controls (hidden when bookmarks active) -->
@@ -528,9 +531,6 @@
                                     <option value="within">Sort2</option>
                                     <option value="overall">Overall</option>
                                 </select>
-                                <button class="btn btn-sm btn-outline btn-expand-table-groups" id="btn-expand-table-groups" type="button" title="Expand all table groups" disabled>
-                                    Expand all
-                                </button>
                             </div>
                             <div class="zoom-controls">
                                 <button id="zoom-trigger" class="table-control zoom-trigger" type="button" aria-haspopup="menu" aria-expanded="false"><span id="zoom-trigger-text">100%</span><span class="material-symbols-outlined">expand_more</span></button>
