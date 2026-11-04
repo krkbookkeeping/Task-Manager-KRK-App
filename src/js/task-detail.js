@@ -1,4 +1,4 @@
-import { taskService } from './services/task-service.js';
+import { taskService } from './services/task-service.js?v=2';
 import { labelService } from './services/label-service.js';
 import { tagService } from './services/tag-service.js';
 import { classService } from './services/class-service.js';
@@ -32,6 +32,12 @@ export class TaskModal {
         this.btnComplete = document.getElementById('btn-task-complete');
         this.btnRestore = document.getElementById('btn-task-restore');
         this.btnPrint = document.getElementById('btn-task-print');
+        this.btnDuplicate = document.getElementById('btn-task-duplicate');
+        this.duplicateDialog = document.getElementById('duplicate-task-dialog');
+        this.duplicateDate = document.getElementById('duplicate-task-date');
+        this.duplicateCalendar = document.getElementById('duplicate-task-calendar');
+        this.duplicateSubmit = document.getElementById('duplicate-task-submit');
+        this.duplicateError = document.getElementById('duplicate-task-error');
         this.btnPark = document.getElementById('btn-task-park');
         this.createdInfo = document.getElementById('task-modal-created-info');
         this.statusInfo = document.getElementById('task-modal-status-info');
@@ -49,6 +55,7 @@ export class TaskModal {
 
         // State
         this.currentTaskId = null; // null if creating new
+        this.sourceTask = null;
         this.allLabels = [];
         this.selectedLabelIds = new Set();
         this.unsubLabels = null;
@@ -445,6 +452,19 @@ export class TaskModal {
         if (this.btnPrint) {
             this.btnPrint.addEventListener('click', () => this.printTask());
         }
+        this.btnDuplicate.addEventListener('click', () => this.openDuplicateDialog());
+        const closeDuplicateDialog = () => { if (!this.duplicateSubmit.disabled) this.duplicateDialog.close(); };
+        document.getElementById('duplicate-task-close').addEventListener('click', closeDuplicateDialog);
+        document.getElementById('duplicate-task-cancel').addEventListener('click', closeDuplicateDialog);
+        this.duplicateDialog.addEventListener('cancel', event => {
+            if (this.duplicateSubmit.disabled) event.preventDefault();
+        });
+        this.duplicateDialog.addEventListener('keydown', event => event.stopPropagation());
+        this.duplicateDate.addEventListener('input', () => this.updateDuplicateCalendarSelection());
+        document.getElementById('duplicate-task-form').addEventListener('submit', event => {
+            event.preventDefault();
+            this.duplicateTask();
+        });
         this.btnDelete.addEventListener('click', () => this.deleteTask());
         if (this.btnPark) {
             this.btnPark.addEventListener('click', async () => {
@@ -657,6 +677,7 @@ export class TaskModal {
 
     async open(taskId = null, defaultLabelId = null, defaultTagId = null, defaultClassId = null) {
         this.currentTaskId = taskId;
+        this.sourceTask = null;
         this.selectedLabelIds.clear();
         this.selectedTagIds.clear();
         this.selectedClassId = null;
@@ -669,6 +690,7 @@ export class TaskModal {
         if (taskId) {
             // Editing existing task
             this.btnDelete.style.display = 'flex';
+            this.btnDuplicate.style.display = 'flex';
             if (this.btnComplete) this.btnComplete.style.display = 'block';
             if (this.btnPark) this.btnPark.style.display = 'flex';
             this.btnSave.textContent = 'Save Changes';
@@ -676,6 +698,7 @@ export class TaskModal {
         } else {
             // Creating new task
             this.btnDelete.style.display = 'none';
+            this.btnDuplicate.style.display = 'none';
             if (this.btnComplete) this.btnComplete.style.display = 'none';
             if (this.btnRestore) this.btnRestore.style.display = 'none';
             if (this.btnPark) this.btnPark.style.display = 'none';
@@ -789,6 +812,7 @@ export class TaskModal {
         try {
             const task = await taskService.getTask(this.uid, this.workspaceId, this.boardId, taskId);
             if (task) {
+                this.sourceTask = task;
                 this.titleInput.value = task.title || '';
                 // The description is now RTF (HTML), but let's auto-link plain URLs first
                 this.descInput.innerHTML = this.linkify(task.description || '');
@@ -940,6 +964,7 @@ export class TaskModal {
                 if (!close) {
                     this.btnSave.textContent = 'Save Changes';
                     this.btnDelete.style.display = 'flex';
+                    this.btnDuplicate.style.display = 'flex';
                     if (this.btnComplete) this.btnComplete.style.display = 'block';
                     if (this.btnPark) this.btnPark.style.display = 'flex';
                 }
@@ -953,6 +978,90 @@ export class TaskModal {
             alert('Failed to save task.');
             this.btnSave.disabled = false;
             this.btnSave.textContent = this.currentTaskId ? 'Save Changes' : 'Create Task';
+        }
+    }
+
+    openDuplicateDialog() {
+        if (!this.currentTaskId) return;
+        if (!this.titleInput.value.trim()) {
+            alert('A task title is required.');
+            this.titleInput.focus();
+            return;
+        }
+        document.getElementById('duplicate-keep-description').checked = true;
+        document.getElementById('duplicate-keep-comments').checked = false;
+        this.duplicateDate.value = calculateOffsetDate('1m');
+        this.duplicateError.hidden = true;
+        this.renderDuplicateCalendar();
+        this.duplicateDialog.showModal();
+    }
+
+    renderDuplicateCalendar() {
+        this.duplicateCalendar.replaceChildren();
+        const today = new Date();
+        today.setHours(12, 0, 0, 0);
+        for (let offset = 0; offset < 35; offset++) {
+            const day = new Date(today);
+            day.setDate(today.getDate() + offset);
+            const value = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'duplicate-calendar-day';
+            button.dataset.date = value;
+            button.setAttribute('aria-label', day.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }));
+            const weekday = document.createElement('span');
+            weekday.textContent = offset === 0 ? 'Today' : day.toLocaleDateString(undefined, { weekday: 'short' });
+            const date = document.createElement('strong');
+            date.textContent = day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            button.append(weekday, date);
+            button.addEventListener('click', () => {
+                this.duplicateDate.value = value;
+                this.updateDuplicateCalendarSelection();
+            });
+            this.duplicateCalendar.appendChild(button);
+        }
+        this.updateDuplicateCalendarSelection();
+    }
+
+    updateDuplicateCalendarSelection() {
+        this.duplicateCalendar.querySelectorAll('button').forEach(button => {
+            const selected = button.dataset.date === this.duplicateDate.value;
+            button.classList.toggle('selected', selected);
+            button.setAttribute('aria-pressed', String(selected));
+        });
+    }
+
+    async duplicateTask() {
+        if (!this.currentTaskId || !this.duplicateDate.value || this.duplicateSubmit.disabled) return;
+        const fields = {
+            title: this.titleInput.value.trim(),
+            description: document.getElementById('duplicate-keep-description').checked ? this.descInput.innerHTML.trim() : '',
+            dueDate: new Date(this.duplicateDate.value).toISOString(),
+            labels: Array.from(this.selectedLabelIds),
+            tags: Array.from(this.selectedTagIds),
+            classId: this.selectedClassId,
+            // Links are bidirectional; the new task starts unlinked instead of
+            // creating references that the other task or note does not know about.
+            relatedTasks: [],
+            relatedNotes: [],
+            starred: this.starred,
+            comments: document.getElementById('duplicate-keep-comments').checked ? this.comments.map(comment => ({ ...comment })) : []
+        };
+        if (Array.isArray(this.sourceTask?.attachments)) fields.attachments = [...this.sourceTask.attachments];
+        this.duplicateSubmit.disabled = true;
+        this.duplicateSubmit.textContent = 'Duplicating...';
+        this.duplicateError.hidden = true;
+        try {
+            await taskService.duplicate(this.uid, this.workspaceId, this.boardId, fields);
+            this.duplicateDialog.close();
+            alert('Task duplicated.');
+        } catch (error) {
+            console.error('Failed to duplicate task:', error);
+            this.duplicateError.textContent = 'Could not duplicate the task. Please try again.';
+            this.duplicateError.hidden = false;
+        } finally {
+            this.duplicateSubmit.disabled = false;
+            this.duplicateSubmit.textContent = 'Duplicate task';
         }
     }
 

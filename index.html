@@ -12,7 +12,7 @@
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
     <link rel="stylesheet" href="./src/css/modal.css?v=2">
-    <link rel="stylesheet" href="./src/css/task-detail.css?v=2">
+    <link rel="stylesheet" href="./src/css/task-detail.css?v=3">
     <link rel="stylesheet" href="./src/css/calendar.css?v=4">
     <link rel="stylesheet" href="./src/css/mobile.css?v=14">
 
@@ -486,7 +486,7 @@
                                 </button>
                                 <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--text-secondary); cursor: pointer; user-select: none; white-space: nowrap;">
                                     <input type="checkbox" id="filter-this-week" style="accent-color: var(--primary); cursor: pointer;">
-                                    1 Wk
+                                    4 Days
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--text-secondary); cursor: pointer; user-select: none; white-space: nowrap;">
                                     <input type="checkbox" id="filter-past-due" style="accent-color: var(--danger); cursor: pointer;">
@@ -1064,6 +1064,9 @@
                     <button class="btn-icon" id="btn-task-park" data-tooltip="Park Task" style="display: none;">
                         <span class="material-symbols-outlined" style="color: var(--text-muted);">dock_to_bottom</span>
                     </button>
+                    <button class="btn btn-sm btn-outline task-duplicate-button" id="btn-task-duplicate" type="button" aria-label="Duplicate task" style="display: none;">
+                        <span class="material-symbols-outlined" aria-hidden="true">content_copy</span> Duplicate
+                    </button>
                     <button class="btn-icon" id="btn-task-print" data-tooltip="Print Task">
                         <span class="material-symbols-outlined" style="color: var(--info);">print</span>
                     </button>
@@ -1246,6 +1249,32 @@
         </div>
     </div>
 
+    <dialog class="duplicate-task-dialog" id="duplicate-task-dialog" aria-labelledby="duplicate-task-title">
+        <form id="duplicate-task-form">
+            <div class="duplicate-task-header">
+                <div><h2 id="duplicate-task-title">Duplicate task</h2><p>Choose what to keep and when the new task is due.</p></div>
+                <button type="button" class="btn-icon" id="duplicate-task-close" aria-label="Close duplicate task dialog"><span class="material-symbols-outlined">close</span></button>
+            </div>
+            <div class="duplicate-task-body">
+                <div class="duplicate-task-options">
+                    <label><input id="duplicate-keep-description" type="checkbox" checked> Keep description</label>
+                    <label><input id="duplicate-keep-comments" type="checkbox"> Keep comments</label>
+                </div>
+                <div class="duplicate-task-date-heading">
+                    <label for="duplicate-task-date">Due date</label>
+                    <input id="duplicate-task-date" class="form-input form-input-sm" type="date" required>
+                </div>
+                <p class="duplicate-task-hint">Choose a day in the next five weeks, or use the date field for another date.</p>
+                <div class="duplicate-task-calendar" id="duplicate-task-calendar" role="group" aria-label="Dates starting today"></div>
+                <p id="duplicate-task-error" class="duplicate-task-error" role="alert" hidden></p>
+            </div>
+            <div class="duplicate-task-footer">
+                <button type="button" class="btn btn-outline" id="duplicate-task-cancel">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="duplicate-task-submit">Duplicate task</button>
+            </div>
+        </form>
+    </dialog>
+
     <!-- Image Lightbox Overlay -->
     <div class="image-lightbox" id="image-lightbox" style="display: none;">
         <img id="lightbox-image" src="" alt="Enlarged image" />
@@ -1280,7 +1309,7 @@
     <script src="./src/js/ui-helpers.js"></script>
 
     <!-- App module (Firebase, future features) -->
-    <script type="module" src="./src/js/app.js?v=2"></script>
+    <script type="module" src="./src/js/app.js?v=3"></script>
 </body>
 
 </html>

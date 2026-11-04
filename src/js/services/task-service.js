@@ -46,6 +46,27 @@ export const taskService = {
         return data;
     },
 
+    // A single write avoids leaving a partial task if creation fails.
+    async duplicate(uid, wid, bid, fields) {
+        const taskRef = doc(this.getCollectionRef(uid, wid, bid));
+        const order = {};
+        fields.labels.forEach(labelId => { order[labelId] = Date.now(); });
+        const data = {
+            ...fields,
+            id: taskRef.id,
+            pinned: {},
+            order,
+            completed: false,
+            completedAt: null,
+            archived: false,
+            archivedAt: null,
+            parked: false,
+            createdAt: serverTimestamp()
+        };
+        await setDoc(taskRef, data);
+        return data;
+    },
+
     async getAllTasks(uid, wid, bid) {
         const snapshot = await getDocs(this.getCollectionRef(uid, wid, bid));
         return snapshot.docs.map(doc => doc.data());

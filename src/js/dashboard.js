@@ -223,7 +223,7 @@ export class Dashboard {
         today.setHours(0, 0, 0, 0);
         const todayStr = today.toISOString().split('T')[0];
         const weekOut = new Date(today);
-        weekOut.setDate(weekOut.getDate() + 7);
+        weekOut.setDate(weekOut.getDate() + 4);
         const weekOutStr = weekOut.toISOString().split('T')[0];
 
         return tasks.filter(task => {
@@ -1074,7 +1074,7 @@ export class Dashboard {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 const weekOut = new Date(today);
-                weekOut.setDate(weekOut.getDate() + 7);
+                weekOut.setDate(weekOut.getDate() + 4);
                 weekOutStr = weekOut.toISOString().split('T')[0];
             }
             const labelsWithMatchingTasks = new Set();
@@ -1163,7 +1163,7 @@ export class Dashboard {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 const weekOut = new Date(today);
-                weekOut.setDate(weekOut.getDate() + 7);
+                weekOut.setDate(weekOut.getDate() + 4);
                 const weekOutStr = weekOut.toISOString().split('T')[0];
                 bucketTasks = bucketTasks.filter(t => {
                     // Past due tasks always pass when pastDueFilter is on
