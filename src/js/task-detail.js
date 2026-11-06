@@ -34,6 +34,8 @@ export class TaskModal {
         this.btnPrint = document.getElementById('btn-task-print');
         this.btnDuplicate = document.getElementById('btn-task-duplicate');
         this.duplicateDialog = document.getElementById('duplicate-task-dialog');
+        this.duplicateName = document.getElementById('duplicate-task-name');
+        this.duplicateNotice = document.getElementById('duplicate-task-notice');
         this.duplicateDate = document.getElementById('duplicate-task-date');
         this.duplicateCalendar = document.getElementById('duplicate-task-calendar');
         this.duplicateSubmit = document.getElementById('duplicate-task-submit');
@@ -983,17 +985,15 @@ export class TaskModal {
 
     openDuplicateDialog() {
         if (!this.currentTaskId) return;
-        if (!this.titleInput.value.trim()) {
-            alert('A task title is required.');
-            this.titleInput.focus();
-            return;
-        }
+        this.duplicateName.value = this.titleInput.value.trim();
         document.getElementById('duplicate-keep-description').checked = true;
         document.getElementById('duplicate-keep-comments').checked = false;
         this.duplicateDate.value = calculateOffsetDate('1m');
         this.duplicateError.hidden = true;
         this.renderDuplicateCalendar();
         this.duplicateDialog.showModal();
+        this.duplicateName.focus();
+        this.duplicateName.select();
     }
 
     renderDuplicateCalendar() {
@@ -1033,8 +1033,15 @@ export class TaskModal {
 
     async duplicateTask() {
         if (!this.currentTaskId || !this.duplicateDate.value || this.duplicateSubmit.disabled) return;
+        const title = this.duplicateName.value.trim();
+        if (!title) {
+            this.duplicateError.textContent = 'Enter a task title.';
+            this.duplicateError.hidden = false;
+            this.duplicateName.focus();
+            return;
+        }
         const fields = {
-            title: this.titleInput.value.trim(),
+            title,
             description: document.getElementById('duplicate-keep-description').checked ? this.descInput.innerHTML.trim() : '',
             dueDate: new Date(this.duplicateDate.value).toISOString(),
             labels: Array.from(this.selectedLabelIds),
@@ -1054,7 +1061,10 @@ export class TaskModal {
         try {
             await taskService.duplicate(this.uid, this.workspaceId, this.boardId, fields);
             this.duplicateDialog.close();
-            alert('Task duplicated.');
+            this.duplicateNotice.textContent = 'Task duplicated.';
+            this.duplicateNotice.hidden = false;
+            clearTimeout(this.duplicateNoticeTimer);
+            this.duplicateNoticeTimer = setTimeout(() => { this.duplicateNotice.hidden = true; }, 2000);
         } catch (error) {
             console.error('Failed to duplicate task:', error);
             this.duplicateError.textContent = 'Could not duplicate the task. Please try again.';

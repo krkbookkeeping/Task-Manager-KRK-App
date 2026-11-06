@@ -12,7 +12,7 @@
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
     <link rel="stylesheet" href="./src/css/modal.css?v=2">
-    <link rel="stylesheet" href="./src/css/task-detail.css?v=3">
+    <link rel="stylesheet" href="./src/css/task-detail.css?v=4">
     <link rel="stylesheet" href="./src/css/calendar.css?v=4">
     <link rel="stylesheet" href="./src/css/mobile.css?v=14">
 
@@ -1256,6 +1256,10 @@
                 <button type="button" class="btn-icon" id="duplicate-task-close" aria-label="Close duplicate task dialog"><span class="material-symbols-outlined">close</span></button>
             </div>
             <div class="duplicate-task-body">
+                <div class="duplicate-task-title-field">
+                    <label for="duplicate-task-name">Task title</label>
+                    <input id="duplicate-task-name" class="form-input" type="text" required autocomplete="off">
+                </div>
                 <div class="duplicate-task-options">
                     <label><input id="duplicate-keep-description" type="checkbox" checked> Keep description</label>
                     <label><input id="duplicate-keep-comments" type="checkbox"> Keep comments</label>
@@ -1274,6 +1278,7 @@
             </div>
         </form>
     </dialog>
+    <div class="duplicate-task-notice" id="duplicate-task-notice" role="status" aria-live="polite" hidden></div>
 
     <!-- Image Lightbox Overlay -->
     <div class="image-lightbox" id="image-lightbox" style="display: none;">
@@ -1309,7 +1314,7 @@
     <script src="./src/js/ui-helpers.js"></script>
 
     <!-- App module (Firebase, future features) -->
-    <script type="module" src="./src/js/app.js?v=3"></script>
+    <script type="module" src="./src/js/app.js?v=4"></script>
 </body>
 
 </html>
